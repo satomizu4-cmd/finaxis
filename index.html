@@ -1,0 +1,674 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>FINAXIS — Personal Finance OS</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Noto+Sans+JP:wght@400;500;700&family=Space+Mono:wght@400;700&display=swap" rel="stylesheet">
+<style>
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+:root{
+  --bg:#080808;--bg2:#101010;--bg3:#161616;--bg4:#1e1e1e;
+  --g:rgba(255,255,255,0.035);--gb:rgba(255,255,255,0.07);--gbh:rgba(255,255,255,0.055);
+  --t:#ebebeb;--t2:#969696;--t3:#4b4b4b;
+  --lime:#b8f000;--blue:#00c8f0;--red:#f06060;--amber:#f0a030;--green:#58d080;--purple:#b060e0;
+  --r:10px;--r2:6px;--r3:4px;
+  --field-h:52px;--nav-h:60px;
+}
+html,body{height:100%;background:var(--bg);color:var(--t);font-family:'Noto Sans JP',sans-serif;font-size:13px;line-height:1.5}
+.mode-toggle{display:flex;gap:6px;padding:10px 14px;border-bottom:1px solid var(--gb);background:var(--bg)}
+.mode-btn{flex:1;padding:7px;border-radius:var(--r2);border:1px solid var(--gb);background:transparent;color:var(--t2);font-family:'Noto Sans JP',sans-serif;font-size:11px;font-weight:700;cursor:pointer;transition:.15s;display:flex;align-items:center;justify-content:center;gap:5px}
+.mode-btn.on{background:var(--bg3);color:var(--lime);border-color:rgba(184,240,0,.3)}
+#pc-mode{display:block}
+#sp-mode{display:none}
+.pc-wrap{max-width:1100px;margin:0 auto;padding:16px 16px 40px;display:grid;grid-template-columns:220px 1fr;gap:14px;min-height:calc(100vh - 48px)}
+.pc-sidebar{display:flex;flex-direction:column;gap:4px}
+.pc-logo{margin-bottom:16px}
+.pc-logo-main{font-size:17px;font-weight:700;letter-spacing:1px}
+.pc-logo-main span{color:var(--lime)}
+.pc-logo-sub{font-size:9px;color:var(--t3);font-family:'Space Mono',monospace;margin-top:1px}
+.pc-nav-btn{width:100%;padding:10px 12px;border-radius:var(--r2);border:none;background:transparent;color:var(--t2);font-family:'Noto Sans JP',sans-serif;font-size:12px;font-weight:500;cursor:pointer;transition:.15s;text-align:left;display:flex;align-items:center;gap:8px}
+.pc-nav-btn .ni{font-size:14px;width:18px;text-align:center}
+.pc-nav-btn.on{background:var(--bg3);color:var(--t);border:1px solid var(--gb)}
+.pc-nav-btn:hover:not(.on){color:var(--t);background:var(--gbh)}
+.pc-sidebar-bottom{margin-top:auto;padding-top:16px;border-top:1px solid var(--gb);font-size:9px;color:var(--t3);font-family:'Space Mono',monospace}
+.pc-content{min-width:0}
+.pc-pnl{display:none}.pc-pnl.on{display:block}
+.pc-dash-grid{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+.pc-kakeibo-grid{display:grid;grid-template-columns:340px 1fr;gap:12px;align-items:start}
+#sp-mode{flex-direction:column;height:calc(100vh - 48px)}
+#sp-mode.show{display:flex}
+.sp-content{flex:1;overflow-y:auto;padding:12px 10px 4px;-webkit-overflow-scrolling:touch}
+.sp-pnl{display:none}.sp-pnl.on{display:block}
+.sp-nav{height:var(--nav-h);background:var(--bg2);border-top:1px solid var(--gb);display:flex;align-items:stretch;flex-shrink:0}
+.sp-nav-btn{flex:1;border:none;background:transparent;color:var(--t3);font-family:'Noto Sans JP',sans-serif;font-size:9px;font-weight:500;cursor:pointer;transition:.15s;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:3px;padding:6px 2px}
+.sp-nav-btn .sni{font-size:18px;line-height:1}
+.sp-nav-btn.on{color:var(--lime)}
+.card{background:var(--g);border:1px solid var(--gb);border-radius:var(--r);padding:14px;margin-bottom:10px}
+.card-ttl{font-size:10px;font-weight:700;color:var(--t2);text-transform:uppercase;letter-spacing:.8px;margin-bottom:12px;display:flex;align-items:center;justify-content:space-between}
+.card-ttl-l{display:flex;align-items:center;gap:6px}
+.card-ttl-l::before{content:'';width:2px;height:10px;background:var(--lime);border-radius:2px;flex-shrink:0}
+.kpis-pc{display:grid;grid-template-columns:repeat(4,1fr);gap:8px;margin-bottom:12px}
+.kpis-sp{display:grid;grid-template-columns:repeat(2,1fr);gap:8px;margin-bottom:10px}
+.kpi{background:var(--bg3);border-radius:var(--r2);padding:11px;position:relative;overflow:hidden;border:1px solid var(--gb)}
+.kpi::after{content:'';position:absolute;top:0;left:0;right:0;height:1.5px;background:var(--ac,var(--lime))}
+.kpi-lbl{font-size:9px;font-weight:700;color:var(--t3);text-transform:uppercase;letter-spacing:.5px;margin-bottom:4px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.kpi-val{font-size:15px;font-weight:700;font-family:'Space Mono',monospace;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.kpi-sub{font-size:9px;color:var(--t3);margin-top:2px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.fg{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:10px}
+.fg1{display:grid;grid-template-columns:1fr;gap:8px;margin-bottom:10px}
+.field{position:relative;display:flex;flex-direction:column;min-width:0}
+.field label{position:absolute;top:7px;left:10px;font-size:9px;font-weight:700;color:var(--t3);pointer-events:none;z-index:1;white-space:nowrap;line-height:1;letter-spacing:.4px;text-transform:uppercase}
+.field input,.field select{width:100%;height:var(--field-h);padding:22px 10px 6px 10px;background:rgba(255,255,255,0.04);border:1px solid var(--gb);border-radius:var(--r3);color:var(--t);font-family:'Noto Sans JP',sans-serif;font-size:12px;outline:none;transition:border-color .15s,background .15s;-webkit-appearance:none;appearance:none;display:block;line-height:1.3}
+.field input:focus,.field select:focus{border-color:rgba(184,240,0,.5);background:rgba(184,240,0,.03)}
+.field select{padding-right:28px;cursor:pointer}
+.field select option{background:#161616;color:#ebebeb}
+.field.sel::after{content:'';position:absolute;right:10px;bottom:16px;width:0;height:0;border-left:4px solid transparent;border-right:4px solid transparent;border-top:5px solid var(--t3);pointer-events:none}
+.btn{height:34px;padding:0 14px;border-radius:var(--r3);border:none;font-family:'Noto Sans JP',sans-serif;font-size:12px;font-weight:700;cursor:pointer;transition:.15s;white-space:nowrap;display:inline-flex;align-items:center}
+.btn-p{background:var(--lime);color:#000}.btn-p:hover{opacity:.85}
+.btn-g{background:transparent;color:var(--t2);border:1px solid var(--gb)}.btn-g:hover{background:var(--gbh);color:var(--t)}
+.btn-sm{height:26px;padding:0 8px;font-size:10px}
+.btn-full{width:100%;justify-content:center;margin-top:8px}
+.btn-row{display:flex;gap:6px;flex-wrap:wrap}
+.tbl-wrap{overflow-x:auto}
+.tbl{width:100%;border-collapse:collapse}
+.tbl th{text-align:left;padding:5px 7px;font-size:9px;font-weight:700;color:var(--t3);text-transform:uppercase;letter-spacing:.4px;border-bottom:1px solid var(--gb);white-space:nowrap}
+.tbl td{padding:7px 7px;font-size:11px;border-bottom:1px solid rgba(255,255,255,.02);vertical-align:middle;white-space:nowrap}
+.tbl tr:last-child td{border-bottom:none}
+.tbl tr:hover td{background:var(--gbh)}
+.tag{display:inline-block;padding:2px 5px;border-radius:3px;font-size:9px;font-weight:700;white-space:nowrap}
+.tg{background:rgba(88,208,128,.12);color:#58d080}
+.tb{background:rgba(0,200,240,.1);color:#00c8f0}
+.to{background:rgba(240,160,48,.12);color:#f0a030}
+.tr2{background:rgba(240,96,96,.1);color:#f06060}
+.tl{background:rgba(184,240,0,.09);color:#b8f000}
+.tp{background:rgba(176,96,224,.12);color:#b060e0}
+.num{font-family:'Space Mono',monospace}
+.sep{height:1px;background:var(--gb);margin:10px 0}
+.fb{display:flex;align-items:center;justify-content:space-between}
+.row-item{display:flex;align-items:center;justify-content:space-between;padding:7px 0;border-bottom:1px solid rgba(255,255,255,.025)}
+.row-item:last-child{border-bottom:none}
+.total-row{display:flex;justify-content:space-between;align-items:center;padding:9px 0;border-top:1px solid var(--gb);margin-top:5px}
+.total-lbl{font-size:10px;color:var(--t2);font-weight:700}
+.total-val{font-family:'Space Mono',monospace;font-size:15px;font-weight:700;color:var(--lime)}
+.inline-edit{background:transparent;border:none;border-bottom:1px solid var(--gb);color:var(--t);font-family:'Space Mono',monospace;font-size:12px;outline:none;padding:1px 3px;-webkit-appearance:none;appearance:none}
+.inline-edit:focus{border-bottom-color:var(--lime)}
+.badge-ok{background:rgba(88,208,128,.1);color:#58d080;padding:2px 6px;border-radius:10px;font-size:9px;font-weight:700}
+.badge-ng{background:rgba(240,96,96,.1);color:#f06060;padding:2px 6px;border-radius:10px;font-size:9px;font-weight:700}
+.bar-wrap{margin-bottom:6px}
+.bar-lbl{display:flex;justify-content:space-between;font-size:10px;margin-bottom:3px;align-items:center}
+.bar-bg{height:3px;background:rgba(255,255,255,.05);border-radius:2px;overflow:hidden}
+.bar-fill{height:100%;border-radius:2px;background:var(--lime)}
+.inv-card{background:rgba(255,255,255,.015);border:1px solid var(--gb);border-radius:var(--r2);padding:10px;margin-bottom:7px}
+.cal-grid{display:grid;grid-template-columns:repeat(7,1fr);gap:2px}
+.cal-dh{text-align:center;font-size:9px;color:var(--t3);padding:3px 0}
+.cal-d{background:rgba(255,255,255,.015);border:1px solid rgba(255,255,255,.03);border-radius:4px;padding:3px;min-height:42px;position:relative;overflow:hidden}
+.cal-d.has{border-color:rgba(184,240,0,.18)}
+.cal-d.emp{background:transparent;border-color:transparent}
+.cal-d.today .cal-dn{color:var(--lime);font-weight:700}
+.cal-d.no-exp-past{border-color:rgba(240,96,96,.55)!important;background:rgba(240,96,96,.06)!important}
+.cal-dn{font-size:9px;color:var(--t3);margin-bottom:1px}
+.cal-entry{font-size:8px;font-family:'Space Mono',monospace;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;line-height:1.4}
+.cal-entry-fixed{font-size:8px;font-family:'Space Mono',monospace;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;line-height:1.4;color:var(--amber)!important}
+.cal-dot{width:3px;height:3px;border-radius:50%;background:var(--lime);position:absolute;top:3px;right:3px}
+.gear-btn{background:transparent;border:1px solid var(--gb);border-radius:var(--r3);width:26px;height:26px;display:flex;align-items:center;justify-content:center;cursor:pointer;color:var(--t2);font-size:13px;transition:.15s;flex-shrink:0}
+.gear-btn:hover{background:var(--gbh);color:var(--t)}
+.modal-bg{position:fixed;inset:0;background:rgba(0,0,0,.85);display:none;align-items:flex-start;justify-content:center;padding-top:30px;z-index:100;overflow-y:auto}
+.modal-bg.show{display:flex}
+.modal{background:var(--bg2);border:1px solid var(--gb);border-radius:var(--r);padding:18px;width:100%;max-width:440px;margin:0 12px}
+.modal-ttl{font-size:13px;font-weight:700;margin-bottom:12px;display:flex;align-items:center;justify-content:space-between}
+.modal-close{background:transparent;border:none;color:var(--t2);font-size:20px;cursor:pointer;line-height:1}
+.master-list{max-height:160px;overflow-y:auto;margin-bottom:8px}
+.master-item{display:flex;align-items:center;justify-content:space-between;padding:5px 0;border-bottom:1px solid rgba(255,255,255,.03);font-size:12px}
+.master-item:last-child{border-bottom:none}
+.master-add{display:flex;gap:6px;align-items:flex-end}
+.master-add .field{flex:1}
+.tab-sw{display:flex;gap:4px;margin-bottom:10px}
+.tab-sw button{flex:1;height:28px;border-radius:var(--r3);border:1px solid var(--gb);background:transparent;color:var(--t2);font-family:'Noto Sans JP',sans-serif;font-size:11px;cursor:pointer;transition:.15s;display:flex;align-items:center;justify-content:center}
+.tab-sw button.on{background:var(--bg4);color:var(--t);border-color:rgba(255,255,255,.12)}
+.kakeibo-tabs{display:flex;gap:4px;margin-bottom:10px}
+.kakeibo-tab-btn{flex:1;height:32px;border-radius:var(--r3);border:1px solid var(--gb);background:transparent;color:var(--t2);font-family:'Noto Sans JP',sans-serif;font-size:12px;font-weight:700;cursor:pointer;transition:.15s;display:flex;align-items:center;justify-content:center}
+.kakeibo-tab-btn.on{background:var(--bg3);color:var(--lime);border-color:rgba(184,240,0,.3)}
+.year-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:8px;margin-top:4px}
+.year-month-card{background:var(--bg3);border:1px solid var(--gb);border-radius:var(--r2);padding:10px;cursor:pointer;transition:.15s}
+.year-month-card:hover{border-color:rgba(184,240,0,.3);background:var(--bg4)}
+.year-month-card.cur{border-color:rgba(184,240,0,.5)}
+.year-month-lbl{font-size:10px;color:var(--t2);font-weight:700;margin-bottom:3px}
+.year-month-val{font-family:'Space Mono',monospace;font-size:13px;font-weight:700;color:var(--lime)}
+.year-month-cnt{font-size:9px;color:var(--t3);margin-top:1px}
+.fixed-cost-row{display:flex;align-items:center;justify-content:space-between;padding:7px 0;border-bottom:1px solid rgba(255,255,255,.025)}
+.fixed-cost-row:last-child{border-bottom:none}
+.sp-exp-form .field input,.sp-exp-form .field select{height:44px;padding:18px 10px 4px 10px;font-size:11px}
+.sp-exp-form .field label{top:5px;font-size:8px}
+.sp-exp-form .field.sel::after{bottom:12px}
+.sp-exp-row{display:flex;align-items:center;gap:8px;padding:7px 0;border-bottom:1px solid rgba(255,255,255,.03)}
+.sp-exp-row:last-child{border-bottom:none}
+.sp-exp-date{font-size:10px;font-family:'Space Mono',monospace;color:var(--t3);width:32px;flex-shrink:0}
+.sp-exp-info{flex:1;min-width:0}
+.sp-exp-note{font-size:11px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.sp-exp-pay{font-size:9px;color:var(--t3)}
+.sp-exp-amount{font-family:'Space Mono',monospace;font-size:12px;font-weight:700;color:var(--lime);flex-shrink:0}
+</style>
+</head>
+<body>
+
+<div class="mode-toggle">
+  <button class="mode-btn on" onclick="setMode('pc',this)">🖥 PCモード</button>
+  <button class="mode-btn" onclick="setMode('sp',this)">📱 スマホモード</button>
+</div>
+
+<!-- PC MODE -->
+<div id="pc-mode">
+<div class="pc-wrap">
+  <div class="pc-sidebar">
+    <div class="pc-logo">
+      <div class="pc-logo-main">FIN<span>AXIS</span></div>
+      <div class="pc-logo-sub">Personal Finance OS</div>
+    </div>
+    <button class="pc-nav-btn on" onclick="pcTab('dash',this)"><span class="ni">◈</span>ダッシュボード</button>
+    <button class="pc-nav-btn" onclick="pcTab('card',this)"><span class="ni">◉</span>カード</button>
+    <button class="pc-nav-btn" onclick="pcTab('bank',this)"><span class="ni">◎</span>銀行</button>
+    <button class="pc-nav-btn" onclick="pcTab('point',this)"><span class="ni">◇</span>ポイント</button>
+    <button class="pc-nav-btn" onclick="pcTab('invest',this)"><span class="ni">△</span>積立</button>
+    <button class="pc-nav-btn" onclick="pcTab('kakeibo',this)"><span class="ni">▦</span>家計簿</button>
+    <div class="pc-sidebar-bottom">FINAXIS v7.0</div>
+  </div>
+  <div class="pc-content">
+    <div class="pc-pnl on" id="pc-dash">
+      <div class="kpis-pc">
+        <div class="kpi" style="--ac:var(--lime)"><div class="kpi-lbl">総資産</div><div class="kpi-val" id="pd-total">¥0</div><div class="kpi-sub">銀行+積立+ポイント</div></div>
+        <div class="kpi" style="--ac:var(--blue)"><div class="kpi-lbl">銀行残高</div><div class="kpi-val" id="pd-banks">¥0</div><div class="kpi-sub">全口座合計</div></div>
+        <div class="kpi" style="--ac:var(--amber)"><div class="kpi-lbl">今月支出</div><div class="kpi-val" id="pd-exp">¥0</div><div class="kpi-sub" id="pd-exp-sub">—</div></div>
+        <div class="kpi" style="--ac:var(--purple)"><div class="kpi-lbl">ポイント総額</div><div class="kpi-val" id="pd-pts">¥0</div><div class="kpi-sub">円換算合計</div></div>
+      </div>
+      <div class="pc-dash-grid">
+        <div class="card"><div class="card-ttl"><div class="card-ttl-l">引落カレンダー</div></div><div class="cal-grid" id="pd-cal"></div></div>
+        <div class="card">
+          <div class="card-ttl"><div class="card-ttl-l">引落銀行別 月間合計</div></div>
+          <div id="pd-bank-summary"><div style="color:var(--t3);font-size:10px;text-align:center;padding:12px">カード・銀行情報を入力してください</div></div>
+          <div class="sep"></div>
+          <div class="card-ttl"><div class="card-ttl-l">支出カテゴリ別</div></div>
+          <div id="pd-cat-chart"><div style="color:var(--t3);font-size:10px;text-align:center;padding:8px">支出データなし</div></div>
+        </div>
+      </div>
+    </div>
+    <div class="pc-pnl" id="pc-card">
+      <div class="card">
+        <div class="card-ttl"><div class="card-ttl-l">カード追加</div></div>
+        <div class="fg">
+          <div class="field"><label>カード名</label><input id="pc-c-name" placeholder="例: SPGアメックス"></div>
+          <div class="field sel"><label>ブランド</label><select id="pc-c-brand"><option>AMEX</option><option>Visa</option><option>Mastercard</option><option>JCB</option><option>Diners</option></select></div>
+          <div class="field"><label>年会費（円）</label><input type="number" id="pc-c-fee" placeholder="34100"></div>
+          <div class="field"><label>引落口座</label><input id="pc-c-bank" placeholder="例: 三井住友銀行"></div>
+          <div class="field"><label>締め日</label><input type="number" id="pc-c-close" placeholder="15" min="1" max="31"></div>
+          <div class="field"><label>支払日</label><input type="number" id="pc-c-pay" placeholder="10" min="1" max="31"></div>
+          <div class="field"><label>今月利用額（円）</label><input type="number" id="pc-c-amount" placeholder="85000"></div>
+          <div class="field sel"><label>祝日ルール</label><select id="pc-c-rule"><option value="before">前営業日</option><option value="after">翌営業日</option></select></div>
+        </div>
+        <div class="btn-row"><button class="btn btn-p" onclick="addCard()">追加</button><button class="btn btn-g" onclick="clearCardPC()">クリア</button></div>
+      </div>
+      <div class="card"><div class="card-ttl"><div class="card-ttl-l">登録カード一覧</div></div><div class="tbl-wrap"><table class="tbl"><thead><tr><th>カード名</th><th>ブランド</th><th>年会費</th><th>引落口座</th><th>締め</th><th>支払日</th><th>今月利用</th><th>祝日</th><th></th></tr></thead><tbody id="pc-card-body"><tr><td colspan="9" style="color:var(--t3);text-align:center;padding:18px">カードを追加してください</td></tr></tbody></table></div></div>
+    </div>
+    <div class="pc-pnl" id="pc-bank">
+      <div class="card">
+        <div class="card-ttl"><div class="card-ttl-l">口座追加</div></div>
+        <div class="fg">
+          <div class="field"><label>銀行名</label><input id="pc-b-name" placeholder="例: あおぞら銀行"></div>
+          <div class="field"><label>役割（自由記述）</label><input id="pc-b-role" placeholder="例: ポイ活決済用"></div>
+          <div class="field"><label>残高（円）</label><input type="number" id="pc-b-bal" placeholder="350000"></div>
+          <div class="field"><label>備考</label><input id="pc-b-note" placeholder="例: 島根銀行から振込"></div>
+        </div>
+        <button class="btn btn-p" onclick="addBank()">追加</button>
+      </div>
+      <div class="card"><div class="card-ttl"><div class="card-ttl-l">口座一覧（残高を直接編集可）</div></div><div id="pc-bank-list"><div style="color:var(--t3);font-size:10px;text-align:center;padding:18px">口座を追加してください</div></div><div class="total-row"><span class="total-lbl">全口座 残高合計</span><span class="total-val" id="pc-bank-total">¥0</span></div></div>
+    </div>
+    <div class="pc-pnl" id="pc-point">
+      <div class="card">
+        <div class="card-ttl"><div class="card-ttl-l">ポイント追加</div></div>
+        <div class="fg">
+          <div class="field"><label>ポイント名</label><input id="pc-p-name" placeholder="例: Vポイント"></div>
+          <div class="field"><label>残高（pt）</label><input type="number" id="pc-p-bal" placeholder="12000"></div>
+          <div class="field"><label>1pt = 円</label><input type="number" id="pc-p-rate" step="0.1" placeholder="1.5"></div>
+          <div class="field"><label>用途メモ</label><input id="pc-p-memo" placeholder="例: ウェル活 1.5円換算"></div>
+        </div>
+        <button class="btn btn-p" onclick="addPoint()">追加</button>
+      </div>
+      <div class="card"><div class="card-ttl"><div class="card-ttl-l">ポイント残高（直接編集可）</div></div><div id="pc-point-list"><div style="color:var(--t3);font-size:10px;text-align:center;padding:18px">ポイントを追加してください</div></div><div class="total-row" id="pc-pt-total-row" style="display:none"><span class="total-lbl">総合計（円換算）</span><span class="total-val" id="pc-pt-total">¥0</span></div></div>
+    </div>
+    <div class="pc-pnl" id="pc-invest">
+      <div class="card">
+        <div class="card-ttl"><div class="card-ttl-l">取引記録追加</div></div>
+        <div class="fg">
+          <div class="field"><label>証券会社</label><input id="pc-i-broker" placeholder="例: SBI証券"></div>
+          <div class="field"><label>銘柄</label><input id="pc-i-fund" placeholder="例: eMAXIS Slim 全世界株式"></div>
+          <div class="field sel"><label>種別</label><select id="pc-i-type"><option value="buy">積立/購入</option><option value="sell">売却</option></select></div>
+          <div class="field"><label>金額（円）</label><input type="number" id="pc-i-amount" placeholder="50000"></div>
+          <div class="field"><label>決済カード/口座</label><input id="pc-i-payment" placeholder="例: 三井住友プラチナ"></div>
+          <div class="field"><label>獲得ポイント（pt）</label><input type="number" id="pc-i-pts" placeholder="250"></div>
+          <div class="field"><label>取引日</label><input type="date" id="pc-i-date"></div>
+          <div class="field"><label>評価額（円）</label><input type="number" id="pc-i-eval" placeholder="1250000"></div>
+        </div>
+        <button class="btn btn-p" onclick="addInvest()">追加</button>
+      </div>
+      <div class="card"><div class="card-ttl"><div class="card-ttl-l">積立一覧</div></div><div id="pc-invest-list"><div style="color:var(--t3);font-size:10px;text-align:center;padding:18px">取引を追加してください</div></div><div class="total-row" id="pc-inv-total-row" style="display:none"><span class="total-lbl">評価額合計</span><span class="total-val" id="pc-inv-total">¥0</span></div></div>
+    </div>
+
+    <!-- ===== 家計簿 ===== -->
+    <div class="pc-pnl" id="pc-kakeibo">
+      <div class="kakeibo-tabs">
+        <button class="kakeibo-tab-btn on" onclick="setKakeiboTab('month')">月</button>
+        <button class="kakeibo-tab-btn" onclick="setKakeiboTab('year')">年</button>
+      </div>
+      <!-- 月ビュー -->
+      <div id="pc-kakeibo-month">
+        <div class="pc-kakeibo-grid">
+          <div>
+            <div class="card">
+              <div class="card-ttl"><div class="card-ttl-l">支出追加</div><button class="gear-btn" onclick="openSettings()">⚙</button></div>
+              <div class="fg">
+                <div class="field"><label>日付</label><input type="date" id="pc-e-date"></div>
+                <div class="field sel"><label>カテゴリ</label><select id="pc-e-cat"></select></div>
+                <div class="field"><label>金額（円）</label><input type="number" id="pc-e-amount" placeholder="3500"></div>
+                <div class="field sel"><label>支払い方法</label><select id="pc-e-pay"></select></div>
+                <div class="field" style="grid-column:span 2"><label>内容</label><input id="pc-e-note" placeholder="例: ランチ（新宿）"></div>
+              </div>
+              <button class="btn btn-p btn-full" onclick="addExp()">追加</button>
+            </div>
+            <div class="card"><div class="card-ttl"><div class="card-ttl-l">カテゴリ別（今月）</div></div><div id="pc-cat-summary"><div style="color:var(--t3);font-size:10px;text-align:center;padding:10px">データなし</div></div><div class="total-row"><span class="total-lbl">月間合計</span><span class="total-val" id="pc-month-total">¥0</span></div></div>
+          </div>
+          <div>
+            <div class="card">
+              <div class="card-ttl"><div class="card-ttl-l">カレンダー</div><div style="display:flex;align-items:center;gap:5px"><button class="btn btn-g btn-sm" onclick="prevMonth()">◀</button><span id="pc-cal-label" style="font-family:'Space Mono',monospace;font-size:10px;color:var(--t2)">—</span><button class="btn btn-g btn-sm" onclick="nextMonth()">▶</button></div></div>
+              <div class="cal-grid" id="pc-exp-cal"></div>
+            </div>
+            <div class="card"><div class="card-ttl"><div class="card-ttl-l">支出一覧</div></div><div class="tbl-wrap"><table class="tbl"><thead><tr><th>日付</th><th>カテゴリ</th><th>金額</th><th>支払</th><th>内容</th><th></th></tr></thead><tbody id="pc-exp-body"><tr><td colspan="6" style="color:var(--t3);text-align:center;padding:18px">支出を追加してください</td></tr></tbody></table></div></div>
+          </div>
+        </div>
+      </div>
+      <!-- 年ビュー -->
+      <div id="pc-kakeibo-year" style="display:none">
+        <div class="card">
+          <div class="card-ttl"><div class="card-ttl-l">年間サマリ</div><div style="display:flex;align-items:center;gap:5px"><button class="btn btn-g btn-sm" onclick="prevYear()">◀</button><span id="pc-year-label" style="font-family:'Space Mono',monospace;font-size:10px;color:var(--t2)">—</span><button class="btn btn-g btn-sm" onclick="nextYear()">▶</button></div></div>
+          <div class="year-grid" id="pc-year-grid"></div>
+          <div class="total-row"><span class="total-lbl">年間合計</span><span class="total-val" id="pc-year-total">¥0</span></div>
+        </div>
+        <div class="card"><div class="card-ttl"><div class="card-ttl-l">月別支出一覧</div></div><div id="pc-year-detail"></div></div>
+      </div>
+      <!-- 固定費 -->
+      <div class="card">
+        <div class="card-ttl"><div class="card-ttl-l">固定費追加</div></div>
+        <div class="fg">
+          <div class="field"><label>名称</label><input id="pc-f-name" placeholder="例: 家賃"></div>
+          <div class="field"><label>金額（円）</label><input type="number" id="pc-f-amount" placeholder="80000"></div>
+          <div class="field"><label>支払日（日）</label><input type="number" id="pc-f-day" placeholder="27" min="1" max="31"></div>
+          <div class="field sel"><label>支払サイクル</label><select id="pc-f-cycle" onchange="toggleFixedMonth('pc')"><option value="monthly">月払い</option><option value="yearly">年払い</option></select></div>
+          <div class="field sel" id="pc-f-month-wrap" style="display:none"><label>支払月</label><select id="pc-f-month"><option value="1">1月</option><option value="2">2月</option><option value="3">3月</option><option value="4">4月</option><option value="5">5月</option><option value="6">6月</option><option value="7">7月</option><option value="8">8月</option><option value="9">9月</option><option value="10">10月</option><option value="11">11月</option><option value="12">12月</option></select></div>
+        </div>
+        <button class="btn btn-p" onclick="addFixed('pc')">追加</button>
+      </div>
+      <div class="card"><div class="card-ttl"><div class="card-ttl-l">固定費一覧</div></div><div id="pc-fixed-list"><div style="color:var(--t3);font-size:10px;text-align:center;padding:10px">固定費を追加してください</div></div><div class="total-row"><span class="total-lbl">今月の固定費合計</span><span class="total-val" id="pc-fixed-total">¥0</span></div></div>
+    </div>
+
+  </div>
+</div>
+</div>
+
+<!-- SP MODE -->
+<div id="sp-mode">
+  <div class="sp-content">
+    <div class="sp-pnl on" id="sp-dash">
+      <div class="kpis-sp">
+        <div class="kpi" style="--ac:var(--lime)"><div class="kpi-lbl">総資産</div><div class="kpi-val" id="sd-total">¥0</div><div class="kpi-sub">銀行+積立+PT</div></div>
+        <div class="kpi" style="--ac:var(--blue)"><div class="kpi-lbl">銀行残高</div><div class="kpi-val" id="sd-banks">¥0</div><div class="kpi-sub">全口座合計</div></div>
+        <div class="kpi" style="--ac:var(--amber)"><div class="kpi-lbl">今月支出</div><div class="kpi-val" id="sd-exp">¥0</div><div class="kpi-sub" id="sd-exp-sub">—</div></div>
+        <div class="kpi" style="--ac:var(--purple)"><div class="kpi-lbl">ポイント</div><div class="kpi-val" id="sd-pts">¥0</div><div class="kpi-sub">円換算</div></div>
+      </div>
+      <div class="card"><div class="card-ttl"><div class="card-ttl-l">引落カレンダー</div></div><div class="cal-grid" id="sd-cal"></div></div>
+      <div class="card"><div class="card-ttl"><div class="card-ttl-l">引落銀行別</div></div><div id="sd-bank-summary"><div style="color:var(--t3);font-size:10px;text-align:center;padding:10px">カード・銀行情報を入力してください</div></div></div>
+    </div>
+    <div class="sp-pnl" id="sp-card">
+      <div class="card">
+        <div class="card-ttl"><div class="card-ttl-l">カード追加</div></div>
+        <div class="fg1">
+          <div class="field"><label>カード名</label><input id="sp-c-name" placeholder="例: SPGアメックス"></div>
+          <div class="fg"><div class="field sel"><label>ブランド</label><select id="sp-c-brand"><option>AMEX</option><option>Visa</option><option>Mastercard</option><option>JCB</option><option>Diners</option></select></div><div class="field sel"><label>祝日ルール</label><select id="sp-c-rule"><option value="before">前営業日</option><option value="after">翌営業日</option></select></div></div>
+          <div class="fg"><div class="field"><label>年会費（円）</label><input type="number" id="sp-c-fee" placeholder="34100"></div><div class="field"><label>引落口座</label><input id="sp-c-bank" placeholder="例: 三井住友"></div></div>
+          <div class="fg"><div class="field"><label>締め日</label><input type="number" id="sp-c-close" placeholder="15" min="1" max="31"></div><div class="field"><label>支払日</label><input type="number" id="sp-c-pay" placeholder="10" min="1" max="31"></div></div>
+          <div class="field"><label>今月利用額（円）</label><input type="number" id="sp-c-amount" placeholder="85000"></div>
+        </div>
+        <button class="btn btn-p btn-full" onclick="addCard()">追加</button>
+      </div>
+      <div class="card"><div class="card-ttl"><div class="card-ttl-l">登録カード一覧</div></div><div id="sp-card-list"><div style="color:var(--t3);font-size:10px;text-align:center;padding:16px">カードを追加してください</div></div></div>
+    </div>
+    <div class="sp-pnl" id="sp-bank">
+      <div class="card">
+        <div class="card-ttl"><div class="card-ttl-l">口座追加</div></div>
+        <div class="fg"><div class="field"><label>銀行名</label><input id="sp-b-name" placeholder="例: あおぞら銀行"></div><div class="field"><label>役割</label><input id="sp-b-role" placeholder="例: ポイ活決済用"></div><div class="field"><label>残高（円）</label><input type="number" id="sp-b-bal" placeholder="350000"></div><div class="field"><label>備考</label><input id="sp-b-note" placeholder="例: 島根銀行から振込"></div></div>
+        <button class="btn btn-p btn-full" onclick="addBank()">追加</button>
+      </div>
+      <div class="card"><div class="card-ttl"><div class="card-ttl-l">口座一覧</div></div><div id="sp-bank-list"><div style="color:var(--t3);font-size:10px;text-align:center;padding:16px">口座を追加してください</div></div><div class="total-row"><span class="total-lbl">残高合計</span><span class="total-val" id="sp-bank-total">¥0</span></div></div>
+    </div>
+    <div class="sp-pnl" id="sp-point">
+      <div class="card">
+        <div class="card-ttl"><div class="card-ttl-l">ポイント追加</div></div>
+        <div class="fg"><div class="field"><label>ポイント名</label><input id="sp-p-name" placeholder="例: Vポイント"></div><div class="field"><label>残高（pt）</label><input type="number" id="sp-p-bal" placeholder="12000"></div><div class="field"><label>1pt = 円</label><input type="number" id="sp-p-rate" step="0.1" placeholder="1.5"></div><div class="field"><label>用途メモ</label><input id="sp-p-memo" placeholder="例: ウェル活 1.5円換算"></div></div>
+        <button class="btn btn-p btn-full" onclick="addPoint()">追加</button>
+      </div>
+      <div class="card"><div class="card-ttl"><div class="card-ttl-l">ポイント残高</div></div><div id="sp-point-list"><div style="color:var(--t3);font-size:10px;text-align:center;padding:16px">ポイントを追加してください</div></div><div class="total-row" id="sp-pt-total-row" style="display:none"><span class="total-lbl">総合計（円換算）</span><span class="total-val" id="sp-pt-total">¥0</span></div></div>
+    </div>
+    <div class="sp-pnl" id="sp-invest">
+      <div class="card">
+        <div class="card-ttl"><div class="card-ttl-l">取引記録追加</div></div>
+        <div class="fg"><div class="field"><label>証券会社</label><input id="sp-i-broker" placeholder="例: SBI証券"></div><div class="field"><label>銘柄</label><input id="sp-i-fund" placeholder="例: eMAXIS Slim"></div><div class="field sel"><label>種別</label><select id="sp-i-type"><option value="buy">積立/購入</option><option value="sell">売却</option></select></div><div class="field"><label>金額（円）</label><input type="number" id="sp-i-amount" placeholder="50000"></div><div class="field"><label>取引日</label><input type="date" id="sp-i-date"></div><div class="field"><label>評価額（円）</label><input type="number" id="sp-i-eval" placeholder="1250000"></div></div>
+        <button class="btn btn-p btn-full" onclick="addInvest()">追加</button>
+      </div>
+      <div class="card"><div class="card-ttl"><div class="card-ttl-l">積立一覧</div></div><div id="sp-invest-list"><div style="color:var(--t3);font-size:10px;text-align:center;padding:16px">取引を追加してください</div></div><div class="total-row" id="sp-inv-total-row" style="display:none"><span class="total-lbl">評価額合計</span><span class="total-val" id="sp-inv-total">¥0</span></div></div>
+    </div>
+
+    <!-- ===== SP 家計簿 ===== -->
+    <div class="sp-pnl" id="sp-kakeibo">
+      <div class="kakeibo-tabs">
+        <button class="kakeibo-tab-btn on" onclick="setKakeiboTab('month')">月</button>
+        <button class="kakeibo-tab-btn" onclick="setKakeiboTab('year')">年</button>
+      </div>
+      <!-- 月ビュー -->
+      <div id="sp-kakeibo-month">
+        <div class="card sp-exp-form">
+          <div class="card-ttl"><div class="card-ttl-l">支出追加</div><button class="gear-btn" onclick="openSettings()">⚙</button></div>
+          <div class="fg"><div class="field"><label>日付</label><input type="date" id="sp-e-date"></div><div class="field sel"><label>カテゴリ</label><select id="sp-e-cat"></select></div><div class="field"><label>金額（円）</label><input type="number" id="sp-e-amount" placeholder="3500"></div><div class="field sel"><label>支払い方法</label><select id="sp-e-pay"></select></div><div class="field" style="grid-column:span 2"><label>内容</label><input id="sp-e-note" placeholder="例: ランチ（新宿）"></div></div>
+          <button class="btn btn-p btn-full" onclick="addExp()">追加</button>
+        </div>
+        <div class="card">
+          <div class="card-ttl"><div class="card-ttl-l">カレンダー</div><div style="display:flex;align-items:center;gap:4px"><button class="btn btn-g btn-sm" onclick="prevMonth()">◀</button><span id="sp-cal-label" style="font-family:'Space Mono',monospace;font-size:10px;color:var(--t2)">—</span><button class="btn btn-g btn-sm" onclick="nextMonth()">▶</button></div></div>
+          <div class="cal-grid" id="sp-exp-cal"></div>
+          <div class="sep"></div>
+          <div class="fb"><span style="font-size:10px;font-weight:700;color:var(--t2)">月間合計</span><span class="num" id="sp-month-total" style="color:var(--lime);font-size:14px;font-weight:700">¥0</span></div>
+          <div id="sp-cat-summary" style="margin-top:8px"></div>
+        </div>
+        <div class="card"><div class="card-ttl"><div class="card-ttl-l">支出一覧</div></div><div id="sp-exp-list"><div style="color:var(--t3);font-size:10px;text-align:center;padding:16px">支出を追加してください</div></div></div>
+      </div>
+      <!-- 年ビュー -->
+      <div id="sp-kakeibo-year" style="display:none">
+        <div class="card">
+          <div class="card-ttl"><div class="card-ttl-l">年間サマリ</div><div style="display:flex;align-items:center;gap:4px"><button class="btn btn-g btn-sm" onclick="prevYear()">◀</button><span id="sp-year-label" style="font-family:'Space Mono',monospace;font-size:10px;color:var(--t2)">—</span><button class="btn btn-g btn-sm" onclick="nextYear()">▶</button></div></div>
+          <div class="year-grid" id="sp-year-grid"></div>
+          <div class="total-row"><span class="total-lbl">年間合計</span><span class="total-val" id="sp-year-total">¥0</span></div>
+        </div>
+        <div class="card"><div class="card-ttl"><div class="card-ttl-l">月別支出一覧</div></div><div id="sp-year-detail"></div></div>
+      </div>
+      <!-- 固定費 -->
+      <div class="card sp-exp-form">
+        <div class="card-ttl"><div class="card-ttl-l">固定費追加</div></div>
+        <div class="fg">
+          <div class="field"><label>名称</label><input id="sp-f-name" placeholder="例: 家賃"></div>
+          <div class="field"><label>金額（円）</label><input type="number" id="sp-f-amount" placeholder="80000"></div>
+          <div class="field"><label>支払日（日）</label><input type="number" id="sp-f-day" placeholder="27" min="1" max="31"></div>
+          <div class="field sel"><label>支払サイクル</label><select id="sp-f-cycle" onchange="toggleFixedMonth('sp')"><option value="monthly">月払い</option><option value="yearly">年払い</option></select></div>
+          <div class="field sel" id="sp-f-month-wrap" style="display:none"><label>支払月</label><select id="sp-f-month"><option value="1">1月</option><option value="2">2月</option><option value="3">3月</option><option value="4">4月</option><option value="5">5月</option><option value="6">6月</option><option value="7">7月</option><option value="8">8月</option><option value="9">9月</option><option value="10">10月</option><option value="11">11月</option><option value="12">12月</option></select></div>
+        </div>
+        <button class="btn btn-p btn-full" onclick="addFixed('sp')">追加</button>
+      </div>
+      <div class="card"><div class="card-ttl"><div class="card-ttl-l">固定費一覧</div></div><div id="sp-fixed-list"><div style="color:var(--t3);font-size:10px;text-align:center;padding:10px">固定費を追加してください</div></div><div class="total-row"><span class="total-lbl">今月の固定費合計</span><span class="total-val" id="sp-fixed-total">¥0</span></div></div>
+    </div>
+
+  </div>
+  <nav class="sp-nav">
+    <button class="sp-nav-btn on" onclick="spTab('dash',this)"><span class="sni">◈</span>ホーム</button>
+    <button class="sp-nav-btn" onclick="spTab('card',this)"><span class="sni">◉</span>カード</button>
+    <button class="sp-nav-btn" onclick="spTab('bank',this)"><span class="sni">◎</span>銀行</button>
+    <button class="sp-nav-btn" onclick="spTab('point',this)"><span class="sni">◇</span>ポイント</button>
+    <button class="sp-nav-btn" onclick="spTab('invest',this)"><span class="sni">△</span>積立</button>
+    <button class="sp-nav-btn" onclick="spTab('kakeibo',this)"><span class="sni">▦</span>家計簿</button>
+  </nav>
+</div>
+
+<!-- Settings Modal -->
+<div id="settings-modal" class="modal-bg">
+  <div class="modal">
+    <div class="modal-ttl"><span>設定 — マスタ編集</span><button class="modal-close" onclick="closeSettings()">×</button></div>
+    <div class="tab-sw"><button class="on" onclick="stab('cat',this)">カテゴリ</button><button onclick="stab('pay',this)">支払い方法</button></div>
+    <div id="s-cat"><div class="master-list" id="cat-ml"></div><div class="master-add"><div class="field"><label>新しいカテゴリ名</label><input id="new-cat" placeholder="例: 医療費"></div><button class="btn btn-p btn-sm" onclick="addCat()">追加</button></div></div>
+    <div id="s-pay" style="display:none"><div class="master-list" id="pay-ml"></div><div class="master-add"><div class="field"><label>新しい支払い方法</label><input id="new-pay" placeholder="例: 銀行振込"></div><button class="btn btn-p btn-sm" onclick="addPay()">追加</button></div></div>
+    <div style="margin-top:12px;text-align:right"><button class="btn btn-p" onclick="closeSettings()">完了</button></div>
+  </div>
+</div>
+
+<script>
+const JP_HOL=['2026-01-01','2026-01-12','2026-02-11','2026-02-23','2026-03-20','2026-04-29','2026-05-03','2026-05-04','2026-05-05','2026-05-06','2026-07-20','2026-08-11','2026-09-21','2026-09-22','2026-09-23','2026-10-12','2026-11-03','2026-11-23','2026-12-23'];
+const isHol=d=>JP_HOL.includes(d.toISOString().slice(0,10));
+const isWE=d=>d.getDay()===0||d.getDay()===6;
+const isNonBiz=d=>isWE(d)||isHol(d);
+const now=new Date();
+const pad=n=>String(n).padStart(2,'0');
+const todayStr=`${now.getFullYear()}-${pad(now.getMonth()+1)}-${pad(now.getDate())}`;
+const S={
+  cards:[],banks:[],points:[],investments:[],expenses:[],fixedCosts:[],
+  calYear:now.getFullYear(),calMonth:now.getMonth()+1,
+  kakeiboTab:'month',kakeiboYear:now.getFullYear(),
+  cats:['食費','外食','交通費','日用品','趣味・娯楽','旅行','美容・健康','衣類','サブスク','その他'],
+  pays:['クレジットカード','プリペイド','QR/電子マネー','現金'],
+  mode:'pc'
+};
+const fmt=n=>'¥'+Math.round(n).toLocaleString();
+const catTag={食費:'tg',外食:'tl',交通費:'tb',日用品:'to','趣味・娯楽':'tp',旅行:'tr2','美容・健康':'tg',衣類:'tb',サブスク:'to',その他:'to'};
+const tg=c=>catTag[c]||'to';
+
+function setMode(mode,btn){S.mode=mode;document.querySelectorAll('.mode-btn').forEach(b=>b.classList.remove('on'));btn.classList.add('on');const pc=document.getElementById('pc-mode'),sp=document.getElementById('sp-mode');if(mode==='pc'){pc.style.display='block';sp.style.display='none';sp.classList.remove('show');}else{pc.style.display='none';sp.style.display='flex';sp.classList.add('show');}renderAll();}
+function pcTab(name,btn){document.querySelectorAll('.pc-pnl').forEach(p=>p.classList.remove('on'));document.querySelectorAll('.pc-nav-btn').forEach(b=>b.classList.remove('on'));document.getElementById('pc-'+name).classList.add('on');btn.classList.add('on');}
+function spTab(name,btn){document.querySelectorAll('.sp-pnl').forEach(p=>p.classList.remove('on'));document.querySelectorAll('.sp-nav-btn').forEach(b=>b.classList.remove('on'));document.getElementById('sp-'+name).classList.add('on');btn.classList.add('on');document.querySelector('.sp-content').scrollTop=0;}
+function adjDate(y,m,d,rule){let dt=new Date(y,m-1,d);if(!isNonBiz(dt))return{date:dt};if(rule==='before'){while(isNonBiz(dt))dt=new Date(+dt-86400000);}else{while(isNonBiz(dt))dt=new Date(+dt+86400000);}return{date:dt};}
+function rebuildSelects(){['pc-e-cat','sp-e-cat'].forEach(id=>{const el=document.getElementById(id);if(!el)return;const v=el.value;el.innerHTML=S.cats.map(c=>`<option>${c}</option>`).join('');if(S.cats.includes(v))el.value=v;});['pc-e-pay','sp-e-pay'].forEach(id=>{const el=document.getElementById(id);if(!el)return;const v=el.value;el.innerHTML=S.pays.map(p=>`<option>${p}</option>`).join('');if(S.pays.includes(v))el.value=v;});}
+function renderML(){document.getElementById('cat-ml').innerHTML=S.cats.map((c,i)=>`<div class="master-item"><span>${c}</span><button class="btn btn-g btn-sm" onclick="rmCat(${i})">削除</button></div>`).join('');document.getElementById('pay-ml').innerHTML=S.pays.map((p,i)=>`<div class="master-item"><span>${p}</span><button class="btn btn-g btn-sm" onclick="rmPay(${i})">削除</button></div>`).join('');}
+function openSettings(){renderML();document.getElementById('settings-modal').classList.add('show');}
+function closeSettings(){document.getElementById('settings-modal').classList.remove('show');rebuildSelects();}
+function stab(name,btn){document.querySelectorAll('.tab-sw button').forEach(b=>b.classList.remove('on'));btn.classList.add('on');document.getElementById('s-cat').style.display=name==='cat'?'block':'none';document.getElementById('s-pay').style.display=name==='pay'?'block':'none';}
+function addCat(){const v=document.getElementById('new-cat').value.trim();if(!v||S.cats.includes(v))return;S.cats.push(v);renderML();document.getElementById('new-cat').value='';}
+function rmCat(i){if(S.cats.length<=1)return;S.cats.splice(i,1);renderML();}
+function addPay(){const v=document.getElementById('new-pay').value.trim();if(!v||S.pays.includes(v))return;S.pays.push(v);renderML();document.getElementById('new-pay').value='';}
+function rmPay(i){if(S.pays.length<=1)return;S.pays.splice(i,1);renderML();}
+function addCard(){const p=S.mode==='pc'?'pc-c-':'sp-c-';const name=document.getElementById(p+'name').value.trim();if(!name){alert('カード名を入力してください');return;}S.cards.push({id:Date.now(),name,brand:document.getElementById(p+'brand').value,fee:+document.getElementById(p+'fee').value||0,bank:document.getElementById(p+'bank').value,close:+document.getElementById(p+'close').value||0,pay:+document.getElementById(p+'pay').value||0,amount:+document.getElementById(p+'amount').value||0,rule:document.getElementById(p+'rule').value});renderAll();}
+function clearCardPC(){['pc-c-name','pc-c-fee','pc-c-bank','pc-c-close','pc-c-pay','pc-c-amount'].forEach(id=>document.getElementById(id).value='');}
+function removeCard(i){S.cards.splice(i,1);renderAll();}
+function addBank(){const p=S.mode==='pc'?'pc-b-':'sp-b-';const name=document.getElementById(p+'name').value.trim();if(!name){alert('銀行名を入力してください');return;}S.banks.push({id:Date.now(),name,role:document.getElementById(p+'role').value,balance:+document.getElementById(p+'bal').value||0,note:document.getElementById(p+'note').value});renderAll();[p+'name',p+'role',p+'bal',p+'note'].forEach(id=>document.getElementById(id).value='');}
+function removeBank(i){S.banks.splice(i,1);renderAll();}
+function updateBankBal(i,val){S.banks[i].balance=+val||0;renderAll();}
+function addPoint(){const p=S.mode==='pc'?'pc-p-':'sp-p-';const name=document.getElementById(p+'name').value.trim();if(!name){alert('ポイント名を入力してください');return;}S.points.push({id:Date.now(),name,balance:+document.getElementById(p+'bal').value||0,rate:+document.getElementById(p+'rate').value||1,memo:document.getElementById(p+'memo').value});renderAll();[p+'name',p+'bal',p+'rate',p+'memo'].forEach(id=>document.getElementById(id).value='');}
+function removePoint(i){S.points.splice(i,1);renderAll();}
+function updatePtBal(i,val){S.points[i].balance=+val||0;renderAll();}
+function addInvest(){const p=S.mode==='pc'?'pc-i-':'sp-i-';const broker=document.getElementById(p+'broker').value.trim();if(!broker){alert('証券会社名を入力してください');return;}S.investments.push({id:Date.now(),broker,fund:document.getElementById(p+'fund').value,type:document.getElementById(p+'type').value,amount:+document.getElementById(p+'amount').value||0,date:document.getElementById(p+'date').value||todayStr,eval:+document.getElementById(p+'eval').value||0});renderAll();[p+'broker',p+'fund',p+'amount',p+'eval'].forEach(id=>{const el=document.getElementById(id);if(el)el.value='';});}
+function removeInvest(idx){S.investments.splice(idx,1);renderAll();}
+function addExp(){const p=S.mode==='pc'?'pc-e-':'sp-e-';const amount=+document.getElementById(p+'amount').value;if(!amount){alert('金額を入力してください');return;}S.expenses.push({id:Date.now(),date:document.getElementById(p+'date').value||todayStr,cat:document.getElementById(p+'cat').value,amount,pay:document.getElementById(p+'pay').value,note:document.getElementById(p+'note').value});S.expenses.sort((a,b)=>b.date.localeCompare(a.date));document.getElementById(p+'amount').value='';document.getElementById(p+'note').value='';renderAll();}
+function removeExp(i){S.expenses.splice(i,1);renderAll();}
+function prevMonth(){if(S.calMonth===1){S.calMonth=12;S.calYear--;}else S.calMonth--;renderAll();}
+function nextMonth(){if(S.calMonth===12){S.calMonth=1;S.calYear++;}else S.calMonth++;renderAll();}
+
+function setKakeiboTab(tab){
+  S.kakeiboTab=tab;
+  if(tab==='year')S.kakeiboYear=S.calYear;
+  renderAll();
+}
+function prevYear(){S.kakeiboYear--;renderAll();}
+function nextYear(){S.kakeiboYear++;renderAll();}
+function jumpToMonth(year,month){S.calYear=year;S.calMonth=month;S.kakeiboYear=year;S.kakeiboTab='month';renderAll();}
+
+function toggleFixedMonth(prefix){
+  const cycle=document.getElementById(prefix+'-f-cycle').value;
+  const wrap=document.getElementById(prefix+'-f-month-wrap');
+  if(wrap)wrap.style.display=cycle==='yearly'?'':'none';
+}
+function addFixed(prefix){
+  const p=prefix+'-f-';
+  const name=document.getElementById(p+'name').value.trim();
+  if(!name){alert('名称を入力してください');return;}
+  const amount=+document.getElementById(p+'amount').value;
+  if(!amount){alert('金額を入力してください');return;}
+  const cycle=document.getElementById(p+'cycle').value;
+  const day=+document.getElementById(p+'day').value||1;
+  const month=cycle==='yearly'?+document.getElementById(p+'month').value:null;
+  S.fixedCosts.push({id:Date.now(),name,amount,cycle,day,month});
+  [p+'name',p+'amount',p+'day'].forEach(id=>document.getElementById(id).value='');
+  renderAll();
+}
+function removeFixed(i){S.fixedCosts.splice(i,1);renderAll();}
+
+function buildCal(calId,expenses,showCards){
+  const cal=document.getElementById(calId);if(!cal)return;
+  cal.innerHTML='';
+  ['日','月','火','水','木','金','土'].forEach(d=>{const h=document.createElement('div');h.className='cal-dh';h.textContent=d;cal.appendChild(h);});
+  const fd=new Date(S.calYear,S.calMonth-1,1).getDay();
+  const dim=new Date(S.calYear,S.calMonth,0).getDate();
+  const td=new Date();
+  const ty=td.getFullYear(),tm=td.getMonth()+1,tday=td.getDate();
+  for(let i=0;i<fd;i++){const e=document.createElement('div');e.className='cal-d emp';cal.appendChild(e);}
+  const ym=`${S.calYear}-${pad(S.calMonth)}`;
+  for(let d=1;d<=dim;d++){
+    const cell=document.createElement('div');cell.className='cal-d';
+    const ds=`${ym}-${pad(d)}`;
+    if(S.calYear===ty&&S.calMonth===tm&&d===tday)cell.classList.add('today');
+    const dn=document.createElement('div');dn.className='cal-dn';dn.textContent=d;cell.appendChild(dn);
+    if(showCards){
+      const cards=S.cards.filter(c=>{if(!c.pay||!c.amount)return false;const{date:pd}=adjDate(S.calYear,S.calMonth,c.pay,c.rule);return pd.getMonth()===S.calMonth-1&&pd.getDate()===d;});
+      if(cards.length){cell.classList.add('has');const dot=document.createElement('div');dot.className='cal-dot';cell.appendChild(dot);cards.forEach(c=>{const nm=document.createElement('div');nm.className='cal-entry';nm.style.color='var(--t2)';nm.textContent=c.name.slice(0,4);cell.appendChild(nm);const am=document.createElement('div');am.className='cal-entry';am.style.color='var(--lime)';am.textContent=fmt(c.amount);cell.appendChild(am);});}
+    }else{
+      const de=expenses.filter(e=>e.date===ds);
+      const fixedToday=S.fixedCosts.filter(f=>{
+        if(f.cycle==='monthly')return f.day===d;
+        if(f.cycle==='yearly')return f.month===S.calMonth&&f.day===d;
+        return false;
+      });
+      if(de.length||fixedToday.length){
+        cell.classList.add('has');
+        const dot=document.createElement('div');dot.className='cal-dot';cell.appendChild(dot);
+        if(de.length){const a=document.createElement('div');a.className='cal-entry';a.style.color='var(--lime)';a.textContent=fmt(de.reduce((s,e)=>s+e.amount,0));cell.appendChild(a);}
+        fixedToday.forEach(f=>{
+          const fe=document.createElement('div');fe.className='cal-entry cal-entry-fixed';fe.textContent=f.name.slice(0,5);cell.appendChild(fe);
+          const fa=document.createElement('div');fa.className='cal-entry cal-entry-fixed';fa.textContent=fmt(f.amount);cell.appendChild(fa);
+        });
+      }else{
+        const isPast=(S.calYear<ty)||(S.calYear===ty&&S.calMonth<tm)||(S.calYear===ty&&S.calMonth===tm&&d<=tday);
+        if(isPast)cell.classList.add('no-exp-past');
+      }
+    }
+    cal.appendChild(cell);
+  }
+}
+
+function buildCatChart(elId,totalId,exps){
+  const cm={};exps.forEach(e=>cm[e.cat]=(cm[e.cat]||0)+e.amount);
+  const cats=Object.entries(cm).sort((a,b)=>b[1]-a[1]);
+  const max=cats.length?cats[0][1]:1;
+  const mt=exps.reduce((s,e)=>s+e.amount,0);
+  if(totalId){const el=document.getElementById(totalId);if(el)el.textContent=fmt(mt);}
+  const el=document.getElementById(elId);if(!el)return;
+  el.innerHTML=cats.length?cats.map(([cat,amt])=>`<div class="bar-wrap"><div class="bar-lbl"><span class="tag ${tg(cat)}">${cat}</span><span class="num" style="color:var(--t2);font-size:10px">${fmt(amt)}</span></div><div class="bar-bg"><div class="bar-fill" style="width:${Math.round(amt/max*100)}%"></div></div></div>`).join(''):'<div style="color:var(--t3);font-size:10px;text-align:center;padding:8px">データなし</div>';
+}
+
+function buildBankSummary(elId){
+  const el=document.getElementById(elId);if(!el)return;
+  if(!S.cards.length){el.innerHTML='<div style="color:var(--t3);font-size:10px;text-align:center;padding:8px">カード情報を入力してください</div>';return;}
+  const bt={};S.cards.forEach(c=>{if(c.bank&&c.amount)bt[c.bank]=(bt[c.bank]||0)+c.amount;});
+  const bm={};S.banks.forEach(b=>bm[b.name]=b.balance);
+  const ents=Object.entries(bt);
+  if(!ents.length){el.innerHTML='<div style="color:var(--t3);font-size:10px;text-align:center;padding:8px">カードに利用額を設定してください</div>';return;}
+  el.innerHTML=ents.map(([bank,total])=>{const bal=bm[bank]||0,ok=bal>=total;return`<div class="row-item"><div style="min-width:0;flex:1"><div style="font-size:12px;font-weight:500;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${bank}</div><div style="font-size:9px;color:var(--t3)">残高 ${fmt(bal)}</div></div><div style="text-align:right;flex-shrink:0"><div class="num" style="color:${ok?'var(--lime)':'var(--red)'};font-size:12px;font-weight:700">${fmt(total)}</div><span class="${ok?'badge-ok':'badge-ng'}">${ok?'残高OK':'不足リスク'}</span></div></div>`;}).join('');
+}
+
+function renderAll(){
+  const ym=`${S.calYear}-${pad(S.calMonth)}`;
+  const bankTotal=S.banks.reduce((s,b)=>s+b.balance,0);
+  const invEvals={};S.investments.forEach(inv=>{if(inv.eval)invEvals[inv.broker]=inv.eval;});
+  const invTotal=Object.values(invEvals).reduce((s,v)=>s+v,0);
+  const ptTotal=S.points.reduce((s,p)=>s+p.balance*p.rate,0);
+  const me=S.expenses.filter(e=>e.date.startsWith(ym+'-'));
+  const met=me.reduce((s,e)=>s+e.amount,0);
+  const cm={};me.forEach(e=>cm[e.cat]=(cm[e.cat]||0)+e.amount);
+  const top=Object.entries(cm).sort((a,b)=>b[1]-a[1])[0];
+  [['pd-total','sd-total'],['pd-banks','sd-banks'],['pd-exp','sd-exp'],['pd-pts','sd-pts']].forEach(([a,b],i)=>{const vals=[fmt(bankTotal+invTotal+ptTotal),fmt(bankTotal),fmt(met),fmt(ptTotal)];[a,b].forEach(id=>{const el=document.getElementById(id);if(el)el.textContent=vals[i];});});
+  [['pd-exp-sub','sd-exp-sub']].forEach(([a,b])=>{const v=top?`最多: ${top[0]}`:'—';[a,b].forEach(id=>{const el=document.getElementById(id);if(el)el.textContent=v;});});
+
+  // カレンダー
+  buildCal('pd-cal',me,true);buildCal('sd-cal',me,true);
+  buildCal('pc-exp-cal',me,false);buildCal('sp-exp-cal',me,false);
+  ['pc-cal-label','sp-cal-label'].forEach(id=>{const el=document.getElementById(id);if(el)el.textContent=ym;});
+  buildBankSummary('pd-bank-summary');buildBankSummary('sd-bank-summary');
+  buildCatChart('pd-cat-chart',null,me);
+  buildCatChart('pc-cat-summary','pc-month-total',me);
+  buildCatChart('sp-cat-summary','sp-month-total',me);
+
+  // 家計簿タブ切替
+  const pcM=document.getElementById('pc-kakeibo-month'),pcY=document.getElementById('pc-kakeibo-year');
+  const spM=document.getElementById('sp-kakeibo-month'),spY=document.getElementById('sp-kakeibo-year');
+  if(pcM)pcM.style.display=S.kakeiboTab==='month'?'':'none';
+  if(pcY)pcY.style.display=S.kakeiboTab==='year'?'':'none';
+  if(spM)spM.style.display=S.kakeiboTab==='month'?'':'none';
+  if(spY)spY.style.display=S.kakeiboTab==='year'?'':'none';
+  document.querySelectorAll('.kakeibo-tab-btn').forEach(btn=>{
+    const isM=btn.textContent.trim()==='月';
+    btn.classList.toggle('on',(isM&&S.kakeiboTab==='month')||(!isM&&S.kakeiboTab==='year'));
+  });
+
+  // 年ビュー
+  if(S.kakeiboTab==='year'){
+    ['pc-year-label','sp-year-label'].forEach(id=>{const el=document.getElementById(id);if(el)el.textContent=S.kakeiboYear+'年';});
+    let yearTotal=0;
+    const months=Array.from({length:12},(_,i)=>{
+      const m=i+1,mStr=`${S.kakeiboYear}-${pad(m)}`;
+      const mExps=S.expenses.filter(e=>e.date.startsWith(mStr+'-'));
+      const mTotal=mExps.reduce((s,e)=>s+e.amount,0);
+      yearTotal+=mTotal;
+      return{m,mTotal,cnt:mExps.length};
+    });
+    ['pc-year-total','sp-year-total'].forEach(id=>{const el=document.getElementById(id);if(el)el.textContent=fmt(yearTotal);});
+    const ygH=months.map(({m,mTotal,cnt})=>{
+      const isCur=m===S.calMonth&&S.kakeiboYear===S.calYear;
+      return`<div class="year-month-card${isCur?' cur':''}" onclick="jumpToMonth(${S.kakeiboYear},${m})"><div class="year-month-lbl">${m}月</div><div class="year-month-val">${fmt(mTotal)}</div><div class="year-month-cnt">${cnt}件</div></div>`;
+    }).join('');
+    ['pc-year-grid','sp-year-grid'].forEach(id=>{const el=document.getElementById(id);if(el)el.innerHTML=ygH;});
+    const ydH=months.filter(x=>x.mTotal>0).map(({m,mTotal,cnt})=>
+      `<div class="row-item"><span style="font-size:12px;font-weight:500">${m}月</span><div style="text-align:right"><div class="num" style="color:var(--lime);font-size:12px;font-weight:700">${fmt(mTotal)}</div><div style="font-size:9px;color:var(--t3)">${cnt}件</div></div></div>`
+    ).join('')||'<div style="color:var(--t3);font-size:10px;text-align:center;padding:10px">データなし</div>';
+    ['pc-year-detail','sp-year-detail'].forEach(id=>{const el=document.getElementById(id);if(el)el.innerHTML=ydH;});
+  }
+
+  // 固定費
+  const monthlyFixed=S.fixedCosts.filter(f=>f.cycle==='monthly');
+  const yearlyFixed=S.fixedCosts.filter(f=>f.cycle==='yearly'&&f.month===S.calMonth);
+  const fixedMonthTotal=monthlyFixed.reduce((s,f)=>s+f.amount,0)+yearlyFixed.reduce((s,f)=>s+f.amount,0);
+  const fH=S.fixedCosts.length?S.fixedCosts.map((f,i)=>{
+    const tag=f.cycle==='monthly'?'<span class="tag tg">月払い</span>':`<span class="tag to">年払い ${f.month}月</span>`;
+    return`<div class="fixed-cost-row"><div style="min-width:0;flex:1"><div style="font-size:12px;font-weight:500">${f.name} ${tag}</div><div style="font-size:9px;color:var(--t3)">支払日: ${f.day}日</div></div><div style="display:flex;align-items:center;gap:6px;flex-shrink:0"><div class="num" style="color:var(--amber);font-size:12px;font-weight:700">${fmt(f.amount)}</div><button class="btn btn-g btn-sm" onclick="removeFixed(${i})">×</button></div></div>`;
+  }).join(''):'<div style="color:var(--t3);font-size:10px;text-align:center;padding:10px">固定費を追加してください</div>';
+  ['pc-fixed-list','sp-fixed-list'].forEach(id=>{const el=document.getElementById(id);if(el)el.innerHTML=fH;});
+  ['pc-fixed-total','sp-fixed-total'].forEach(id=>{const el=document.getElementById(id);if(el)el.textContent=fmt(fixedMonthTotal);});
+
+  // カード一覧
+  const cPC=S.cards.map((c,i)=>{const{date:pd}=adjDate(S.calYear,S.calMonth,c.pay,c.rule);const ab=pd.getDate()!==c.pay?`<span class="tag to" style="margin-left:2px">${c.rule==='before'?'前営':'翌営'}</span>`:'';return`<tr><td>${c.name}</td><td><span class="tag tb">${c.brand}</span></td><td class="num">${fmt(c.fee)}</td><td>${c.bank||'—'}</td><td class="num">${c.close}日</td><td class="num">${c.pay}日${ab}</td><td class="num" style="color:var(--lime)">${fmt(c.amount)}</td><td style="font-size:9px;color:var(--t2)">${c.rule==='before'?'前営業':'翌営業'}</td><td><button class="btn btn-g btn-sm" onclick="removeCard(${i})">×</button></td></tr>`;}).join('');
+  const pcCB=document.getElementById('pc-card-body');if(pcCB)pcCB.innerHTML=cPC||'<tr><td colspan="9" style="color:var(--t3);text-align:center;padding:18px">カードを追加してください</td></tr>';
+  const spCL=document.getElementById('sp-card-list');if(spCL)spCL.innerHTML=S.cards.length?S.cards.map((c,i)=>`<div class="row-item"><div style="min-width:0;flex:1"><div style="font-size:12px;font-weight:500">${c.name} <span class="tag tb">${c.brand}</span></div><div style="font-size:9px;color:var(--t3);margin-top:1px">${c.bank||'—'} | 支払${c.pay}日 | 今月${fmt(c.amount)}</div></div><button class="btn btn-g btn-sm" onclick="removeCard(${i})">×</button></div>`).join(''):'<div style="color:var(--t3);font-size:10px;text-align:center;padding:16px">カードを追加してください</div>';
+  const bH=S.banks.length?S.banks.map((b,i)=>`<div class="row-item"><div style="min-width:0;flex:1"><div style="font-size:12px;font-weight:500;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${b.name}</div><div style="font-size:9px;color:var(--t3);margin-top:1px">${b.role||'—'}${b.note?' | '+b.note:''}</div></div><div style="display:flex;align-items:center;gap:6px;flex-shrink:0"><div style="display:flex;align-items:center;gap:2px"><span style="font-size:9px;color:var(--t3)">¥</span><input class="inline-edit" type="number" value="${b.balance}" style="width:76px" onchange="updateBankBal(${i},this.value)"></div><button class="btn btn-g btn-sm" onclick="removeBank(${i})">×</button></div></div>`).join(''):'<div style="color:var(--t3);font-size:10px;text-align:center;padding:16px">口座を追加してください</div>';
+  ['pc-bank-list','sp-bank-list'].forEach(id=>{const el=document.getElementById(id);if(el)el.innerHTML=bH;});
+  ['pc-bank-total','sp-bank-total'].forEach(id=>{const el=document.getElementById(id);if(el)el.textContent=fmt(bankTotal);});
+  const pH=S.points.length?S.points.map((p,i)=>`<div class="row-item"><div style="min-width:0;flex:1"><div style="font-size:12px;font-weight:500">${p.name}</div><div style="font-size:9px;color:var(--t3);margin-top:1px">1pt = ${p.rate}円 | ${p.memo||'—'}</div></div><div style="display:flex;align-items:center;gap:6px;flex-shrink:0"><div style="text-align:right"><div style="display:flex;align-items:center;gap:2px"><input class="inline-edit" type="number" value="${p.balance}" style="width:68px" onchange="updatePtBal(${i},this.value)"><span style="font-size:9px;color:var(--t3)">pt</span></div><div style="font-size:9px;color:var(--t2)">≈ ${fmt(p.balance*p.rate)}</div></div><button class="btn btn-g btn-sm" onclick="removePoint(${i})">×</button></div></div>`).join(''):'<div style="color:var(--t3);font-size:10px;text-align:center;padding:16px">ポイントを追加してください</div>';
+  ['pc-point-list','sp-point-list'].forEach(id=>{const el=document.getElementById(id);if(el)el.innerHTML=pH;});
+  ['pc-pt-total-row','sp-pt-total-row'].forEach(id=>{const el=document.getElementById(id);if(el)el.style.display=S.points.length?'flex':'none';});
+  ['pc-pt-total','sp-pt-total'].forEach(id=>{const el=document.getElementById(id);if(el)el.textContent=fmt(ptTotal);});
+  const byB={};S.investments.forEach((inv,idx)=>{if(!byB[inv.broker])byB[inv.broker]={items:[],eval:0};byB[inv.broker].items.push({...inv,idx});if(inv.eval)byB[inv.broker].eval=inv.eval;});
+  const iH=Object.keys(byB).length?Object.entries(byB).map(([broker,data])=>`<div class="inv-card"><div class="fb"><div style="font-size:12px;font-weight:500">${broker}</div><div class="num" style="color:var(--lime);font-weight:700;font-size:12px">${data.eval?fmt(data.eval):'—'}</div></div><div style="margin-top:6px">${data.items.map(inv=>`<div class="row-item" style="font-size:11px"><div style="min-width:0;flex:1;overflow:hidden"><span class="tag ${inv.type==='buy'?'tg':'tr2'}">${inv.type==='buy'?'購入':'売却'}</span> ${inv.fund||'—'} <span style="color:var(--t3);font-size:9px">${inv.date}</span></div><div style="display:flex;align-items:center;gap:5px;flex-shrink:0"><span class="num">${fmt(inv.amount)}</span><button class="btn btn-g btn-sm" onclick="removeInvest(${inv.idx})">×</button></div></div>`).join('')}</div></div>`).join(''):'<div style="color:var(--t3);font-size:10px;text-align:center;padding:16px">取引を追加してください</div>';
+  ['pc-invest-list','sp-invest-list'].forEach(id=>{const el=document.getElementById(id);if(el)el.innerHTML=iH;});
+  ['pc-inv-total-row','sp-inv-total-row'].forEach(id=>{const el=document.getElementById(id);if(el)el.style.display=Object.keys(byB).length?'flex':'none';});
+  ['pc-inv-total','sp-inv-total'].forEach(id=>{const el=document.getElementById(id);if(el)el.textContent=fmt(invTotal);});
+  const ePC=S.expenses.map((e,i)=>`<tr><td class="num" style="font-size:10px">${e.date.slice(5)}</td><td><span class="tag ${tg(e.cat)}">${e.cat}</span></td><td class="num">${fmt(e.amount)}</td><td style="font-size:10px;color:var(--t2)">${e.pay}</td><td style="font-size:11px;max-width:110px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${e.note||'—'}</td><td><button class="btn btn-g btn-sm" onclick="removeExp(${i})">×</button></td></tr>`).join('');
+  const pcEB=document.getElementById('pc-exp-body');if(pcEB)pcEB.innerHTML=ePC||'<tr><td colspan="6" style="color:var(--t3);text-align:center;padding:18px">支出を追加してください</td></tr>';
+  const spEL=document.getElementById('sp-exp-list');if(spEL)spEL.innerHTML=S.expenses.length?S.expenses.map((e,i)=>`<div class="sp-exp-row"><div class="sp-exp-date">${e.date.slice(5)}</div><div class="sp-exp-info"><div class="sp-exp-note">${e.note||'—'} <span class="tag ${tg(e.cat)}">${e.cat}</span></div><div class="sp-exp-pay">${e.pay}</div></div><div class="sp-exp-amount">${fmt(e.amount)}</div><button class="btn btn-g btn-sm" onclick="removeExp(${i})">×</button></div>`).join(''):'<div style="color:var(--t3);font-size:10px;text-align:center;padding:16px">支出を追加してください</div>';
+}
+
+document.getElementById('pc-e-date').value=todayStr;
+document.getElementById('sp-e-date').value=todayStr;
+document.getElementById('pc-i-date').value=todayStr;
+document.getElementById('sp-i-date').value=todayStr;
+rebuildSelects();
+renderAll();
+</script>
+</body>
+</html>
