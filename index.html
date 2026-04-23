@@ -266,8 +266,76 @@ body{display:flex;flex-direction:column;max-width:480px;margin:0 auto}
             <div class="field sel"><label>引落銀行</label><select id="c-bank"></select></div>
           </div>
           <div class="fg">
-            <div class="field"><label>締め日</label><input type="number" id="c-close" placeholder="15" min="1" max="31"></div>
-            <div class="field"><label>支払日</label><input type="number" id="c-pay" placeholder="10" min="1" max="31"></div>
+            <div class="field sel"><label>締め日</label><select id="c-close">
+              <option value="">選択してください</option>
+              <option value="99">末日</option>
+              <option value="1">1日</option>
+              <option value="2">2日</option>
+              <option value="3">3日</option>
+              <option value="4">4日</option>
+              <option value="5">5日</option>
+              <option value="6">6日</option>
+              <option value="7">7日</option>
+              <option value="8">8日</option>
+              <option value="9">9日</option>
+              <option value="10">10日</option>
+              <option value="11">11日</option>
+              <option value="12">12日</option>
+              <option value="13">13日</option>
+              <option value="14">14日</option>
+              <option value="15">15日</option>
+              <option value="16">16日</option>
+              <option value="17">17日</option>
+              <option value="18">18日</option>
+              <option value="19">19日</option>
+              <option value="20">20日</option>
+              <option value="21">21日</option>
+              <option value="22">22日</option>
+              <option value="23">23日</option>
+              <option value="24">24日</option>
+              <option value="25">25日</option>
+              <option value="26">26日</option>
+              <option value="27">27日</option>
+              <option value="28">28日</option>
+              <option value="29">29日</option>
+              <option value="30">30日</option>
+              <option value="31">31日</option>
+            </select></div>
+            <div class="field sel"><label>支払日</label><select id="c-pay">
+              <option value="">選択してください</option>
+              <option value="99">末日</option>
+              <option value="1">1日</option>
+              <option value="2">2日</option>
+              <option value="3">3日</option>
+              <option value="4">4日</option>
+              <option value="5">5日</option>
+              <option value="6">6日</option>
+              <option value="7">7日</option>
+              <option value="8">8日</option>
+              <option value="9">9日</option>
+              <option value="10">10日</option>
+              <option value="11">11日</option>
+              <option value="12">12日</option>
+              <option value="13">13日</option>
+              <option value="14">14日</option>
+              <option value="15">15日</option>
+              <option value="16">16日</option>
+              <option value="17">17日</option>
+              <option value="18">18日</option>
+              <option value="19">19日</option>
+              <option value="20">20日</option>
+              <option value="21">21日</option>
+              <option value="22">22日</option>
+              <option value="23">23日</option>
+              <option value="24">24日</option>
+              <option value="25">25日</option>
+              <option value="26">26日</option>
+              <option value="27">27日</option>
+              <option value="28">28日</option>
+              <option value="29">29日</option>
+              <option value="30">30日</option>
+              <option value="31">31日</option>
+            </select></div>
           </div>
         </div>
         <button class="btn btn-p btn-full" onclick="addCard()">追加</button>
@@ -571,8 +639,26 @@ body{display:flex;flex-direction:column;max-width:480px;margin:0 auto}
     <div class="detail-field"><label>ブランド</label><select id="edit-c-brand"><option>AMEX</option><option>Visa</option><option>Mastercard</option><option>JCB</option><option>Diners</option></select></div>
     <div class="detail-field"><label>年会費（円）</label><input type="number" id="edit-c-fee"></div>
     <div class="detail-field"><label>引落銀行</label><select id="edit-c-bank"></select></div>
-    <div class="detail-field"><label>締め日</label><input type="number" id="edit-c-close" min="1" max="31"></div>
-    <div class="detail-field"><label>支払日</label><input type="number" id="edit-c-pay" min="1" max="31"></div>
+    <div class="detail-field"><label>締め日</label><select id="edit-c-close">
+      <option value="">選択してください</option>
+      <option value="99">末日</option>
+      <option value="1">1日</option><option value="2">2日</option><option value="3">3日</option><option value="4">4日</option><option value="5">5日</option>
+      <option value="6">6日</option><option value="7">7日</option><option value="8">8日</option><option value="9">9日</option><option value="10">10日</option>
+      <option value="11">11日</option><option value="12">12日</option><option value="13">13日</option><option value="14">14日</option><option value="15">15日</option>
+      <option value="16">16日</option><option value="17">17日</option><option value="18">18日</option><option value="19">19日</option><option value="20">20日</option>
+      <option value="21">21日</option><option value="22">22日</option><option value="23">23日</option><option value="24">24日</option><option value="25">25日</option>
+      <option value="26">26日</option><option value="27">27日</option><option value="28">28日</option><option value="29">29日</option><option value="30">30日</option><option value="31">31日</option>
+    </select></div>
+    <div class="detail-field"><label>支払日</label><select id="edit-c-pay">
+      <option value="">選択してください</option>
+      <option value="99">末日</option>
+      <option value="1">1日</option><option value="2">2日</option><option value="3">3日</option><option value="4">4日</option><option value="5">5日</option>
+      <option value="6">6日</option><option value="7">7日</option><option value="8">8日</option><option value="9">9日</option><option value="10">10日</option>
+      <option value="11">11日</option><option value="12">12日</option><option value="13">13日</option><option value="14">14日</option><option value="15">15日</option>
+      <option value="16">16日</option><option value="17">17日</option><option value="18">18日</option><option value="19">19日</option><option value="20">20日</option>
+      <option value="21">21日</option><option value="22">22日</option><option value="23">23日</option><option value="24">24日</option><option value="25">25日</option>
+      <option value="26">26日</option><option value="27">27日</option><option value="28">28日</option><option value="29">29日</option><option value="30">30日</option><option value="31">31日</option>
+    </select></div>
     <div class="detail-field"><label>祝日ルール</label><select id="edit-c-rule"><option value="before">前営業日</option><option value="after">翌営業日</option></select></div>
     <div class="detail-actions">
       <button class="btn btn-p" style="flex:1" onclick="saveCardDetail()">保存</button>
@@ -657,6 +743,7 @@ const S={
 const fmt=n=>'¥'+Math.round(n).toLocaleString();
 const catTag={食費:'tg',外食:'tl',交通費:'tb',日用品:'to','趣味・娯楽':'tp',旅行:'tr2','美容・健康':'tg',衣類:'tb',サブスク:'to',その他:'to'};
 const tg=c=>catTag[c]||'to';
+const dayLabel=d=>d===99?'末日':`${d}日`;
 
 function tab(name,btn){
   document.querySelectorAll('.pnl').forEach(p=>p.classList.remove('on'));
@@ -688,7 +775,12 @@ function goToday(){
   renderAll();
 }
 function adjDate(y,m,d,rule){
-  let dt=new Date(y,m-1,d);
+  // 末日処理（99 = 月末）
+  let actualDay=d;
+  if(d===99){
+    actualDay=new Date(y,m,0).getDate(); // その月の最終日
+  }
+  let dt=new Date(y,m-1,actualDay);
   if(!isNonBiz(dt))return{date:dt};
   if(rule==='before'){while(isNonBiz(dt))dt=new Date(+dt-86400000);}
   else{while(isNonBiz(dt))dt=new Date(+dt+86400000);}
@@ -1036,7 +1128,14 @@ function calcCardBilling(card){
     if(e.pay!==`card:${card.id}`)return;
     const [y,m,d]=e.date.split('-').map(Number);
     let billYear=y,billMonth=m;
-    if(d<=card.close){
+    
+    // 締め日が末日（99）の場合
+    let closeDay=card.close;
+    if(closeDay===99){
+      closeDay=new Date(y,m,0).getDate(); // その月の最終日
+    }
+    
+    if(d<=closeDay){
       // 締め日以内 → 当月支払
     } else {
       // 締め日超過 → 翌月支払
@@ -1341,7 +1440,7 @@ function renderAll(){
         </div>
         <div class="item-card-info">
           <div class="item-card-row"><span style="color:var(--t3);font-size:9px">引落銀行</span><span>${c.bank||'未設定'}</span></div>
-          <div class="item-card-row"><span style="color:var(--t3);font-size:9px">締日/支払日</span><span>${c.close}日 / ${c.pay}日</span></div>
+          <div class="item-card-row"><span style="color:var(--t3);font-size:9px">締日/支払日</span><span>${dayLabel(c.close)} / ${dayLabel(c.pay)}</span></div>
           <div class="item-card-row"><span style="color:var(--t3);font-size:9px">今月請求</span><span class="num" style="color:var(--lime);font-weight:700">${fmt(currBill)}</span></div>
           <div class="item-card-row"><span style="color:var(--t3);font-size:9px">翌月請求</span><span class="num" style="color:var(--amber);font-weight:700">${fmt(nextBill)}</span></div>
         </div>
