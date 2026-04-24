@@ -919,18 +919,20 @@ function addIncome(){
   S.incomes.sort((a,b)=>b.date.localeCompare(a.date));
   document.getElementById('in-amount').value='';
   document.getElementById('in-note').value='';
+  saveData();
   renderAll();
 }
-function removeIncome(i){S.incomes.splice(i,1);renderAll();}
+function removeIncome(i){S.incomes.splice(i,1);saveData();renderAll();}
 
 function addFixed(){
   const name=document.getElementById('f-name').value.trim();
   if(!name){alert('名称を入力してください');return;}
   S.fixedCosts.push({id:Date.now(),name,amount:+document.getElementById('f-amount').value||0,cycle:document.getElementById('f-cycle').value,day:+document.getElementById('f-day').value||1,cat:document.getElementById('f-cat').value||'固定費',startDate:document.getElementById('f-start').value||'',excludeFromBudget:false});
+  saveData();
   renderAll();
   ['f-name','f-amount','f-day','f-cat','f-start'].forEach(id=>document.getElementById(id).value='');
 }
-function removeFixed(i){S.fixedCosts.splice(i,1);renderAll();}
+function removeFixed(i){S.fixedCosts.splice(i,1);saveData();renderAll();}
 
 function addCard(){
   const name=document.getElementById('c-name').value.trim();
@@ -946,49 +948,54 @@ function addCard(){
     pay:+document.getElementById('c-pay').value||0,
     rule:document.getElementById('c-rule').value
   });
+  saveData();
   renderAll();
   ['c-name','c-short','c-fee','c-close','c-pay'].forEach(id=>document.getElementById(id).value='');
 }
-function removeCard(i){S.cards.splice(i,1);renderAll();}
+function removeCard(i){S.cards.splice(i,1);saveData();renderAll();}
 
 function addBank(){
   const name=document.getElementById('b-name').value.trim();
   if(!name){alert('銀行名を入力してください');return;}
   S.banks.push({id:Date.now(),name,branch:document.getElementById('b-branch').value,role:document.getElementById('b-role').value,balance:+document.getElementById('b-bal').value||0,note:document.getElementById('b-note').value});
+  saveData();
   renderAll();
   ['b-name','b-branch','b-role','b-bal','b-note'].forEach(id=>document.getElementById(id).value='');
 }
-function removeBank(i){S.banks.splice(i,1);renderAll();}
-function updateBankBal(i,val){S.banks[i].balance=+val||0;renderAll();}
+function removeBank(i){S.banks.splice(i,1);saveData();renderAll();}
+function updateBankBal(i,val){S.banks[i].balance=+val||0;saveData();renderAll();}
 
 function addPoint(){
   const name=document.getElementById('p-name').value.trim();
   if(!name){alert('ポイント名を入力してください');return;}
   S.points.push({id:Date.now(),name,balance:+document.getElementById('p-bal').value||0,rate:+document.getElementById('p-rate').value||1,memo:document.getElementById('p-memo').value});
+  saveData();
   renderAll();
   ['p-name','p-bal','p-rate','p-memo'].forEach(id=>document.getElementById(id).value='');
 }
-function removePoint(i){S.points.splice(i,1);renderAll();}
-function updatePtBal(i,val){S.points[i].balance=+val||0;renderAll();}
+function removePoint(i){S.points.splice(i,1);saveData();renderAll();}
+function updatePtBal(i,val){S.points[i].balance=+val||0;saveData();renderAll();}
 
 function addInvest(){
   const broker=document.getElementById('i-broker').value.trim();
   if(!broker){alert('証券会社名を入力してください');return;}
   S.investments.push({id:Date.now(),broker,fund:document.getElementById('i-fund').value,type:document.getElementById('i-type').value,amount:+document.getElementById('i-amount').value||0,date:document.getElementById('i-date').value||todayStr,eval:+document.getElementById('i-eval').value||0});
+  saveData();
   renderAll();
   ['i-broker','i-fund','i-amount','i-eval'].forEach(id=>{const el=document.getElementById(id);if(el)el.value='';});
 }
-function removeInvest(idx){S.investments.splice(idx,1);renderAll();}
+function removeInvest(idx){S.investments.splice(idx,1);saveData();renderAll();}
 
 function addPrepaid(){
   const name=document.getElementById('pre-name').value.trim();
   if(!name){alert('カード名を入力してください');return;}
   S.prepaids.push({id:Date.now(),name,brand:document.getElementById('pre-brand').value,balance:+document.getElementById('pre-bal').value||0,note:document.getElementById('pre-note').value});
+  saveData();
   renderAll();
   ['pre-name','pre-bal','pre-note'].forEach(id=>document.getElementById(id).value='');
 }
-function removePrepaid(i){S.prepaids.splice(i,1);renderAll();}
-function updatePrepaidBal(i,val){S.prepaids[i].balance=+val||0;renderAll();}
+function removePrepaid(i){S.prepaids.splice(i,1);saveData();renderAll();}
+function updatePrepaidBal(i,val){S.prepaids[i].balance=+val||0;saveData();renderAll();}
 function openPrepaidDetail(i){
   S.editingPrepaidIndex=i;
   const p=S.prepaids[i];
@@ -1236,6 +1243,7 @@ function handleDrop(e){
   draggedItem.sortOrder=targetSortOrder;
   targetItem.sortOrder=draggedSortOrder;
   
+  saveData();
   renderAll();
   return false;
 }
@@ -1386,9 +1394,10 @@ function addExp(){
   document.getElementById('e-amount').value='';
   document.getElementById('e-note').value='';
   document.getElementById('e-exclude').checked=false;
+  saveData();
   renderAll();
 }
-function removeExp(i){S.expenses.splice(i,1);renderAll();}
+function removeExp(i){S.expenses.splice(i,1);saveData();renderAll();}
 
 // カード請求額計算（締め日・支払日考慮）
 // ロジック: 今月締め → 翌月支払い
@@ -1971,6 +1980,66 @@ function renderAll(){
   const itrEl=document.getElementById('inv-total-row');if(itrEl)itrEl.style.display=Object.keys(byB).length?'flex':'none';
   const ittEl=document.getElementById('inv-total');if(ittEl)ittEl.textContent=fmt(invTotal);
 }
+
+// データ保存機能
+function saveData(){
+  try{
+    const data={
+      cards:S.cards,
+      banks:S.banks,
+      points:S.points,
+      investments:S.investments,
+      expenses:S.expenses,
+      incomes:S.incomes,
+      fixedCosts:S.fixedCosts,
+      prepaids:S.prepaids,
+      currentYear:S.currentYear,
+      currentMonth:S.currentMonth,
+      viewMode:S.viewMode
+    };
+    localStorage.setItem('finaxis_data',JSON.stringify(data));
+    console.log('データを保存しました');
+  }catch(e){
+    console.error('データ保存エラー:',e);
+  }
+}
+
+// データ読み込み機能
+function loadData(){
+  try{
+    const saved=localStorage.getItem('finaxis_data');
+    if(saved){
+      const data=JSON.parse(saved);
+      S.cards=data.cards||[];
+      S.banks=data.banks||[];
+      S.points=data.points||[];
+      S.investments=data.investments||[];
+      S.expenses=data.expenses||[];
+      S.incomes=data.incomes||[];
+      S.fixedCosts=data.fixedCosts||[];
+      S.prepaids=data.prepaids||[];
+      S.currentYear=data.currentYear||now.getFullYear();
+      S.currentMonth=data.currentMonth||(now.getMonth()+1);
+      S.viewMode=data.viewMode||'month';
+      console.log('データを読み込みました');
+      return true;
+    }
+  }catch(e){
+    console.error('データ読み込みエラー:',e);
+  }
+  return false;
+}
+
+// ページ読み込み時にデータを復元
+loadData();
+
+// ページを閉じる時に自動保存
+window.addEventListener('beforeunload',()=>{
+  saveData();
+});
+
+// 定期的に自動保存（30秒ごと）
+setInterval(saveData,30000);
 
 document.getElementById('e-date').value=todayStr;
 document.getElementById('in-date').value=todayStr;
