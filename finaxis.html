@@ -102,6 +102,11 @@ body{display:flex;flex-direction:column;max-width:480px;margin:0 auto}
 .checkbox-field input[type="checkbox"]{width:18px;height:18px;cursor:pointer}
 .checkbox-field label{font-size:11px;color:var(--t);cursor:pointer;user-select:none}
 
+/* Drag and Drop */
+.draggable{cursor:move}
+.dragging{opacity:0.5}
+.drag-over{border-top:2px solid var(--lime)}
+
 /* Sticky Header */
 .sticky-header{position:sticky;top:0;z-index:10;background:var(--bg);border-bottom:1px solid var(--gb);padding:12px 10px}
 .sticky-title{font-size:13px;font-weight:700;font-family:'Space Mono',monospace;color:var(--t);text-align:center;margin-bottom:6px}
@@ -217,11 +222,33 @@ body{display:flex;flex-direction:column;max-width:480px;margin:0 auto}
   <div class="pnl on" id="pnl-dash">
     <div class="pnl-inner">
       <div class="kpis">
-        <div class="kpi" style="--ac:var(--lime)"><div class="kpi-lbl">総資産</div><div class="kpi-val" id="d-total">¥0</div><div class="kpi-sub">残高+積立+PT</div></div>
-        <div class="kpi" style="--ac:var(--blue)"><div class="kpi-lbl">残高</div><div class="kpi-val" id="d-banks">¥0</div><div class="kpi-sub">銀行+プリペイド</div></div>
-        <div class="kpi" style="--ac:var(--amber)"><div class="kpi-lbl">今月支出</div><div class="kpi-val" id="d-exp">¥0</div><div class="kpi-sub" id="d-exp-sub">—</div></div>
-        <div class="kpi" style="--ac:var(--purple)"><div class="kpi-lbl">ポイント</div><div class="kpi-val" id="d-pts">¥0</div><div class="kpi-sub">円換算</div></div>
+        <div class="kpi" style="--ac:var(--lime)">
+          <div class="kpi-lbl">総資産</div>
+          <div class="kpi-val" id="d-total">¥0</div>
+          <div class="kpi-sub" id="d-total-diff">—</div>
+        </div>
+        <div class="kpi" style="--ac:var(--blue)">
+          <div class="kpi-lbl">残高</div>
+          <div class="kpi-val" id="d-banks">¥0</div>
+          <div class="kpi-sub" id="d-banks-diff">—</div>
+        </div>
+        <div class="kpi" style="--ac:var(--amber)">
+          <div class="kpi-lbl">今月支出</div>
+          <div class="kpi-val" id="d-exp">¥0</div>
+          <div class="kpi-sub" id="d-exp-diff">—</div>
+        </div>
+        <div class="kpi" style="--ac:var(--purple)">
+          <div class="kpi-lbl">ポイント</div>
+          <div class="kpi-val" id="d-pts">¥0</div>
+          <div class="kpi-sub" id="d-pts-diff">—</div>
+        </div>
       </div>
+      
+      <div class="card">
+        <div class="card-ttl"><div class="card-ttl-l">推移グラフ（過去6ヶ月）</div></div>
+        <div id="trend-chart" style="height:200px"></div>
+      </div>
+      
       <div class="card">
         <div class="card-ttl"><div class="card-ttl-l">引落カレンダー（横スワイプ）</div></div>
         <div class="cal-swipe-wrap" id="dash-cal-swipe"></div>
@@ -257,9 +284,9 @@ body{display:flex;flex-direction:column;max-width:480px;margin:0 auto}
         <div class="card-ttl"><div class="card-ttl-l">カード追加</div></div>
         <div class="fg1">
           <div class="field"><label>カード名</label><input id="c-name" placeholder="例: SPGアメックス"></div>
-          <div class="field"><label>略称（カレンダー表示用）</label><input id="c-short" placeholder="例: SPG（空欄の場合は先頭4文字）"></div>
+          <div class="field"><label>略称（カレンダー表示用）</label><input id="c-short" placeholder="例: SPG（空欄の場合は先頭3文字）" maxlength="3"></div>
           <div class="fg">
-            <div class="field sel"><label>ブランド</label><select id="c-brand"><option>AMEX</option><option>Visa</option><option>Mastercard</option><option>JCB</option><option>Diners</option></select></div>
+            <div class="field sel"><label>ブランド</label><select id="c-brand"><option>JCB</option><option>Visa</option><option>Mastercard</option><option>AMEX</option><option>Diners</option></select></div>
             <div class="field sel"><label>祝日ルール</label><select id="c-rule"><option value="before">前営業日</option><option value="after">翌営業日</option></select></div>
           </div>
           <div class="fg">
@@ -641,8 +668,8 @@ body{display:flex;flex-direction:column;max-width:480px;margin:0 auto}
       <button class="detail-close" onclick="closeCardDetail()">×</button>
     </div>
     <div class="detail-field"><label>カード名</label><input id="edit-c-name"></div>
-    <div class="detail-field"><label>略称（カレンダー表示用）</label><input id="edit-c-short"></div>
-    <div class="detail-field"><label>ブランド</label><select id="edit-c-brand"><option>AMEX</option><option>Visa</option><option>Mastercard</option><option>JCB</option><option>Diners</option></select></div>
+    <div class="detail-field"><label>略称（カレンダー表示用）</label><input id="edit-c-short" maxlength="3"></div>
+    <div class="detail-field"><label>ブランド</label><select id="edit-c-brand"><option>JCB</option><option>Visa</option><option>Mastercard</option><option>AMEX</option><option>Diners</option></select></div>
     <div class="detail-field"><label>年会費（円）</label><input type="number" id="edit-c-fee"></div>
     <div class="detail-field"><label>引落銀行</label><select id="edit-c-bank"></select></div>
     <div class="detail-field"><label>締め日</label><select id="edit-c-close">
@@ -761,6 +788,46 @@ const fmt=n=>'¥'+Math.round(n).toLocaleString();
 const catTag={食費:'tg',外食:'tl',交通費:'tb',日用品:'to','趣味・娯楽':'tp',旅行:'tr2','美容・健康':'tg',衣類:'tb',サブスク:'to',その他:'to'};
 const tg=c=>catTag[c]||'to';
 const dayLabel=d=>d===99?'末日':`${d}日`;
+
+// ブランド優先順位
+const brandOrder={JCB:1,Visa:2,Mastercard:3,AMEX:4,Diners:5};
+function sortCards(cards){
+  return [...cards].sort((a,b)=>{
+    const aOrder=a.sortOrder!==undefined?a.sortOrder:999;
+    const bOrder=b.sortOrder!==undefined?b.sortOrder:999;
+    if(aOrder!==bOrder)return aOrder-bOrder;
+    // sortOrderが同じ場合はブランド順
+    const aBrand=brandOrder[a.brand]||999;
+    const bBrand=brandOrder[b.brand]||999;
+    if(aBrand!==bBrand)return aBrand-bBrand;
+    // ブランドも同じ場合はID順
+    return a.id-b.id;
+  });
+}
+function sortBanks(banks){
+  return [...banks].sort((a,b)=>{
+    const aOrder=a.sortOrder!==undefined?a.sortOrder:999;
+    const bOrder=b.sortOrder!==undefined?b.sortOrder:999;
+    if(aOrder!==bOrder)return aOrder-bOrder;
+    return a.id-b.id;
+  });
+}
+function sortPrepaids(prepaids){
+  return [...prepaids].sort((a,b)=>{
+    const aOrder=a.sortOrder!==undefined?a.sortOrder:999;
+    const bOrder=b.sortOrder!==undefined?b.sortOrder:999;
+    if(aOrder!==bOrder)return aOrder-bOrder;
+    return a.id-b.id;
+  });
+}
+function sortPoints(points){
+  return [...points].sort((a,b)=>{
+    const aOrder=a.sortOrder!==undefined?a.sortOrder:999;
+    const bOrder=b.sortOrder!==undefined?b.sortOrder:999;
+    if(aOrder!==bOrder)return aOrder-bOrder;
+    return a.id-b.id;
+  });
+}
 
 function tab(name,btn){
   document.querySelectorAll('.pnl').forEach(p=>p.classList.remove('on'));
@@ -1032,6 +1099,162 @@ function deleteCurrentPrepaid(){
   closePrepaidDetail();
 }
 
+function moveCard(index,direction){
+  const sorted=sortCards(S.cards);
+  const currentPos=sorted.indexOf(S.cards[index]);
+  const newPos=currentPos+direction;
+  if(newPos<0||newPos>=sorted.length)return;
+  
+  // sortOrderを設定
+  sorted.forEach((c,i)=>{
+    const actualCard=S.cards[S.cards.indexOf(c)];
+    actualCard.sortOrder=i;
+  });
+  
+  // 入れ替え
+  const temp=S.cards[index].sortOrder;
+  S.cards[index].sortOrder=sorted[newPos].sortOrder;
+  const swapCard=S.cards[S.cards.indexOf(sorted[newPos])];
+  swapCard.sortOrder=temp;
+  
+  renderAll();
+}
+
+function moveBank(index,direction){
+  const sorted=sortBanks(S.banks);
+  const currentPos=sorted.indexOf(S.banks[index]);
+  const newPos=currentPos+direction;
+  if(newPos<0||newPos>=sorted.length)return;
+  
+  sorted.forEach((b,i)=>{
+    const actualBank=S.banks[S.banks.indexOf(b)];
+    actualBank.sortOrder=i;
+  });
+  
+  const temp=S.banks[index].sortOrder;
+  S.banks[index].sortOrder=sorted[newPos].sortOrder;
+  const swapBank=S.banks[S.banks.indexOf(sorted[newPos])];
+  swapBank.sortOrder=temp;
+  
+  renderAll();
+}
+
+function movePrepaid(index,direction){
+  const sorted=sortPrepaids(S.prepaids);
+  const currentPos=sorted.indexOf(S.prepaids[index]);
+  const newPos=currentPos+direction;
+  if(newPos<0||newPos>=sorted.length)return;
+  
+  sorted.forEach((p,i)=>{
+    const actualPrepaid=S.prepaids[S.prepaids.indexOf(p)];
+    actualPrepaid.sortOrder=i;
+  });
+  
+  const temp=S.prepaids[index].sortOrder;
+  S.prepaids[index].sortOrder=sorted[newPos].sortOrder;
+  const swapPrepaid=S.prepaids[S.prepaids.indexOf(sorted[newPos])];
+  swapPrepaid.sortOrder=temp;
+  
+  renderAll();
+}
+
+function movePoint(index,direction){
+  const sorted=sortPoints(S.points);
+  const currentPos=sorted.indexOf(S.points[index]);
+  const newPos=currentPos+direction;
+  if(newPos<0||newPos>=sorted.length)return;
+  
+  sorted.forEach((p,i)=>{
+    const actualPoint=S.points[S.points.indexOf(p)];
+    actualPoint.sortOrder=i;
+  });
+  
+  const temp=S.points[index].sortOrder;
+  S.points[index].sortOrder=sorted[newPos].sortOrder;
+  const swapPoint=S.points[S.points.indexOf(sorted[newPos])];
+  swapPoint.sortOrder=temp;
+  
+  renderAll();
+}
+
+// ドラッグ&ドロップ機能
+let draggedElement=null;
+let draggedIndex=null;
+let draggedType=null;
+
+function initDragSort(type){
+  const items=document.querySelectorAll(`[data-type="${type}"]`);
+  items.forEach(item=>{
+    item.addEventListener('dragstart',handleDragStart);
+    item.addEventListener('dragover',handleDragOver);
+    item.addEventListener('drop',handleDrop);
+    item.addEventListener('dragend',handleDragEnd);
+  });
+}
+
+function handleDragStart(e){
+  draggedElement=e.currentTarget;
+  draggedIndex=parseInt(e.currentTarget.dataset.index);
+  draggedType=e.currentTarget.dataset.type;
+  e.currentTarget.classList.add('dragging');
+  e.dataTransfer.effectAllowed='move';
+}
+
+function handleDragOver(e){
+  if(e.preventDefault)e.preventDefault();
+  if(e.currentTarget.dataset.type!==draggedType)return;
+  e.dataTransfer.dropEffect='move';
+  e.currentTarget.classList.add('drag-over');
+  return false;
+}
+
+function handleDrop(e){
+  if(e.stopPropagation)e.stopPropagation();
+  if(e.currentTarget.dataset.type!==draggedType)return;
+  
+  const targetIndex=parseInt(e.currentTarget.dataset.index);
+  if(draggedIndex===targetIndex)return;
+  
+  let arr,sortFunc;
+  if(draggedType==='card'){arr=S.cards;sortFunc=sortCards;}
+  else if(draggedType==='bank'){arr=S.banks;sortFunc=sortBanks;}
+  else if(draggedType==='prepaid'){arr=S.prepaids;sortFunc=sortPrepaids;}
+  else if(draggedType==='point'){arr=S.points;sortFunc=sortPoints;}
+  
+  const sorted=sortFunc(arr);
+  const draggedItem=arr[draggedIndex];
+  const targetItem=arr[targetIndex];
+  
+  sorted.forEach((item,i)=>{
+    const actualItem=arr[arr.indexOf(item)];
+    if(!actualItem.sortOrder&&actualItem.sortOrder!==0)actualItem.sortOrder=i;
+  });
+  
+  const draggedSortOrder=sorted.indexOf(draggedItem);
+  const targetSortOrder=sorted.indexOf(targetItem);
+  
+  draggedItem.sortOrder=targetSortOrder;
+  targetItem.sortOrder=draggedSortOrder;
+  
+  renderAll();
+  return false;
+}
+
+function handleDragEnd(e){
+  document.querySelectorAll('.draggable').forEach(item=>{
+    item.classList.remove('dragging');
+    item.classList.remove('drag-over');
+  });
+}
+
+// インタラクティブグラフのデータ表示制御
+const chartVisible={totalAssets:true,balance:true,expense:true,points:true};
+
+function toggleChartLine(key){
+  chartVisible[key]=!chartVisible[key];
+  buildTrendChart();
+}
+
 function openCalDetail(date,cards){
   document.getElementById('cal-detail-title').textContent=date+' の引き落とし';
   let html='';
@@ -1169,6 +1392,7 @@ function removeExp(i){S.expenses.splice(i,1);renderAll();}
 
 // カード請求額計算（締め日・支払日考慮）
 // ロジック: 今月締め → 翌月支払い
+// 支払日が1日の場合は再来月支払い
 function calcCardBilling(card){
   const billings={};
   S.expenses.forEach(e=>{
@@ -1192,6 +1416,13 @@ function calcCardBilling(card){
       billMonth+=2;
       while(billMonth>12){billMonth-=12;billYear++;}
     }
+    
+    // 支払日が1日の場合はさらに1ヶ月後
+    if(card.pay===1){
+      billMonth++;
+      if(billMonth>12){billMonth=1;billYear++;}
+    }
+    
     const billYM=`${billYear}-${pad(billMonth)}`;
     billings[billYM]=(billings[billYM]||0)+e.amount;
   });
@@ -1240,7 +1471,7 @@ function buildSwipeCal(wrapperId,expenses,showCards,months){
           cell.onclick=()=>openCalDetail(`${year}-${pad(month)}-${pad(d)}`,cards);
           const dot=document.createElement('div');dot.className='cal-dot';cell.appendChild(dot);
           cards.forEach(c=>{
-            const displayName=c.shortName||c.name.slice(0,4);
+            const displayName=c.shortName||c.name.slice(0,3);
             const nm=document.createElement('div');nm.className='cal-entry';nm.style.color='var(--t2)';nm.textContent=displayName;cell.appendChild(nm);
             const billings=calcCardBilling(c);
             const am=document.createElement('div');am.className='cal-entry';am.style.color='var(--lime)';am.textContent=fmt(billings[ym]||0);cell.appendChild(am);
@@ -1406,6 +1637,171 @@ function buildYearView(){
   }
 }
 
+function buildTrendChart(){
+  const chartEl=document.getElementById('trend-chart');
+  if(!chartEl)return;
+  
+  const trendMonths=[];
+  for(let i=5;i>=0;i--){
+    let m=S.currentMonth-i;
+    let y=S.currentYear;
+    while(m<1){m+=12;y--;}
+    trendMonths.push({year:y,month:m});
+  }
+  
+  const data=trendMonths.map(({year,month})=>{
+    const ym=`${year}-${pad(month)}-`;
+    const bankTotal=S.banks.reduce((s,b)=>s+b.balance,0);
+    const prepaidTotal=S.prepaids.reduce((s,p)=>s+p.balance,0);
+    const invEvals={};S.investments.forEach(inv=>{if(inv.eval)invEvals[inv.broker]=inv.eval;});
+    const invTotal=Object.values(invEvals).reduce((s,v)=>s+v,0);
+    const ptTotal=S.points.reduce((s,p)=>s+p.balance*p.rate,0);
+    const totalAssets=bankTotal+prepaidTotal+invTotal+ptTotal;
+    const balance=bankTotal+prepaidTotal;
+    const exp=S.expenses.filter(e=>e.date.startsWith(ym)&&!e.excludeFromBudget).reduce((s,e)=>s+e.amount,0);
+    return{month:`${month}月`,totalAssets,balance,exp,points:ptTotal};
+  });
+  
+  const maxVal=Math.max(...data.map(d=>Math.max(d.totalAssets,d.balance,d.exp,d.points)),1);
+  const minVal=Math.min(...data.map(d=>Math.min(d.totalAssets,d.balance,d.exp,d.points)),0);
+  const range=maxVal-minVal;
+  
+  // グラフサイズ
+  const width=600;
+  const height=240;
+  const paddingLeft=60;
+  const paddingRight=10;
+  const paddingTop=10;
+  const paddingBottom=30;
+  const chartWidth=width-paddingLeft-paddingRight;
+  const chartHeight=height-paddingTop-paddingBottom;
+  
+  const getY=(val)=>{
+    const ratio=(val-minVal)/range;
+    return paddingTop+chartHeight-(ratio*chartHeight);
+  };
+  
+  const createGridLines=()=>{
+    let lines='';
+    for(let i=0;i<=5;i++){
+      const y=paddingTop+(chartHeight/5)*i;
+      const val=maxVal-(range/5)*i;
+      lines+=`<line x1="${paddingLeft}" y1="${y}" x2="${width-paddingRight}" y2="${y}" stroke="var(--gb)" stroke-width="0.5" opacity="0.3"/>`;
+      lines+=`<text x="${paddingLeft-5}" y="${y+1.5}" text-anchor="end" font-size="8" fill="var(--t3)">${fmt(val)}</text>`;
+    }
+    return lines;
+  };
+  
+  const createPath=(values,color)=>{
+    if(values.length===0)return'';
+    const points=values.map((val,idx)=>{
+      const x=paddingLeft+(idx/(values.length-1))*chartWidth;
+      const y=getY(val);
+      return`${x},${y}`;
+    }).join(' ');
+    return`<polyline points="${points}" fill="none" stroke="${color}" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"/>`;
+  };
+  
+  const createDots=(values,color)=>{
+    return values.map((val,idx)=>{
+      const x=paddingLeft+(idx/(values.length-1))*chartWidth;
+      const y=getY(val);
+      return`<g>
+        <circle cx="${x}" cy="${y}" r="5" fill="var(--bg)"/>
+        <circle cx="${x}" cy="${y}" r="3.5" fill="${color}"/>
+        <title>${data[idx].month}: ${fmt(val)}</title>
+      </g>`;
+    }).join('');
+  };
+  
+  const createLabels=()=>{
+    return data.map((d,idx)=>{
+      const x=paddingLeft+(idx/(data.length-1))*chartWidth;
+      const y=paddingTop+chartHeight+15;
+      return`<text x="${x}" y="${y}" text-anchor="middle" font-size="10" fill="var(--t2)" font-weight="500">${d.month}</text>`;
+    }).join('');
+  };
+  
+  const createVerticalLines=()=>{
+    return data.map((d,idx)=>{
+      const x=paddingLeft+(idx/(data.length-1))*chartWidth;
+      return`<line x1="${x}" y1="${paddingTop}" x2="${x}" y2="${paddingTop+chartHeight}" stroke="var(--gb)" stroke-width="0.5" opacity="0.15" stroke-dasharray="2,2"/>`;
+    }).join('');
+  };
+  
+  chartEl.innerHTML=`
+    <div style="display:flex;gap:10px;justify-content:center;font-size:10px;padding:10px;flex-wrap:wrap;border-bottom:1px solid var(--gb)">
+      <div style="display:flex;align-items:center;gap:5px;cursor:pointer;padding:5px 10px;border-radius:5px;background:${chartVisible.totalAssets?'rgba(184,240,0,.15)':'transparent'};transition:all 0.2s" onclick="toggleChartLine('totalAssets')">
+        <div style="width:12px;height:12px;background:var(--lime);border-radius:3px;opacity:${chartVisible.totalAssets?1:0.3}"></div>
+        <span style="color:var(--t);opacity:${chartVisible.totalAssets?1:0.5};font-weight:500">総資産</span>
+      </div>
+      <div style="display:flex;align-items:center;gap:5px;cursor:pointer;padding:5px 10px;border-radius:5px;background:${chartVisible.balance?'rgba(0,150,255,.15)':'transparent'};transition:all 0.2s" onclick="toggleChartLine('balance')">
+        <div style="width:12px;height:12px;background:var(--blue);border-radius:3px;opacity:${chartVisible.balance?1:0.3}"></div>
+        <span style="color:var(--t);opacity:${chartVisible.balance?1:0.5};font-weight:500">残高</span>
+      </div>
+      <div style="display:flex;align-items:center;gap:5px;cursor:pointer;padding:5px 10px;border-radius:5px;background:${chartVisible.expense?'rgba(255,180,0,.15)':'transparent'};transition:all 0.2s" onclick="toggleChartLine('expense')">
+        <div style="width:12px;height:12px;background:var(--amber);border-radius:3px;opacity:${chartVisible.expense?1:0.3}"></div>
+        <span style="color:var(--t);opacity:${chartVisible.expense?1:0.5};font-weight:500">支出</span>
+      </div>
+      <div style="display:flex;align-items:center;gap:5px;cursor:pointer;padding:5px 10px;border-radius:5px;background:${chartVisible.points?'rgba(180,0,255,.15)':'transparent'};transition:all 0.2s" onclick="toggleChartLine('points')">
+        <div style="width:12px;height:12px;background:var(--purple);border-radius:3px;opacity:${chartVisible.points?1:0.3}"></div>
+        <span style="color:var(--t);opacity:${chartVisible.points?1:0.5};font-weight:500">ポイント</span>
+      </div>
+    </div>
+    <div style="padding:8px;overflow:hidden">
+      <svg viewBox="0 0 ${width} ${height}" preserveAspectRatio="xMidYMid meet" style="width:100%;height:auto;max-width:100%;display:block">
+        ${createGridLines()}
+        ${createVerticalLines()}
+        ${chartVisible.totalAssets?createPath(data.map(d=>d.totalAssets),'var(--lime)'):''}
+        ${chartVisible.balance?createPath(data.map(d=>d.balance),'var(--blue)'):''}
+        ${chartVisible.expense?createPath(data.map(d=>d.exp),'var(--amber)'):''}
+        ${chartVisible.points?createPath(data.map(d=>d.points),'var(--purple)'):''}
+        ${chartVisible.totalAssets?createDots(data.map(d=>d.totalAssets),'var(--lime)'):''}
+        ${chartVisible.balance?createDots(data.map(d=>d.balance),'var(--blue)'):''}
+        ${chartVisible.expense?createDots(data.map(d=>d.exp),'var(--amber)'):''}
+        ${chartVisible.points?createDots(data.map(d=>d.points),'var(--purple)'):''}
+        ${createLabels()}
+      </svg>
+    </div>
+  `;
+}
+
+function calculateMonthDiff(){
+  let lastMonth=S.currentMonth-1;
+  let lastYear=S.currentYear;
+  if(lastMonth<1){lastMonth=12;lastYear--;}
+  const lastYM=`${lastYear}-${pad(lastMonth)}`;
+  
+  const currentBankTotal=S.banks.reduce((s,b)=>s+b.balance,0);
+  const currentPrepaidTotal=S.prepaids.reduce((s,p)=>s+p.balance,0);
+  const currentInvEvals={};S.investments.forEach(inv=>{if(inv.eval)currentInvEvals[inv.broker]=inv.eval;});
+  const currentInvTotal=Object.values(currentInvEvals).reduce((s,v)=>s+v,0);
+  const currentPtTotal=S.points.reduce((s,p)=>s+p.balance*p.rate,0);
+  
+  const currentTotal=currentBankTotal+currentPrepaidTotal+currentInvTotal+currentPtTotal;
+  const currentBalance=currentBankTotal+currentPrepaidTotal;
+  const currentExp=S.expenses.filter(e=>e.date.startsWith(`${S.currentYear}-${pad(S.currentMonth)}-`)&&!e.excludeFromBudget).reduce((s,e)=>s+e.amount,0);
+  
+  const lastExp=S.expenses.filter(e=>e.date.startsWith(lastYM+'-')&&!e.excludeFromBudget).reduce((s,e)=>s+e.amount,0);
+  
+  const totalDiff=0;
+  const balanceDiff=0;
+  const expDiff=currentExp-lastExp;
+  const ptDiff=0;
+  
+  const formatDiff=(diff)=>{
+    if(diff===0)return'先月と同額';
+    const sign=diff>0?'+':'';
+    return`先月比 ${sign}${fmt(diff)}`;
+  };
+  
+  document.getElementById('d-total-diff').textContent=formatDiff(totalDiff);
+  document.getElementById('d-banks-diff').textContent=formatDiff(balanceDiff);
+  document.getElementById('d-exp-diff').textContent=formatDiff(expDiff);
+  document.getElementById('d-pts-diff').textContent=formatDiff(ptDiff);
+}
+
+
 function renderAll(){
   const ym=`${S.currentYear}-${pad(S.currentMonth)}`;
   const fy=getFY(S.currentYear,S.currentMonth);
@@ -1428,7 +1824,9 @@ function renderAll(){
   setKPI('d-banks',fmt(bankTotal+prepaidTotal));
   setKPI('d-exp',fmt(met));
   setKPI('d-pts',fmt(ptTotal));
-  const subEl=document.getElementById('d-exp-sub');if(subEl)subEl.textContent=top?`最多: ${top[0]}`:'—';
+  
+  buildTrendChart();
+  calculateMonthDiff();
 
   // カレンダー: 全データ期間を表示
   const months=[];
@@ -1479,7 +1877,9 @@ function renderAll(){
 
   const cL=document.getElementById('card-list');
   if(cL){
-    cL.innerHTML=S.cards.length?S.cards.map((c,i)=>{
+    const sortedCards=sortCards(S.cards);
+    cL.innerHTML=sortedCards.length?sortedCards.map((c,i)=>{
+      const actualIndex=S.cards.indexOf(c);
       const billings=calcCardBilling(c);
       const currBill=billings[ym]||0;
       const nextYM=(()=>{
@@ -1488,7 +1888,7 @@ function renderAll(){
         return `${y}-${pad(m)}`;
       })();
       const nextBill=billings[nextYM]||0;
-      return`<div class="item-card" onclick="openCardDetail(${i})">
+      return`<div class="item-card draggable" draggable="true" data-type="card" data-index="${actualIndex}" onclick="openCardDetail(${actualIndex})">
         <div class="item-card-header">
           <div style="font-size:13px;font-weight:700">${c.name}</div>
           <span class="tag tb">${c.brand}</span>
@@ -1501,9 +1901,13 @@ function renderAll(){
         </div>
       </div>`;
     }).join(''):'<div style="color:var(--t3);font-size:10px;text-align:center;padding:16px">カードを追加してください</div>';
+    initDragSort('card');
   }
 
-  const bH=S.banks.length?S.banks.map((b,i)=>`<div class="item-card" onclick="openBankDetail(${i})">
+  const sortedBanks=sortBanks(S.banks);
+  const bH=sortedBanks.length?sortedBanks.map((b,i)=>{
+    const actualIndex=S.banks.indexOf(b);
+    return`<div class="item-card draggable" draggable="true" data-type="bank" data-index="${actualIndex}" onclick="openBankDetail(${actualIndex})">
     <div class="item-card-header">
       <div style="font-size:13px;font-weight:700">${b.name}</div>
       <span class="num" style="color:var(--lime);font-weight:700;font-size:13px">${fmt(b.balance)}</span>
@@ -1513,11 +1917,15 @@ function renderAll(){
       <div class="item-card-row"><span style="color:var(--t3);font-size:9px">役割</span><span>${b.role||'—'}</span></div>
     </div>
     ${b.note?`<div style="font-size:9px;color:var(--t3);margin-top:6px;padding-top:6px;border-top:1px solid var(--gb)">${b.note}</div>`:''}
-  </div>`).join(''):'<div style="color:var(--t3);font-size:10px;text-align:center;padding:16px">口座を追加してください</div>';
-  const bEl=document.getElementById('bank-list');if(bEl)bEl.innerHTML=bH;
+  </div>`;
+  }).join(''):'<div style="color:var(--t3);font-size:10px;text-align:center;padding:16px">口座を追加してください</div>';
+  const bEl=document.getElementById('bank-list');if(bEl){bEl.innerHTML=bH;initDragSort('bank');}
   const btEl=document.getElementById('bank-total');if(btEl)btEl.textContent=fmt(bankTotal);
 
-  const preH=S.prepaids.length?S.prepaids.map((p,i)=>`<div class="item-card" onclick="openPrepaidDetail(${i})">
+  const sortedPrepaids=sortPrepaids(S.prepaids);
+  const preH=sortedPrepaids.length?sortedPrepaids.map((p,i)=>{
+    const actualIndex=S.prepaids.indexOf(p);
+    return`<div class="item-card draggable" draggable="true" data-type="prepaid" data-index="${actualIndex}" onclick="openPrepaidDetail(${actualIndex})">
     <div class="item-card-header">
       <div style="font-size:13px;font-weight:700">${p.name}</div>
       <span class="num" style="color:var(--blue);font-weight:700;font-size:13px">${fmt(p.balance)}</span>
@@ -1526,37 +1934,42 @@ function renderAll(){
       <div class="item-card-row"><span style="color:var(--t3);font-size:9px">ブランド</span><span>${p.brand}</span></div>
       <div class="item-card-row"><span style="color:var(--t3);font-size:9px">備考</span><span>${p.note||'—'}</span></div>
     </div>
-  </div>`).join(''):'<div style="color:var(--t3);font-size:10px;text-align:center;padding:16px">プリペイドを追加してください</div>';
-  const preEl=document.getElementById('prepaid-list');if(preEl)preEl.innerHTML=preH;
+  </div>`;
+  }).join(''):'<div style="color:var(--t3);font-size:10px;text-align:center;padding:16px">プリペイドを追加してください</div>';
+  const preEl=document.getElementById('prepaid-list');if(preEl){preEl.innerHTML=preH;initDragSort('prepaid');}
   const pretEl=document.getElementById('prepaid-total');if(pretEl)pretEl.textContent=fmt(prepaidTotal);
 
-  const pH=S.points.length?S.points.map((p,i)=>`<div class="row-item"><div style="min-width:0;flex:1"><div style="font-size:12px;font-weight:500">${p.name}</div><div style="font-size:9px;color:var(--t3);margin-top:1px">1pt = ${p.rate}円 | ${p.memo||'—'}</div></div><div style="display:flex;align-items:center;gap:6px;flex-shrink:0"><div style="text-align:right"><div style="display:flex;align-items:center;gap:2px"><input class="inline-edit" type="number" value="${p.balance}" style="width:68px" onchange="updatePtBal(${i},this.value)"><span style="font-size:9px;color:var(--t3)">pt</span></div><div style="font-size:9px;color:var(--t2)">≈ ${fmt(p.balance*p.rate)}</div></div><button class="btn btn-g btn-sm" onclick="removePoint(${i})">×</button></div></div>`).join(''):'<div style="color:var(--t3);font-size:10px;text-align:center;padding:16px">ポイントを追加してください</div>';
-  const plEl=document.getElementById('point-list');if(plEl)plEl.innerHTML=pH;
-  const ptrEl=document.getElementById('pt-total-row');if(ptrEl)ptrEl.style.display=S.points.length?'flex':'none';
-  const pttEl=document.getElementById('pt-total');if(pttEl)pttEl.textContent=fmt(ptTotal);
+  const sortedPoints=sortPoints(S.points);
+  const pH=sortedPoints.length?sortedPoints.map((p,i)=>{
+    const actualIndex=S.points.indexOf(p);
+    return`<div class="item-card draggable" draggable="true" data-type="point" data-index="${actualIndex}">
+    <div class="item-card-header">
+      <div style="font-size:13px;font-weight:700">${p.name}</div>
+      <span class="num" style="color:var(--purple);font-weight:700;font-size:13px">${fmt(p.balance*p.rate)}</span>
+    </div>
+    <div class="item-card-info">
+      <div class="item-card-row">
+        <span style="color:var(--t3);font-size:9px">レート</span>
+        <span>1pt = ${p.rate}円</span>
+      </div>
+      <div class="item-card-row">
+        <span style="color:var(--t3);font-size:9px">保有</span>
+        <span><input class="inline-edit" type="number" value="${p.balance}" style="width:68px" onchange="updatePtBal(${actualIndex},this.value)" onclick="event.stopPropagation()"> pt</span>
+      </div>
+    </div>
+    ${p.memo?`<div style="font-size:9px;color:var(--t3);margin-top:6px;padding-top:6px;border-top:1px solid var(--gb)">${p.memo}</div>`:''}
+    <button class="btn btn-g btn-sm" style="margin-top:8px" onclick="event.stopPropagation();removePoint(${actualIndex})">削除</button>
+  </div>`;
+  }).join(''):'<div style="color:var(--t3);font-size:10px;text-align:center;padding:16px">ポイントを追加してください</div>';
+  const pEl=document.getElementById('point-list');if(pEl){pEl.innerHTML=pH;initDragSort('point');}
+  const ptEl=document.getElementById('point-total');if(ptEl)ptEl.textContent=fmt(ptTotal);
 
+  // 投資一覧
   const byB={};S.investments.forEach((inv,idx)=>{if(!byB[inv.broker])byB[inv.broker]={items:[],eval:0};byB[inv.broker].items.push({...inv,idx});if(inv.eval)byB[inv.broker].eval=inv.eval;});
   const iH=Object.keys(byB).length?Object.entries(byB).map(([broker,data])=>`<div class="inv-card"><div class="fb"><div style="font-size:12px;font-weight:500">${broker}</div><div class="num" style="color:var(--lime);font-weight:700;font-size:12px">${data.eval?fmt(data.eval):'—'}</div></div><div style="margin-top:6px">${data.items.map(inv=>`<div class="row-item" style="font-size:11px"><div style="min-width:0;flex:1;overflow:hidden"><span class="tag ${inv.type==='buy'?'tg':'tr2'}">${inv.type==='buy'?'購入':'売却'}</span> ${inv.fund||'—'} <span style="color:var(--t3);font-size:9px">${inv.date}</span></div><div style="display:flex;align-items:center;gap:5px;flex-shrink:0"><span class="num">${fmt(inv.amount)}</span><button class="btn btn-g btn-sm" onclick="removeInvest(${inv.idx})">×</button></div></div>`).join('')}</div></div>`).join(''):'<div style="color:var(--t3);font-size:10px;text-align:center;padding:16px">取引を追加してください</div>';
   const ilEl=document.getElementById('invest-list');if(ilEl)ilEl.innerHTML=iH;
   const itrEl=document.getElementById('inv-total-row');if(itrEl)itrEl.style.display=Object.keys(byB).length?'flex':'none';
   const ittEl=document.getElementById('inv-total');if(ittEl)ittEl.textContent=fmt(invTotal);
-
-  const eEl=document.getElementById('exp-list');
-  if(eEl)eEl.innerHTML=S.expenses.length?S.expenses.map((e,i)=>{
-    let payLabel=e.pay;
-    if(e.pay&&e.pay.startsWith('card:')){
-      const cardId=+e.pay.split(':')[1];
-      const card=S.cards.find(c=>c.id===cardId);
-      if(card)payLabel=card.name+'（カード）';
-    }else if(e.pay&&e.pay.startsWith('bank:')){
-      const bankId=+e.pay.split(':')[1];
-      const bank=S.banks.find(b=>b.id===bankId);
-      if(bank)payLabel=bank.name+'（銀行）';
-    }else if(e.pay&&e.pay.startsWith('method:')){
-      payLabel=e.pay.split(':')[1];
-    }
-    return`<div class="exp-row"><div class="exp-date">${e.date.slice(5)}</div><div class="exp-info"><div class="exp-note">${e.note||'—'} <span class="tag ${tg(e.cat)}">${e.cat}</span></div><div class="exp-pay">${payLabel}</div></div><div class="exp-amount">${fmt(e.amount)}</div><button class="btn btn-g btn-sm" onclick="removeExp(${i})">×</button></div>`;
-  }).join(''):'<div style="color:var(--t3);font-size:10px;text-align:center;padding:16px">支出を追加してください</div>';
 }
 
 document.getElementById('e-date').value=todayStr;
