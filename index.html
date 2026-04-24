@@ -257,6 +257,7 @@ body{display:flex;flex-direction:column;max-width:480px;margin:0 auto}
         <div class="card-ttl"><div class="card-ttl-l">カード追加</div></div>
         <div class="fg1">
           <div class="field"><label>カード名</label><input id="c-name" placeholder="例: SPGアメックス"></div>
+          <div class="field"><label>略称（カレンダー表示用）</label><input id="c-short" placeholder="例: SPG（空欄の場合は先頭4文字）"></div>
           <div class="fg">
             <div class="field sel"><label>ブランド</label><select id="c-brand"><option>AMEX</option><option>Visa</option><option>Mastercard</option><option>JCB</option><option>Diners</option></select></div>
             <div class="field sel"><label>祝日ルール</label><select id="c-rule"><option value="before">前営業日</option><option value="after">翌営業日</option></select></div>
@@ -492,6 +493,10 @@ body{display:flex;flex-direction:column;max-width:480px;margin:0 auto}
             <div class="field sel"><label>決済方法</label><select id="e-pay"></select></div>
             <div class="field" style="grid-column:span 2"><label>内容</label><input id="e-note" placeholder="例: ランチ（新宿）"></div>
           </div>
+          <div class="checkbox-field" style="margin-top:8px">
+            <input type="checkbox" id="e-exclude">
+            <label for="e-exclude">家計簿の集計から除外（カード請求額には反映）</label>
+          </div>
           <button class="btn btn-p btn-full" onclick="addExp()">追加</button>
         </div>
 
@@ -636,6 +641,7 @@ body{display:flex;flex-direction:column;max-width:480px;margin:0 auto}
       <button class="detail-close" onclick="closeCardDetail()">×</button>
     </div>
     <div class="detail-field"><label>カード名</label><input id="edit-c-name"></div>
+    <div class="detail-field"><label>略称（カレンダー表示用）</label><input id="edit-c-short"></div>
     <div class="detail-field"><label>ブランド</label><select id="edit-c-brand"><option>AMEX</option><option>Visa</option><option>Mastercard</option><option>JCB</option><option>Diners</option></select></div>
     <div class="detail-field"><label>年会費（円）</label><input type="number" id="edit-c-fee"></div>
     <div class="detail-field"><label>引落銀行</label><select id="edit-c-bank"></select></div>
@@ -704,6 +710,17 @@ body{display:flex;flex-direction:column;max-width:480px;margin:0 auto}
       <button class="btn btn-g" onclick="closePrepaidDetail()">キャンセル</button>
       <button class="btn btn-g" style="color:var(--red)" onclick="deleteCurrentPrepaid()">削除</button>
     </div>
+  </div>
+</div>
+
+<!-- Calendar Detail Modal -->
+<div id="cal-detail-modal" class="detail-modal">
+  <div class="detail-content">
+    <div class="detail-header">
+      <div class="detail-title" id="cal-detail-title">詳細</div>
+      <button class="detail-close" onclick="closeCalDetail()">×</button>
+    </div>
+    <div id="cal-detail-body" style="font-size:11px"></div>
   </div>
 </div>
 
@@ -794,7 +811,8 @@ function rebuildSelects(){
     const v=payEl.value;
     let opts=S.paymentMethods.map(p=>`<option value="method:${p}">${p}</option>`).join('');
     opts+=S.cards.map(c=>`<option value="card:${c.id}">${c.name}（カード）</option>`).join('');
-    opts+=S.banks.map(b=>`<option value="bank:${b.id}">${b.name}（銀行）</option>`).join('');
+    // 銀行は家計簿に載せない
+    // opts+=S.banks.map(b=>`<option value="bank:${b.id}">${b.name}（銀行）</option>`).join('');
     payEl.innerHTML=opts;
     if(v)payEl.value=v;
   }
@@ -853,6 +871,7 @@ function addCard(){
   const bank=document.getElementById('c-bank').value;
   S.cards.push({
     id:Date.now(),name,
+    shortName:document.getElementById('c-short').value.trim()||'',
     brand:document.getElementById('c-brand').value,
     fee:+document.getElementById('c-fee').value||0,
     bank:bank||'未設定',
@@ -861,7 +880,7 @@ function addCard(){
     rule:document.getElementById('c-rule').value
   });
   renderAll();
-  ['c-name','c-fee','c-close','c-pay'].forEach(id=>document.getElementById(id).value='');
+  ['c-name','c-short','c-fee','c-close','c-pay'].forEach(id=>document.getElementById(id).value='');
 }
 function removeCard(i){S.cards.splice(i,1);renderAll();}
 
@@ -931,6 +950,7 @@ function openCardDetail(i){
   S.editingCardIndex=i;
   const c=S.cards[i];
   document.getElementById('edit-c-name').value=c.name;
+  document.getElementById('edit-c-short').value=c.shortName||'';
   document.getElementById('edit-c-brand').value=c.brand;
   document.getElementById('edit-c-fee').value=c.fee;
   const bankSel=document.getElementById('edit-c-bank');
@@ -949,6 +969,7 @@ function saveCardDetail(){
   if(S.editingCardIndex===null)return;
   const c=S.cards[S.editingCardIndex];
   c.name=document.getElementById('edit-c-name').value.trim();
+  c.shortName=document.getElementById('edit-c-short').value.trim();
   c.brand=document.getElementById('edit-c-brand').value;
   c.fee=+document.getElementById('edit-c-fee').value||0;
   c.bank=document.getElementById('edit-c-bank').value;
@@ -1009,6 +1030,29 @@ function deleteCurrentPrepaid(){
   if(!confirm('このプリペイドを削除しますか?'))return;
   removePrepaid(S.editingPrepaidIndex);
   closePrepaidDetail();
+}
+
+function openCalDetail(date,cards){
+  document.getElementById('cal-detail-title').textContent=date+' の引き落とし';
+  let html='';
+  cards.forEach(c=>{
+    const billings=calcCardBilling(c);
+    const[y,m]=date.split('-').map(Number);
+    const ym=`${y}-${pad(m)}`;
+    const amt=billings[ym]||0;
+    html+=`<div style="padding:10px;margin-bottom:8px;background:rgba(255,255,255,.02);border:1px solid var(--gb);border-radius:var(--r2)">
+      <div style="font-weight:700;margin-bottom:4px">${c.name}</div>
+      <div style="font-size:10px;color:var(--t3);margin-bottom:4px">引落銀行: ${c.bank}</div>
+      <div style="font-size:10px;color:var(--t3);margin-bottom:4px">締日: ${dayLabel(c.close)} / 支払日: ${dayLabel(c.pay)}</div>
+      <div style="font-size:13px;color:var(--lime);font-weight:700;margin-top:6px">${fmt(amt)}</div>
+    </div>`;
+  });
+  document.getElementById('cal-detail-body').innerHTML=html;
+  document.getElementById('cal-detail-modal').classList.add('show');
+}
+
+function closeCalDetail(){
+  document.getElementById('cal-detail-modal').classList.remove('show');
 }
 
 // データバックアップ・エクスポート
@@ -1113,15 +1157,18 @@ function addExp(){
   const amount=+document.getElementById('e-amount').value;
   if(!amount){alert('金額を入力してください');return;}
   const pay=document.getElementById('e-pay').value;
-  S.expenses.push({id:Date.now(),date:document.getElementById('e-date').value||todayStr,cat:document.getElementById('e-cat').value,amount,pay,note:document.getElementById('e-note').value});
+  const excludeFromBudget=document.getElementById('e-exclude').checked;
+  S.expenses.push({id:Date.now(),date:document.getElementById('e-date').value||todayStr,cat:document.getElementById('e-cat').value,amount,pay,note:document.getElementById('e-note').value,excludeFromBudget});
   S.expenses.sort((a,b)=>b.date.localeCompare(a.date));
   document.getElementById('e-amount').value='';
   document.getElementById('e-note').value='';
+  document.getElementById('e-exclude').checked=false;
   renderAll();
 }
 function removeExp(i){S.expenses.splice(i,1);renderAll();}
 
 // カード請求額計算（締め日・支払日考慮）
+// ロジック: 今月締め → 翌月支払い
 function calcCardBilling(card){
   const billings={};
   S.expenses.forEach(e=>{
@@ -1135,12 +1182,15 @@ function calcCardBilling(card){
       closeDay=new Date(y,m,0).getDate(); // その月の最終日
     }
     
+    // 今月締め → 翌月支払い
     if(d<=closeDay){
-      // 締め日以内 → 当月支払
-    } else {
-      // 締め日超過 → 翌月支払
+      // 締め日以内 → 翌月支払
       billMonth++;
       if(billMonth>12){billMonth=1;billYear++;}
+    } else {
+      // 締め日超過 → 翌々月支払
+      billMonth+=2;
+      while(billMonth>12){billMonth-=12;billYear++;}
     }
     const billYM=`${billYear}-${pad(billMonth)}`;
     billings[billYM]=(billings[billYM]||0)+e.amount;
@@ -1186,9 +1236,12 @@ function buildSwipeCal(wrapperId,expenses,showCards,months){
         });
         if(cards.length){
           cell.classList.add('has');
+          cell.style.cursor='pointer';
+          cell.onclick=()=>openCalDetail(`${year}-${pad(month)}-${pad(d)}`,cards);
           const dot=document.createElement('div');dot.className='cal-dot';cell.appendChild(dot);
           cards.forEach(c=>{
-            const nm=document.createElement('div');nm.className='cal-entry';nm.style.color='var(--t2)';nm.textContent=c.name.slice(0,4);cell.appendChild(nm);
+            const displayName=c.shortName||c.name.slice(0,4);
+            const nm=document.createElement('div');nm.className='cal-entry';nm.style.color='var(--t2)';nm.textContent=displayName;cell.appendChild(nm);
             const billings=calcCardBilling(c);
             const am=document.createElement('div');am.className='cal-entry';am.style.color='var(--lime)';am.textContent=fmt(billings[ym]||0);cell.appendChild(am);
           });
@@ -1238,7 +1291,7 @@ function buildSwipeCal(wrapperId,expenses,showCards,months){
 
 function buildBalance(incomeId,expId,fixedId,surplusId,ym){
   const monthIncome=S.incomes.filter(i=>i.date.startsWith(ym+'-')).reduce((s,i)=>s+i.amount,0);
-  const monthExp=S.expenses.filter(e=>e.date.startsWith(ym+'-')).reduce((s,e)=>s+e.amount,0);
+  const monthExp=S.expenses.filter(e=>e.date.startsWith(ym+'-')&&!e.excludeFromBudget).reduce((s,e)=>s+e.amount,0);
   const monthFixed=S.fixedCosts.filter(f=>f.cycle==='monthly'&&!f.excludeFromBudget).reduce((s,f)=>s+f.amount,0);
   const surplus=monthIncome-monthExp-monthFixed;
   const setEl=(id,v)=>{const el=document.getElementById(id);if(el)el.textContent=v;};
@@ -1259,10 +1312,11 @@ function renderIncomeList(elId,ym){
 }
 
 function buildCatChart(elId,totalId,exps){
-  const cm={};exps.forEach(e=>cm[e.cat]=(cm[e.cat]||0)+e.amount);
+  const filteredExps=exps.filter(e=>!e.excludeFromBudget);
+  const cm={};filteredExps.forEach(e=>cm[e.cat]=(cm[e.cat]||0)+e.amount);
   const cats=Object.entries(cm).sort((a,b)=>b[1]-a[1]);
   const max=cats.length?cats[0][1]:1;
-  const mt=exps.reduce((s,e)=>s+e.amount,0);
+  const mt=filteredExps.reduce((s,e)=>s+e.amount,0);
   if(totalId){const el=document.getElementById(totalId);if(el)el.textContent=fmt(mt);}
   const el=document.getElementById(elId);if(!el)return;
   el.innerHTML=cats.length?cats.map(([cat,amt])=>`<div class="bar-wrap"><div class="bar-lbl"><span class="tag ${tg(cat)}">${cat}</span><span class="num" style="color:var(--t2);font-size:10px">${fmt(amt)}</span></div><div class="bar-bg"><div class="bar-fill" style="width:${Math.round(amt/max*100)}%"></div></div></div>`).join(''):'<div style="color:var(--t3);font-size:10px;text-align:center;padding:8px">データなし</div>';
@@ -1310,7 +1364,7 @@ function buildYearView(){
   const data=fyMonths.map(({year,month})=>{
     const ym=`${year}-${pad(month)}-`;
     const inc=S.incomes.filter(i=>i.date.startsWith(ym)).reduce((s,i)=>s+i.amount,0);
-    const exp=S.expenses.filter(e=>e.date.startsWith(ym)).reduce((s,e)=>s+e.amount,0);
+    const exp=S.expenses.filter(e=>e.date.startsWith(ym)&&!e.excludeFromBudget).reduce((s,e)=>s+e.amount,0);
     const fixed=S.fixedCosts.filter(f=>f.cycle==='monthly'&&!f.excludeFromBudget).reduce((s,f)=>s+f.amount,0);
     return{year,month,inc,exp,fixed,surplus:inc-exp-fixed};
   });
@@ -1344,7 +1398,7 @@ function buildYearView(){
       html+=`<div class="gm-cell gm-cat">${cat}</div>`;
       fyMonths.forEach(({year,month})=>{
         const ym=`${year}-${pad(month)}-`;
-        const sum=S.expenses.filter(e=>e.date.startsWith(ym)&&e.cat===cat).reduce((s,e)=>s+e.amount,0);
+        const sum=S.expenses.filter(e=>e.date.startsWith(ym)&&e.cat===cat&&!e.excludeFromBudget).reduce((s,e)=>s+e.amount,0);
         html+=`<div class="gm-cell gm-val">${sum?fmt(sum):'—'}</div>`;
       });
     });
@@ -1361,8 +1415,9 @@ function renderAll(){
   const invTotal=Object.values(invEvals).reduce((s,v)=>s+v,0);
   const ptTotal=S.points.reduce((s,p)=>s+p.balance*p.rate,0);
   const me=S.expenses.filter(e=>e.date.startsWith(ym+'-'));
-  const met=me.reduce((s,e)=>s+e.amount,0);
-  const cm={};me.forEach(e=>cm[e.cat]=(cm[e.cat]||0)+e.amount);
+  const meFiltered=me.filter(e=>!e.excludeFromBudget);
+  const met=meFiltered.reduce((s,e)=>s+e.amount,0);
+  const cm={};meFiltered.forEach(e=>cm[e.cat]=(cm[e.cat]||0)+e.amount);
   const top=Object.entries(cm).sort((a,b)=>b[1]-a[1])[0];
 
   const titleEl=document.getElementById('kakeibo-title');
