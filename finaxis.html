@@ -520,9 +520,9 @@ body{display:flex;flex-direction:column;max-width:480px;margin:0 auto}
             <div class="field sel"><label>決済方法</label><select id="e-pay"></select></div>
             <div class="field" style="grid-column:span 2"><label>内容</label><input id="e-note" placeholder="例: ランチ（新宿）"></div>
           </div>
-          <div class="checkbox-field" style="margin-top:8px">
-            <input type="checkbox" id="e-exclude">
-            <label for="e-exclude">家計簿の集計から除外（カード請求額には反映）</label>
+          <div class="checkbox-field" style="margin-top:8px;font-size:11px">
+            <input type="checkbox" id="e-exclude" style="width:14px;height:14px;cursor:pointer">
+            <label for="e-exclude" style="cursor:pointer">集計除外</label>
           </div>
           <button class="btn btn-p btn-full" onclick="addExp()">追加</button>
         </div>
@@ -769,9 +769,9 @@ body{display:flex;flex-direction:column;max-width:480px;margin:0 auto}
     <div class="detail-field"><label>決済方法</label><select id="edit-exp-pay"></select></div>
     <div class="detail-field"><label>メモ</label><input id="edit-exp-note"></div>
     <div class="detail-field">
-      <label style="display:flex;align-items:center;gap:8px;cursor:pointer">
-        <input type="checkbox" id="edit-exp-exclude">
-        <span>集計除外（カード請求額には反映、家計簿集計からは除外）</span>
+      <label style="display:flex;align-items:center;gap:6px;cursor:pointer;font-size:11px">
+        <input type="checkbox" id="edit-exp-exclude" style="width:14px;height:14px;cursor:pointer">
+        <span>集計除外</span>
       </label>
     </div>
     <div class="detail-actions">
