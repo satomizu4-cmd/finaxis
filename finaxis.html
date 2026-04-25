@@ -292,6 +292,7 @@ body{display:flex;flex-direction:column;max-width:480px;margin:0 auto}
           <div class="fg">
             <div class="field"><label>年会費（円）</label><input type="number" id="c-fee" placeholder="34100"></div>
             <div class="field sel"><label>引落銀行</label><select id="c-bank"></select></div>
+            <div class="field sel"><label>支店</label><select id="c-branch"><option value="">選択してください</option></select></div>
           </div>
           <div class="fg">
             <div class="field sel"><label>締め日</label><select id="c-close">
@@ -888,6 +889,26 @@ function rebuildSelects(){
     const v=csel.value;
     csel.innerHTML='<option value="">選択してください</option>'+S.banks.map(b=>`<option value="${b.name}">${b.name}</option>`).join('');
     if(v)csel.value=v;
+    // 銀行選択時に支店リストを更新
+    csel.onchange=()=>updateBranchList();
+  }
+  updateBranchList();
+}
+
+function updateBranchList(){
+  const bankSel=document.getElementById('c-bank');
+  const branchSel=document.getElementById('c-branch');
+  if(!bankSel||!branchSel)return;
+  
+  const selectedBank=bankSel.value;
+  branchSel.innerHTML='<option value="">選択してください</option>';
+  
+  if(selectedBank){
+    const bank=S.banks.find(b=>b.name===selectedBank);
+    if(bank&&bank.branch){
+      branchSel.innerHTML='<option value="">選択してください</option><option value="'+bank.branch+'">'+bank.branch+'</option>';
+      branchSel.value=bank.branch;
+    }
   }
 }
 function renderML(){
@@ -938,15 +959,18 @@ function addCard(){
   const name=document.getElementById('c-name').value.trim();
   if(!name){alert('カード名を入力してください');return;}
   const bank=document.getElementById('c-bank').value;
+  const branch=document.getElementById('c-branch').value;
   S.cards.push({
     id:Date.now(),name,
     shortName:document.getElementById('c-short').value.trim()||'',
     brand:document.getElementById('c-brand').value,
     fee:+document.getElementById('c-fee').value||0,
     bank:bank||'未設定',
+    branch:branch||'',
     close:+document.getElementById('c-close').value||0,
     pay:+document.getElementById('c-pay').value||0,
-    rule:document.getElementById('c-rule').value
+    rule:document.getElementById('c-rule').value,
+    hidden:false
   });
   saveData();
   renderAll();
@@ -957,7 +981,7 @@ function removeCard(i){S.cards.splice(i,1);saveData();renderAll();}
 function addBank(){
   const name=document.getElementById('b-name').value.trim();
   if(!name){alert('銀行名を入力してください');return;}
-  S.banks.push({id:Date.now(),name,branch:document.getElementById('b-branch').value,role:document.getElementById('b-role').value,balance:+document.getElementById('b-bal').value||0,note:document.getElementById('b-note').value});
+  S.banks.push({id:Date.now(),name,branch:document.getElementById('b-branch').value,role:document.getElementById('b-role').value,balance:+document.getElementById('b-bal').value||0,note:document.getElementById('b-note').value,hidden:false});
   saveData();
   renderAll();
   ['b-name','b-branch','b-role','b-bal','b-note'].forEach(id=>document.getElementById(id).value='');
@@ -968,7 +992,7 @@ function updateBankBal(i,val){S.banks[i].balance=+val||0;saveData();renderAll();
 function addPoint(){
   const name=document.getElementById('p-name').value.trim();
   if(!name){alert('ポイント名を入力してください');return;}
-  S.points.push({id:Date.now(),name,balance:+document.getElementById('p-bal').value||0,rate:+document.getElementById('p-rate').value||1,memo:document.getElementById('p-memo').value});
+  S.points.push({id:Date.now(),name,balance:+document.getElementById('p-bal').value||0,rate:+document.getElementById('p-rate').value||1,memo:document.getElementById('p-memo').value,hidden:false});
   saveData();
   renderAll();
   ['p-name','p-bal','p-rate','p-memo'].forEach(id=>document.getElementById(id).value='');
@@ -979,7 +1003,7 @@ function updatePtBal(i,val){S.points[i].balance=+val||0;saveData();renderAll();}
 function addInvest(){
   const broker=document.getElementById('i-broker').value.trim();
   if(!broker){alert('証券会社名を入力してください');return;}
-  S.investments.push({id:Date.now(),broker,fund:document.getElementById('i-fund').value,type:document.getElementById('i-type').value,amount:+document.getElementById('i-amount').value||0,date:document.getElementById('i-date').value||todayStr,eval:+document.getElementById('i-eval').value||0});
+  S.investments.push({id:Date.now(),broker,fund:document.getElementById('i-fund').value,type:document.getElementById('i-type').value,amount:+document.getElementById('i-amount').value||0,date:document.getElementById('i-date').value||todayStr,eval:+document.getElementById('i-eval').value||0,hidden:false});
   saveData();
   renderAll();
   ['i-broker','i-fund','i-amount','i-eval'].forEach(id=>{const el=document.getElementById(id);if(el)el.value='';});
@@ -989,13 +1013,40 @@ function removeInvest(idx){S.investments.splice(idx,1);saveData();renderAll();}
 function addPrepaid(){
   const name=document.getElementById('pre-name').value.trim();
   if(!name){alert('カード名を入力してください');return;}
-  S.prepaids.push({id:Date.now(),name,brand:document.getElementById('pre-brand').value,balance:+document.getElementById('pre-bal').value||0,note:document.getElementById('pre-note').value});
+  S.prepaids.push({id:Date.now(),name,brand:document.getElementById('pre-brand').value,balance:+document.getElementById('pre-bal').value||0,note:document.getElementById('pre-note').value,hidden:false});
   saveData();
   renderAll();
   ['pre-name','pre-bal','pre-note'].forEach(id=>document.getElementById(id).value='');
 }
 function removePrepaid(i){S.prepaids.splice(i,1);saveData();renderAll();}
 function updatePrepaidBal(i,val){S.prepaids[i].balance=+val||0;saveData();renderAll();}
+
+function toggleCardVisibility(i){
+  S.cards[i].hidden=!S.cards[i].hidden;
+  saveData();
+  renderAll();
+}
+function toggleBankVisibility(i){
+  S.banks[i].hidden=!S.banks[i].hidden;
+  saveData();
+  renderAll();
+}
+function togglePointVisibility(i){
+  S.points[i].hidden=!S.points[i].hidden;
+  saveData();
+  renderAll();
+}
+function togglePrepaidVisibility(i){
+  S.prepaids[i].hidden=!S.prepaids[i].hidden;
+  saveData();
+  renderAll();
+}
+function toggleInvestVisibility(idx){
+  S.investments[idx].hidden=!S.investments[idx].hidden;
+  saveData();
+  renderAll();
+}
+
 function openPrepaidDetail(i){
   S.editingPrepaidIndex=i;
   const p=S.prepaids[i];
@@ -1887,89 +1938,241 @@ function renderAll(){
   const cL=document.getElementById('card-list');
   if(cL){
     const sortedCards=sortCards(S.cards);
-    cL.innerHTML=sortedCards.length?sortedCards.map((c,i)=>{
-      const actualIndex=S.cards.indexOf(c);
-      const billings=calcCardBilling(c);
-      const currBill=billings[ym]||0;
-      const nextYM=(()=>{
-        let m=S.currentMonth+1,y=S.currentYear;
-        if(m>12){m=1;y++;}
-        return `${y}-${pad(m)}`;
-      })();
-      const nextBill=billings[nextYM]||0;
-      return`<div class="item-card draggable" draggable="true" data-type="card" data-index="${actualIndex}" onclick="openCardDetail(${actualIndex})">
-        <div class="item-card-header">
-          <div style="font-size:13px;font-weight:700">${c.name}</div>
-          <span class="tag tb">${c.brand}</span>
-        </div>
-        <div class="item-card-info">
-          <div class="item-card-row"><span style="color:var(--t3);font-size:9px">引落銀行</span><span>${c.bank||'未設定'}</span></div>
-          <div class="item-card-row"><span style="color:var(--t3);font-size:9px">締日/支払日</span><span>${dayLabel(c.close)} / ${dayLabel(c.pay)}</span></div>
-          <div class="item-card-row"><span style="color:var(--t3);font-size:9px">今月請求</span><span class="num" style="color:var(--lime);font-weight:700">${fmt(currBill)}</span></div>
-          <div class="item-card-row"><span style="color:var(--t3);font-size:9px">翌月請求</span><span class="num" style="color:var(--amber);font-weight:700">${fmt(nextBill)}</span></div>
-        </div>
-      </div>`;
-    }).join(''):'<div style="color:var(--t3);font-size:10px;text-align:center;padding:16px">カードを追加してください</div>';
+    const visibleCards=sortedCards.filter(c=>!c.hidden);
+    const hiddenCards=sortedCards.filter(c=>c.hidden);
+    
+    let html='';
+    
+    // 表示中のカード
+    if(visibleCards.length){
+      html+=visibleCards.map((c,i)=>{
+        const actualIndex=S.cards.indexOf(c);
+        const billings=calcCardBilling(c);
+        const currBill=billings[ym]||0;
+        const nextYM=(()=>{
+          let m=S.currentMonth+1,y=S.currentYear;
+          if(m>12){m=1;y++;}
+          return `${y}-${pad(m)}`;
+        })();
+        const nextBill=billings[nextYM]||0;
+        const bankInfo=c.branch?`${c.bank} ${c.branch}支店`:c.bank||'未設定';
+        return`<div class="item-card draggable" draggable="true" data-type="card" data-index="${actualIndex}">
+          <div class="item-card-header">
+            <div style="font-size:13px;font-weight:700" onclick="openCardDetail(${actualIndex})">${c.name}</div>
+            <div style="display:flex;gap:4px">
+              <span class="tag tb">${c.brand}</span>
+              <button class="btn btn-g btn-sm" style="font-size:9px;padding:2px 6px" onclick="event.stopPropagation();toggleCardVisibility(${actualIndex})">非表示</button>
+            </div>
+          </div>
+          <div class="item-card-info" onclick="openCardDetail(${actualIndex})">
+            <div class="item-card-row"><span style="color:var(--t3);font-size:9px">引落口座</span><span style="font-size:10px">${bankInfo}</span></div>
+            <div class="item-card-row"><span style="color:var(--t3);font-size:9px">締日/支払日</span><span>${dayLabel(c.close)} / ${dayLabel(c.pay)}</span></div>
+            <div class="item-card-row"><span style="color:var(--t3);font-size:9px">今月請求</span><span class="num" style="color:var(--lime);font-weight:700">${fmt(currBill)}</span></div>
+            <div class="item-card-row"><span style="color:var(--t3);font-size:9px">翌月請求</span><span class="num" style="color:var(--amber);font-weight:700">${fmt(nextBill)}</span></div>
+          </div>
+        </div>`;
+      }).join('');
+    }else{
+      html+='<div style="color:var(--t3);font-size:10px;text-align:center;padding:16px">カードを追加してください</div>';
+    }
+    
+    // 非表示のカード
+    if(hiddenCards.length){
+      html+=`<div style="margin-top:16px;padding-top:16px;border-top:1px solid var(--gb)">
+        <div style="font-size:11px;color:var(--t3);margin-bottom:8px;font-weight:700">非表示のカード (${hiddenCards.length})</div>`;
+      html+=hiddenCards.map((c,i)=>{
+        const actualIndex=S.cards.indexOf(c);
+        const bankInfo=c.branch?`${c.bank} ${c.branch}支店`:c.bank||'未設定';
+        return`<div class="item-card" style="opacity:0.5">
+          <div class="item-card-header">
+            <div style="font-size:13px;font-weight:700" onclick="openCardDetail(${actualIndex})">${c.name}</div>
+            <div style="display:flex;gap:4px">
+              <span class="tag tb">${c.brand}</span>
+              <button class="btn btn-b btn-sm" style="font-size:9px;padding:2px 6px" onclick="event.stopPropagation();toggleCardVisibility(${actualIndex})">表示</button>
+            </div>
+          </div>
+          <div class="item-card-info" onclick="openCardDetail(${actualIndex})">
+            <div class="item-card-row"><span style="color:var(--t3);font-size:9px">引落口座</span><span style="font-size:10px">${bankInfo}</span></div>
+            <div class="item-card-row"><span style="color:var(--t3);font-size:9px">締日/支払日</span><span>${dayLabel(c.close)} / ${dayLabel(c.pay)}</span></div>
+          </div>
+        </div>`;
+      }).join('');
+      html+='</div>';
+    }
+    
+    cL.innerHTML=html;
     initDragSort('card');
   }
 
   const sortedBanks=sortBanks(S.banks);
-  const bH=sortedBanks.length?sortedBanks.map((b,i)=>{
-    const actualIndex=S.banks.indexOf(b);
-    return`<div class="item-card draggable" draggable="true" data-type="bank" data-index="${actualIndex}" onclick="openBankDetail(${actualIndex})">
-    <div class="item-card-header">
-      <div style="font-size:13px;font-weight:700">${b.name}</div>
-      <span class="num" style="color:var(--lime);font-weight:700;font-size:13px">${fmt(b.balance)}</span>
-    </div>
-    <div class="item-card-info">
-      <div class="item-card-row"><span style="color:var(--t3);font-size:9px">支店</span><span>${b.branch||'—'}</span></div>
-      <div class="item-card-row"><span style="color:var(--t3);font-size:9px">役割</span><span>${b.role||'—'}</span></div>
-    </div>
-    ${b.note?`<div style="font-size:9px;color:var(--t3);margin-top:6px;padding-top:6px;border-top:1px solid var(--gb)">${b.note}</div>`:''}
-  </div>`;
-  }).join(''):'<div style="color:var(--t3);font-size:10px;text-align:center;padding:16px">口座を追加してください</div>';
+  const visibleBanks=sortedBanks.filter(b=>!b.hidden);
+  const hiddenBanks=sortedBanks.filter(b=>b.hidden);
+  
+  let bH='';
+  
+  // 表示中の銀行
+  if(visibleBanks.length){
+    bH+=visibleBanks.map((b,i)=>{
+      const actualIndex=S.banks.indexOf(b);
+      return`<div class="item-card draggable" draggable="true" data-type="bank" data-index="${actualIndex}">
+      <div class="item-card-header">
+        <div style="font-size:13px;font-weight:700" onclick="openBankDetail(${actualIndex})">${b.name}</div>
+        <div style="display:flex;gap:4px;align-items:center">
+          <span class="num" style="color:var(--lime);font-weight:700;font-size:13px">${fmt(b.balance)}</span>
+          <button class="btn btn-g btn-sm" style="font-size:9px;padding:2px 6px" onclick="event.stopPropagation();toggleBankVisibility(${actualIndex})">非表示</button>
+        </div>
+      </div>
+      <div class="item-card-info" onclick="openBankDetail(${actualIndex})">
+        <div class="item-card-row"><span style="color:var(--t3);font-size:9px">支店</span><span>${b.branch||'—'}</span></div>
+        <div class="item-card-row"><span style="color:var(--t3);font-size:9px">役割</span><span>${b.role||'—'}</span></div>
+      </div>
+      ${b.note?`<div style="font-size:9px;color:var(--t3);margin-top:6px;padding-top:6px;border-top:1px solid var(--gb)" onclick="openBankDetail(${actualIndex})">${b.note}</div>`:''}
+    </div>`;
+    }).join('');
+  }else{
+    bH+='<div style="color:var(--t3);font-size:10px;text-align:center;padding:16px">口座を追加してください</div>';
+  }
+  
+  // 非表示の銀行
+  if(hiddenBanks.length){
+    bH+=`<div style="margin-top:16px;padding-top:16px;border-top:1px solid var(--gb)">
+      <div style="font-size:11px;color:var(--t3);margin-bottom:8px;font-weight:700">非表示の口座 (${hiddenBanks.length})</div>`;
+    bH+=hiddenBanks.map((b,i)=>{
+      const actualIndex=S.banks.indexOf(b);
+      return`<div class="item-card" style="opacity:0.5">
+      <div class="item-card-header">
+        <div style="font-size:13px;font-weight:700" onclick="openBankDetail(${actualIndex})">${b.name}</div>
+        <div style="display:flex;gap:4px;align-items:center">
+          <span class="num" style="color:var(--lime);font-weight:700;font-size:13px">${fmt(b.balance)}</span>
+          <button class="btn btn-b btn-sm" style="font-size:9px;padding:2px 6px" onclick="event.stopPropagation();toggleBankVisibility(${actualIndex})">表示</button>
+        </div>
+      </div>
+      <div class="item-card-info" onclick="openBankDetail(${actualIndex})">
+        <div class="item-card-row"><span style="color:var(--t3);font-size:9px">支店</span><span>${b.branch||'—'}</span></div>
+        <div class="item-card-row"><span style="color:var(--t3);font-size:9px">役割</span><span>${b.role||'—'}</span></div>
+      </div>
+    </div>`;
+    }).join('');
+    bH+='</div>';
+  }
+  
   const bEl=document.getElementById('bank-list');if(bEl){bEl.innerHTML=bH;initDragSort('bank');}
   const btEl=document.getElementById('bank-total');if(btEl)btEl.textContent=fmt(bankTotal);
 
   const sortedPrepaids=sortPrepaids(S.prepaids);
-  const preH=sortedPrepaids.length?sortedPrepaids.map((p,i)=>{
-    const actualIndex=S.prepaids.indexOf(p);
-    return`<div class="item-card draggable" draggable="true" data-type="prepaid" data-index="${actualIndex}" onclick="openPrepaidDetail(${actualIndex})">
-    <div class="item-card-header">
-      <div style="font-size:13px;font-weight:700">${p.name}</div>
-      <span class="num" style="color:var(--blue);font-weight:700;font-size:13px">${fmt(p.balance)}</span>
-    </div>
-    <div class="item-card-info">
-      <div class="item-card-row"><span style="color:var(--t3);font-size:9px">ブランド</span><span>${p.brand}</span></div>
-      <div class="item-card-row"><span style="color:var(--t3);font-size:9px">備考</span><span>${p.note||'—'}</span></div>
-    </div>
-  </div>`;
-  }).join(''):'<div style="color:var(--t3);font-size:10px;text-align:center;padding:16px">プリペイドを追加してください</div>';
+  const visiblePrepaids=sortedPrepaids.filter(p=>!p.hidden);
+  const hiddenPrepaids=sortedPrepaids.filter(p=>p.hidden);
+  
+  let preH='';
+  
+  // 表示中のプリペイド
+  if(visiblePrepaids.length){
+    preH+=visiblePrepaids.map((p,i)=>{
+      const actualIndex=S.prepaids.indexOf(p);
+      return`<div class="item-card draggable" draggable="true" data-type="prepaid" data-index="${actualIndex}">
+      <div class="item-card-header">
+        <div style="font-size:13px;font-weight:700" onclick="openPrepaidDetail(${actualIndex})">${p.name}</div>
+        <div style="display:flex;gap:4px;align-items:center">
+          <span class="num" style="color:var(--blue);font-weight:700;font-size:13px">${fmt(p.balance)}</span>
+          <button class="btn btn-g btn-sm" style="font-size:9px;padding:2px 6px" onclick="event.stopPropagation();togglePrepaidVisibility(${actualIndex})">非表示</button>
+        </div>
+      </div>
+      <div class="item-card-info" onclick="openPrepaidDetail(${actualIndex})">
+        <div class="item-card-row"><span style="color:var(--t3);font-size:9px">ブランド</span><span>${p.brand}</span></div>
+        <div class="item-card-row"><span style="color:var(--t3);font-size:9px">備考</span><span>${p.note||'—'}</span></div>
+      </div>
+    </div>`;
+    }).join('');
+  }else{
+    preH+='<div style="color:var(--t3);font-size:10px;text-align:center;padding:16px">プリペイドを追加してください</div>';
+  }
+  
+  // 非表示のプリペイド
+  if(hiddenPrepaids.length){
+    preH+=`<div style="margin-top:16px;padding-top:16px;border-top:1px solid var(--gb)">
+      <div style="font-size:11px;color:var(--t3);margin-bottom:8px;font-weight:700">非表示のプリペイド (${hiddenPrepaids.length})</div>`;
+    preH+=hiddenPrepaids.map((p,i)=>{
+      const actualIndex=S.prepaids.indexOf(p);
+      return`<div class="item-card" style="opacity:0.5">
+      <div class="item-card-header">
+        <div style="font-size:13px;font-weight:700" onclick="openPrepaidDetail(${actualIndex})">${p.name}</div>
+        <div style="display:flex;gap:4px;align-items:center">
+          <span class="num" style="color:var(--blue);font-weight:700;font-size:13px">${fmt(p.balance)}</span>
+          <button class="btn btn-b btn-sm" style="font-size:9px;padding:2px 6px" onclick="event.stopPropagation();togglePrepaidVisibility(${actualIndex})">表示</button>
+        </div>
+      </div>
+      <div class="item-card-info" onclick="openPrepaidDetail(${actualIndex})">
+        <div class="item-card-row"><span style="color:var(--t3);font-size:9px">ブランド</span><span>${p.brand}</span></div>
+      </div>
+    </div>`;
+    }).join('');
+    preH+='</div>';
+  }
+  
   const preEl=document.getElementById('prepaid-list');if(preEl){preEl.innerHTML=preH;initDragSort('prepaid');}
   const pretEl=document.getElementById('prepaid-total');if(pretEl)pretEl.textContent=fmt(prepaidTotal);
 
   const sortedPoints=sortPoints(S.points);
-  const pH=sortedPoints.length?sortedPoints.map((p,i)=>{
-    const actualIndex=S.points.indexOf(p);
-    return`<div class="item-card draggable" draggable="true" data-type="point" data-index="${actualIndex}">
-    <div class="item-card-header">
-      <div style="font-size:13px;font-weight:700">${p.name}</div>
-      <span class="num" style="color:var(--purple);font-weight:700;font-size:13px">${fmt(p.balance*p.rate)}</span>
-    </div>
-    <div class="item-card-info">
-      <div class="item-card-row">
-        <span style="color:var(--t3);font-size:9px">レート</span>
-        <span>1pt = ${p.rate}円</span>
+  const visiblePoints=sortedPoints.filter(p=>!p.hidden);
+  const hiddenPoints=sortedPoints.filter(p=>p.hidden);
+  
+  let pH='';
+  
+  // 表示中のポイント
+  if(visiblePoints.length){
+    pH+=visiblePoints.map((p,i)=>{
+      const actualIndex=S.points.indexOf(p);
+      return`<div class="item-card draggable" draggable="true" data-type="point" data-index="${actualIndex}">
+      <div class="item-card-header">
+        <div style="font-size:13px;font-weight:700">${p.name}</div>
+        <div style="display:flex;gap:4px;align-items:center">
+          <span class="num" style="color:var(--purple);font-weight:700;font-size:13px">${fmt(p.balance*p.rate)}</span>
+          <button class="btn btn-g btn-sm" style="font-size:9px;padding:2px 6px" onclick="event.stopPropagation();togglePointVisibility(${actualIndex})">非表示</button>
+        </div>
       </div>
-      <div class="item-card-row">
-        <span style="color:var(--t3);font-size:9px">保有</span>
-        <span><input class="inline-edit" type="number" value="${p.balance}" style="width:68px" onchange="updatePtBal(${actualIndex},this.value)" onclick="event.stopPropagation()"> pt</span>
+      <div class="item-card-info">
+        <div class="item-card-row">
+          <span style="color:var(--t3);font-size:9px">レート</span>
+          <span>1pt = ${p.rate}円</span>
+        </div>
+        <div class="item-card-row">
+          <span style="color:var(--t3);font-size:9px">保有</span>
+          <span><input class="inline-edit" type="number" value="${p.balance}" style="width:68px" onchange="updatePtBal(${actualIndex},this.value)" onclick="event.stopPropagation()"> pt</span>
+        </div>
       </div>
-    </div>
-    ${p.memo?`<div style="font-size:9px;color:var(--t3);margin-top:6px;padding-top:6px;border-top:1px solid var(--gb)">${p.memo}</div>`:''}
-    <button class="btn btn-g btn-sm" style="margin-top:8px" onclick="event.stopPropagation();removePoint(${actualIndex})">削除</button>
-  </div>`;
-  }).join(''):'<div style="color:var(--t3);font-size:10px;text-align:center;padding:16px">ポイントを追加してください</div>';
+      ${p.memo?`<div style="font-size:9px;color:var(--t3);margin-top:6px;padding-top:6px;border-top:1px solid var(--gb)">${p.memo}</div>`:''}
+      <button class="btn btn-g btn-sm" style="margin-top:8px" onclick="event.stopPropagation();removePoint(${actualIndex})">削除</button>
+    </div>`;
+    }).join('');
+  }else{
+    pH+='<div style="color:var(--t3);font-size:10px;text-align:center;padding:16px">ポイントを追加してください</div>';
+  }
+  
+  // 非表示のポイント
+  if(hiddenPoints.length){
+    pH+=`<div style="margin-top:16px;padding-top:16px;border-top:1px solid var(--gb)">
+      <div style="font-size:11px;color:var(--t3);margin-bottom:8px;font-weight:700">非表示のポイント (${hiddenPoints.length})</div>`;
+    pH+=hiddenPoints.map((p,i)=>{
+      const actualIndex=S.points.indexOf(p);
+      return`<div class="item-card" style="opacity:0.5">
+      <div class="item-card-header">
+        <div style="font-size:13px;font-weight:700">${p.name}</div>
+        <div style="display:flex;gap:4px;align-items:center">
+          <span class="num" style="color:var(--purple);font-weight:700;font-size:13px">${fmt(p.balance*p.rate)}</span>
+          <button class="btn btn-b btn-sm" style="font-size:9px;padding:2px 6px" onclick="event.stopPropagation();togglePointVisibility(${actualIndex})">表示</button>
+        </div>
+      </div>
+      <div class="item-card-info">
+        <div class="item-card-row">
+          <span style="color:var(--t3);font-size:9px">レート</span>
+          <span>1pt = ${p.rate}円</span>
+        </div>
+      </div>
+    </div>`;
+    }).join('');
+    pH+='</div>';
+  }
+  
   const pEl=document.getElementById('point-list');if(pEl){pEl.innerHTML=pH;initDragSort('point');}
   const ptEl=document.getElementById('point-total');if(ptEl)ptEl.textContent=fmt(ptTotal);
 
