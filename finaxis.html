@@ -226,20 +226,20 @@ body{display:flex;flex-direction:column;max-width:480px;margin:0 auto}
           <div class="kpi-val" id="d-total">¥0</div>
           <div class="kpi-sub" id="d-total-diff">—</div>
         </div>
-        <div class="kpi" style="--ac:var(--blue)">
+        <div class="kpi" style="--ac:var(--teal)">
           <div class="kpi-lbl">残高</div>
-          <div class="kpi-val" id="d-banks">¥0</div>
-          <div class="kpi-sub" id="d-banks-diff">—</div>
+          <div class="kpi-val" id="d-balance">¥0</div>
+          <div class="kpi-sub" id="d-balance-diff">—</div>
+        </div>
+        <div class="kpi" style="--ac:var(--blue)">
+          <div class="kpi-lbl">現金</div>
+          <div class="kpi-val" id="d-cash">¥0</div>
+          <div class="kpi-sub" id="d-cash-diff">—</div>
         </div>
         <div class="kpi" style="--ac:var(--amber)">
           <div class="kpi-lbl">今月支出</div>
           <div class="kpi-val" id="d-exp">¥0</div>
           <div class="kpi-sub" id="d-exp-diff">—</div>
-        </div>
-        <div class="kpi" style="--ac:var(--purple)">
-          <div class="kpi-lbl">ポイント</div>
-          <div class="kpi-val" id="d-pts">¥0</div>
-          <div class="kpi-sub" id="d-pts-diff">—</div>
         </div>
       </div>
       
@@ -437,6 +437,30 @@ body{display:flex;flex-direction:column;max-width:480px;margin:0 auto}
   <!-- Invest -->
   <div class="pnl" id="pnl-invest">
     <div class="pnl-inner">
+      <!-- 推移グラフと利益 -->
+      <div class="card">
+        <div class="card-ttl"><div class="card-ttl-l">推移グラフ</div></div>
+        <div id="invest-trend-chart" style="height:200px"></div>
+      </div>
+      
+      <div class="card">
+        <div class="card-ttl"><div class="card-ttl-l">利益計算</div></div>
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;font-size:12px">
+          <div>
+            <div style="color:var(--t3);font-size:10px;margin-bottom:4px">投資合計</div>
+            <div style="font-size:16px;font-weight:700" id="invest-total-invested">¥0</div>
+          </div>
+          <div>
+            <div style="color:var(--t3);font-size:10px;margin-bottom:4px">現在の評価額</div>
+            <div style="font-size:16px;font-weight:700" id="invest-current-value">¥0</div>
+          </div>
+          <div style="grid-column:span 2">
+            <div style="color:var(--t3);font-size:10px;margin-bottom:4px">利益/損失</div>
+            <div style="font-size:18px;font-weight:700" id="invest-profit">¥0</div>
+          </div>
+        </div>
+      </div>
+      
       <div class="card">
         <div class="card-ttl"><div class="card-ttl-l">取引記録追加</div></div>
         <div class="fg">
@@ -908,7 +932,7 @@ function rebuildSelects(){
   if(payEl){
     const v=payEl.value;
     let opts=S.paymentMethods.map(p=>`<option value="method:${p}">${p}</option>`).join('');
-    opts+=S.cards.map(c=>`<option value="card:${c.id}">${c.name}（カード）</option>`).join('');
+    opts+=S.cards.map(c=>`<option value="card:${c.id}">${c.name}</option>`).join('');
     // 銀行は家計簿に載せない
     // opts+=S.banks.map(b=>`<option value="bank:${b.id}">${b.name}（銀行）</option>`).join('');
     payEl.innerHTML=opts;
@@ -1298,7 +1322,7 @@ function openExpenseDetail(i){
   // 決済方法選択肢を設定
   const paySel=document.getElementById('edit-exp-pay');
   let opts=S.paymentMethods.map(p=>`<option value="method:${p}">${p}</option>`).join('');
-  opts+=S.cards.map(c=>`<option value="card:${c.id}">${c.name}（カード）</option>`).join('');
+  opts+=S.cards.map(c=>`<option value="card:${c.id}">${c.name}</option>`).join('');
   paySel.innerHTML=opts;
   paySel.value=e.pay;
   
@@ -1551,7 +1575,7 @@ function exportExpensesCSV(){
     let pay=e.pay||'';
     if(pay.startsWith('card:')){
       const c=S.cards.find(c=>c.id===+pay.split(':')[1]);
-      pay=c?c.name+'（カード）':pay;
+      pay=c?c.name:pay;
     }else if(pay.startsWith('bank:')){
       const b=S.banks.find(b=>b.id===+pay.split(':')[1]);
       pay=b?b.name+'（銀行）':pay;
@@ -1835,7 +1859,7 @@ function renderExpList(elId,exps){
     if(e.pay&&e.pay.startsWith('card:')){
       const cardId=+e.pay.split(':')[1];
       const card=S.cards.find(c=>c.id===cardId);
-      if(card)payLabel=card.name+'（カード）';
+      if(card)payLabel=card.name;
     }else if(e.pay&&e.pay.startsWith('method:')){
       payLabel=e.pay.split(':')[1];
     }
@@ -2072,6 +2096,56 @@ function buildTrendChart(){
   `;
 }
 
+function buildInvestTrendChart(){
+  const chartEl=document.getElementById('invest-trend-chart');
+  if(!chartEl)return;
+  
+  // 前後3ヶ月（合計7ヶ月）の評価額を取得
+  const trendMonths=[];
+  for(let i=-3;i<=3;i++){
+    let m=S.currentMonth+i;
+    let y=S.currentYear;
+    while(m<1){m+=12;y--;}
+    while(m>12){m-=12;y++;}
+    trendMonths.push({year:y,month:m});
+  }
+  
+  // 各月の評価額を取得（現在は最新の評価額のみ）
+  const invEvals={};
+  S.investments.forEach(inv=>{if(inv.eval)invEvals[inv.broker]=inv.eval;});
+  const currentValue=Object.values(invEvals).reduce((s,v)=>s+v,0);
+  
+  const data=trendMonths.map(({year,month})=>{
+    return{label:`${month}月`,value:currentValue};
+  });
+  
+  const maxVal=Math.max(...data.map(d=>d.value),1);
+  const bars=data.map(d=>{
+    const h=Math.round((d.value/maxVal)*160);
+    const isCurrent=d.label===`${S.currentMonth}月`;
+    const col=isCurrent?'var(--blue)':'var(--t2)';
+    return`<div style="display:flex;flex-direction:column;align-items:center;gap:4px;flex:1">
+      <div style="font-size:9px;color:var(--t3)">${fmt(d.value)}</div>
+      <div style="width:100%;height:${h}px;background:${col};border-radius:2px 2px 0 0"></div>
+      <div style="font-size:10px;color:var(--t2);font-weight:${isCurrent?700:400}">${d.label}</div>
+    </div>`;
+  }).join('');
+  
+  chartEl.innerHTML=`<div style="display:flex;align-items:flex-end;gap:4px;height:100%">${bars}</div>`;
+  
+  // 利益計算
+  const totalInvested=S.investments.filter(i=>i.type==='buy').reduce((s,i)=>s+i.amount,0);
+  const totalSold=S.investments.filter(i=>i.type==='sell').reduce((s,i)=>s+i.amount,0);
+  const netInvested=totalInvested-totalSold;
+  const profit=currentValue-netInvested;
+  
+  document.getElementById('invest-total-invested').textContent=fmt(netInvested);
+  document.getElementById('invest-current-value').textContent=fmt(currentValue);
+  const profitEl=document.getElementById('invest-profit');
+  profitEl.textContent=fmt(profit);
+  profitEl.style.color=profit>=0?'var(--lime)':'var(--red)';
+}
+
 function calculateMonthDiff(){
   let lastMonth=S.currentMonth-1;
   let lastYear=S.currentYear;
@@ -2102,9 +2176,11 @@ function calculateMonthDiff(){
   };
   
   document.getElementById('d-total-diff').textContent=formatDiff(totalDiff);
-  document.getElementById('d-banks-diff').textContent=formatDiff(balanceDiff);
+  const balanceDiffEl=document.getElementById('d-balance-diff');
+  if(balanceDiffEl)balanceDiffEl.textContent=formatDiff(balanceDiff);
+  const cashDiffEl=document.getElementById('d-cash-diff');
+  if(cashDiffEl)cashDiffEl.textContent=formatDiff(balanceDiff);
   document.getElementById('d-exp-diff').textContent=formatDiff(expDiff);
-  document.getElementById('d-pts-diff').textContent=formatDiff(ptDiff);
 }
 
 
@@ -2125,13 +2201,32 @@ function renderAll(){
   const titleEl=document.getElementById('kakeibo-title');
   if(titleEl)titleEl.textContent=`FY${fy} ${S.currentMonth}月 月次収支サマリー`;
 
+  // 未払いカード利用額を計算
+  let unpaidCardTotal=0;
+  S.cards.forEach(c=>{
+    const billings=calcCardBilling(c);
+    const currentBilling=billings[ym]||0;
+    const nextYM=(()=>{
+      let m=S.currentMonth+1,y=S.currentYear;
+      if(m>12){m=1;y++;}
+      return `${y}-${pad(m)}`;
+    })();
+    const nextBilling=billings[nextYM]||0;
+    unpaidCardTotal+=currentBilling+nextBilling;
+  });
+
   const setKPI=(id,v)=>{const el=document.getElementById(id);if(el)el.textContent=v;};
   setKPI('d-total',fmt(bankTotal+prepaidTotal+invTotal+ptTotal));
-  setKPI('d-banks',fmt(bankTotal+prepaidTotal));
+  // 残高 = 総資産 - 未払いカード利用額
+  const balanceAmount=bankTotal+prepaidTotal+invTotal+ptTotal-unpaidCardTotal;
+  setKPI('d-balance',fmt(balanceAmount));
+  // 現金 = 銀行残高 + 積立残高 - 未払いカード利用額
+  const cashAmount=bankTotal+invTotal-unpaidCardTotal;
+  setKPI('d-cash',fmt(cashAmount));
   setKPI('d-exp',fmt(met));
-  setKPI('d-pts',fmt(ptTotal));
   
   buildTrendChart();
+  buildInvestTrendChart();
   calculateMonthDiff();
 
   // カレンダー: 現在月の前後3ヶ月（合計7ヶ月）
