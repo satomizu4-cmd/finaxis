@@ -195,7 +195,7 @@ body{display:flex;flex-direction:column;max-width:480px;margin:0 auto}
 .ymc-row{display:flex;justify-content:space-between;font-size:9px;margin-bottom:2px}
 .ymc-key{color:var(--t3)}
 .ymc-val{font-family:'Space Mono',monospace;font-weight:700}
-.genre-matrix{display:grid;grid-template-columns:80px repeat(12,1fr);gap:1px;font-size:9px;margin-bottom:12px}
+.genre-matrix{display:grid;grid-template-columns:80px repeat(12,80px);gap:1px;font-size:9px;margin-bottom:12px;min-width:1040px}
 .gm-cell{background:rgba(255,255,255,.02);padding:6px 4px;text-align:center;border:1px solid rgba(255,255,255,.03);border-radius:2px}
 .gm-header{background:var(--bg3);font-weight:700;color:var(--t2)}
 .gm-cat{text-align:left;font-weight:700;color:var(--t2);display:flex;align-items:center}
@@ -440,16 +440,16 @@ body{display:flex;flex-direction:column;max-width:480px;margin:0 auto}
       <!-- 推移グラフと利益 -->
       <div class="card">
         <div class="card-ttl">
-          <div class="card-ttl-l">推移グラフ</div>
+          <div class="card-ttl-l">推移</div>
           <div style="display:flex;gap:4px">
             <button class="view-tab on" id="invest-view-graph" onclick="setInvestView('graph',this)" style="font-size:10px;padding:4px 8px">グラフ</button>
-            <button class="view-tab" id="invest-view-calendar" onclick="setInvestView('calendar',this)" style="font-size:10px;padding:4px 8px">カレンダー</button>
+            <button class="view-tab" id="invest-view-calendar" onclick="setInvestView('calendar',this)" style="font-size:10px;padding:4px 8px">月別</button>
           </div>
         </div>
         
         <!-- グラフ表示 -->
         <div id="invest-graph-view">
-          <div style="display:flex;gap:12px;justify-content:center;margin-bottom:8px;font-size:11px">
+          <div style="display:flex;gap:12px;justify-content:center;margin-bottom:8px;font-size:11px;flex-wrap:wrap">
             <div style="display:flex;align-items:center;gap:4px;cursor:pointer" onclick="toggleInvestLine('balance')">
               <div id="invest-legend-balance" style="width:12px;height:12px;background:var(--blue);border-radius:2px"></div>
               <span>残高</span>
@@ -568,10 +568,28 @@ body{display:flex;flex-direction:column;max-width:480px;margin:0 auto}
           <div class="card-ttl"><div class="card-ttl-l">支出追加</div><button class="gear-btn" onclick="openSettings()">⚙</button></div>
           <div class="fg">
             <div class="field"><label>日付</label><input type="date" id="e-date"></div>
-            <div class="field sel"><label>カテゴリ</label><select id="e-cat"></select></div>
+            <div class="field sel"><label>カテゴリ</label><select id="e-cat" onchange="toggleFixedCostFields()"></select></div>
             <div class="field"><label>金額（円）</label><input type="number" id="e-amount" placeholder="3500"></div>
             <div class="field sel"><label>決済方法</label><select id="e-pay"></select></div>
             <div class="field" style="grid-column:span 2"><label>内容</label><input id="e-note" placeholder="例: ランチ（新宿）"></div>
+            
+            <!-- 固定費専用フィールド -->
+            <div id="fixed-cost-fields" style="display:none;grid-column:span 2;background:var(--card);padding:12px;border-radius:4px;margin-top:8px">
+              <div style="font-size:11px;color:var(--t3);margin-bottom:8px">固定費設定</div>
+              <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px">
+                <div class="field sel">
+                  <label>支払いサイクル</label>
+                  <select id="e-fixed-cycle">
+                    <option value="monthly">毎月</option>
+                    <option value="yearly">年払い</option>
+                  </select>
+                </div>
+                <div class="field" id="e-fixed-day-field">
+                  <label>支払日</label>
+                  <input type="number" id="e-fixed-day" min="1" max="31" placeholder="25">
+                </div>
+              </div>
+            </div>
           </div>
           <div class="checkbox-field" style="margin-top:8px;font-size:11px">
             <input type="checkbox" id="e-exclude" style="width:14px;height:14px;cursor:pointer">
@@ -614,20 +632,9 @@ body{display:flex;flex-direction:column;max-width:480px;margin:0 auto}
           <div class="total-row"><span class="total-lbl">支出合計</span><span class="total-val" id="month-total">¥0</span></div>
         </div>
 
-        <!-- 固定費 -->
+        <!-- 固定費一覧 -->
         <div class="card">
-          <div class="card-ttl"><div class="card-ttl-l">固定費追加</div></div>
-          <div class="fg">
-            <div class="field"><label>名称</label><input id="f-name" placeholder="例: Netflix"></div>
-            <div class="field"><label>金額（円）</label><input type="number" id="f-amount" placeholder="1490"></div>
-            <div class="field sel"><label>支払サイクル</label><select id="f-cycle"><option value="monthly">月払い</option><option value="yearly">年払い</option></select></div>
-            <div class="field"><label>支払日（日）</label><input type="number" id="f-day" placeholder="1" min="1" max="31"></div>
-          </div>
-          <div class="fg">
-            <div class="field"><label>カテゴリ</label><input id="f-cat" placeholder="例: サブスク"></div>
-            <div class="field"><label>利用開始日</label><input type="date" id="f-start"></div>
-          </div>
-          <button class="btn btn-p btn-full" onclick="addFixed()">追加</button>
+          <div class="card-ttl"><div class="card-ttl-l">固定費</div></div>
           <div id="fixed-list" style="margin-top:10px"><div style="color:var(--t3);font-size:10px;text-align:center;padding:10px">固定費を追加してください</div></div>
         </div>
       </div>
@@ -636,6 +643,20 @@ body{display:flex;flex-direction:column;max-width:480px;margin:0 auto}
       <div id="view-year" style="display:none">
         <div class="card">
           <div class="card-ttl"><div class="card-ttl-l">年間収支推移（1月-12月）</div></div>
+          <div style="display:flex;gap:12px;justify-content:center;margin-bottom:8px;font-size:11px;flex-wrap:wrap">
+            <div style="display:flex;align-items:center;gap:4px;cursor:pointer" onclick="toggleYearLine('income')">
+              <div id="year-legend-income" style="width:12px;height:12px;background:var(--green);border-radius:2px"></div>
+              <span>収入</span>
+            </div>
+            <div style="display:flex;align-items:center;gap:4px;cursor:pointer" onclick="toggleYearLine('expense')">
+              <div id="year-legend-expense" style="width:12px;height:12px;background:var(--red);border-radius:2px"></div>
+              <span>支出</span>
+            </div>
+            <div style="display:flex;align-items:center;gap:4px;cursor:pointer" onclick="toggleYearLine('surplus')">
+              <div id="year-legend-surplus" style="width:12px;height:12px;background:var(--blue);border-radius:2px"></div>
+              <span>収支</span>
+            </div>
+          </div>
           <div class="year-chart-wrap">
             <div class="year-chart" id="year-chart"></div>
           </div>
@@ -643,7 +664,9 @@ body{display:flex;flex-direction:column;max-width:480px;margin:0 auto}
         
         <div class="card">
           <div class="card-ttl"><div class="card-ttl-l">月別サマリー（1月-12月）</div></div>
-          <div class="year-month-grid" id="year-month-grid"></div>
+          <div class="cal-swipe-wrap">
+            <div class="year-month-grid" id="year-month-grid"></div>
+          </div>
         </div>
 
         <div class="card">
@@ -751,6 +774,12 @@ body{display:flex;flex-direction:column;max-width:480px;margin:0 auto}
       <option value="26">26日</option><option value="27">27日</option><option value="28">28日</option><option value="29">29日</option><option value="30">30日</option><option value="31">31日</option>
     </select></div>
     <div class="detail-field"><label>祝日ルール</label><select id="edit-c-rule"><option value="before">前営業日</option><option value="after">翌営業日</option></select></div>
+    <div class="detail-field">
+      <label style="display:flex;align-items:center;gap:6px;cursor:pointer;font-size:11px">
+        <input type="checkbox" id="edit-c-hide-payment" style="width:14px;height:14px;cursor:pointer">
+        <span>家計簿の支払い方法に表示しない</span>
+      </label>
+    </div>
     <div class="detail-actions">
       <button class="btn btn-p" style="flex:1" onclick="saveCardDetail()">保存</button>
       <button class="btn btn-g" onclick="closeCardDetail()">キャンセル</button>
@@ -864,11 +893,11 @@ const S={
   paymentMethods:['現金','プリペイド','QR決済'], // 決済マスタ
   currentMonth:now.getMonth()+1,currentYear:now.getFullYear(),
   viewMode:'month',editingCardIndex:null,editingBankIndex:null,editingPrepaidIndex:null,editingExpenseIndex:null,
-  cats:['食費','外食','交通費','日用品','趣味・娯楽','旅行','美容・健康','衣類','サブスク','その他']
+  cats:['食費','外食','交通費','日用品','趣味・娯楽','旅行','美容・健康','衣類','サブスク','固定費','その他']
 };
 
 const fmt=n=>'¥'+Math.round(n).toLocaleString();
-const catTag={食費:'tg',外食:'tl',交通費:'tb',日用品:'to','趣味・娯楽':'tp',旅行:'tr2','美容・健康':'tg',衣類:'tb',サブスク:'to',その他:'to'};
+const catTag={食費:'tg',外食:'tl',交通費:'tb',日用品:'to','趣味・娯楽':'tp',旅行:'tr2','美容・健康':'tg',衣類:'tb',サブスク:'to',固定費:'tr2',その他:'to'};
 const tg=c=>catTag[c]||'to';
 const dayLabel=d=>d===99?'末日':`${d}日`;
 
@@ -960,7 +989,8 @@ function rebuildSelects(){
   if(payEl){
     const v=payEl.value;
     let opts=S.paymentMethods.map(p=>`<option value="method:${p}">${p}</option>`).join('');
-    opts+=S.cards.map(c=>`<option value="card:${c.id}">${c.name}</option>`).join('');
+    opts+=S.cards.filter(c=>!c.hideFromPayment).map(c=>`<option value="card:${c.id}">${c.name}</option>`).join('');
+    opts+=S.prepaids.map(p=>`<option value="prepaid:${p.id}">${p.name}</option>`).join('');
     // 銀行は家計簿に載せない
     // opts+=S.banks.map(b=>`<option value="bank:${b.id}">${b.name}（銀行）</option>`).join('');
     payEl.innerHTML=opts;
@@ -1234,6 +1264,7 @@ function openCardDetail(i){
   document.getElementById('edit-c-close').value=c.close;
   document.getElementById('edit-c-pay').value=c.pay;
   document.getElementById('edit-c-rule').value=c.rule;
+  document.getElementById('edit-c-hide-payment').checked=c.hideFromPayment||false;
   document.getElementById('card-detail-modal').classList.add('show');
 }
 
@@ -1275,6 +1306,7 @@ function saveCardDetail(){
   c.close=+document.getElementById('edit-c-close').value||0;
   c.pay=+document.getElementById('edit-c-pay').value||0;
   c.rule=document.getElementById('edit-c-rule').value;
+  c.hideFromPayment=document.getElementById('edit-c-hide-payment').checked;
   saveData();
   closeCardDetail();
   renderAll();
@@ -1350,7 +1382,7 @@ function openExpenseDetail(i){
   // 決済方法選択肢を設定
   const paySel=document.getElementById('edit-exp-pay');
   let opts=S.paymentMethods.map(p=>`<option value="method:${p}">${p}</option>`).join('');
-  opts+=S.cards.map(c=>`<option value="card:${c.id}">${c.name}</option>`).join('');
+  opts+=S.cards.filter(c=>!c.hideFromPayment).map(c=>`<option value="card:${c.id}">${c.name}</option>`).join('');
   paySel.innerHTML=opts;
   paySel.value=e.pay;
   
@@ -1663,16 +1695,54 @@ function importData(event){
 }
 
 
+function toggleFixedCostFields(){
+  const cat=document.getElementById('e-cat').value;
+  const fieldsDiv=document.getElementById('fixed-cost-fields');
+  if(fieldsDiv){
+    fieldsDiv.style.display=cat==='固定費'?'block':'none';
+  }
+}
+
 function addExp(){
   const amount=+document.getElementById('e-amount').value;
   if(!amount){alert('金額を入力してください');return;}
+  const cat=document.getElementById('e-cat').value;
   const pay=document.getElementById('e-pay').value;
   const excludeFromBudget=document.getElementById('e-exclude').checked;
-  S.expenses.push({id:Date.now(),date:document.getElementById('e-date').value||todayStr,cat:document.getElementById('e-cat').value,amount,pay,note:document.getElementById('e-note').value,excludeFromBudget});
-  S.expenses.sort((a,b)=>b.date.localeCompare(a.date));
-  document.getElementById('e-amount').value='';
-  document.getElementById('e-note').value='';
-  document.getElementById('e-exclude').checked=false;
+  const date=document.getElementById('e-date').value||todayStr;
+  const note=document.getElementById('e-note').value;
+  
+  // カテゴリが「固定費」の場合は固定費として登録
+  if(cat==='固定費'){
+    const cycle=document.getElementById('e-fixed-cycle').value;
+    const dayInput=document.getElementById('e-fixed-day').value;
+    const day=dayInput?+dayInput:new Date(date).getDate();
+    
+    S.fixedCosts.push({
+      name:note||'固定費',
+      cat:'固定費',
+      amount,
+      cycle,
+      day,
+      excludeFromBudget
+    });
+    alert('固定費として登録しました');
+    
+    // フォームクリア
+    document.getElementById('e-amount').value='';
+    document.getElementById('e-note').value='';
+    document.getElementById('e-exclude').checked=false;
+    document.getElementById('e-fixed-day').value='';
+  }else{
+    S.expenses.push({id:Date.now(),date,cat,amount,pay,note,excludeFromBudget});
+    S.expenses.sort((a,b)=>b.date.localeCompare(a.date));
+    
+    // フォームクリア
+    document.getElementById('e-amount').value='';
+    document.getElementById('e-note').value='';
+    document.getElementById('e-exclude').checked=false;
+  }
+  
   saveData();
   renderAll();
 }
@@ -1953,21 +2023,74 @@ function buildYearView(){
     const inc=S.incomes.filter(i=>i.date.startsWith(ym)).reduce((s,i)=>s+i.amount,0);
     const exp=S.expenses.filter(e=>e.date.startsWith(ym)&&!e.excludeFromBudget).reduce((s,e)=>s+e.amount,0);
     const fixed=S.fixedCosts.filter(f=>f.cycle==='monthly'&&!f.excludeFromBudget).reduce((s,f)=>s+f.amount,0);
-    return{year,month,inc,exp,fixed,surplus:inc-exp-fixed};
+    const totalExp=exp+fixed;
+    return{year,month,inc,exp:totalExp,surplus:inc-totalExp};
   });
-  const maxVal=Math.max(...data.map(d=>Math.max(d.inc,d.exp+d.fixed)),1);
+  
+  // 折れ線グラフを描画
   const chartEl=document.getElementById('year-chart');
   if(chartEl){
-    chartEl.innerHTML=data.map(d=>{
-      const incH=Math.round(d.inc/maxVal*160);
-      const expH=Math.round((d.exp+d.fixed)/maxVal*160);
-      return`<div class="year-bar">
-        <div class="year-bar-income" style="height:${incH}px"></div>
-        <div class="year-bar-exp" style="height:${expH}px"></div>
-        <div class="year-bar-lbl">${d.month}月</div>
-      </div>`;
+    // 表示/非表示の状態を保持
+    if(!window.yearLineVisibility){
+      window.yearLineVisibility={income:true,expense:true,surplus:true};
+    }
+    
+    const width=800;
+    const height=220;
+    const padding={left:70,right:20,top:20,bottom:35};
+    const chartWidth=width-padding.left-padding.right;
+    const chartHeight=height-padding.top-padding.bottom;
+    
+    const incValues=data.map(d=>d.inc);
+    const expValues=data.map(d=>d.exp);
+    const surplusValues=data.map(d=>d.surplus);
+    const allValues=[...incValues,...expValues,...surplusValues];
+    const maxVal=Math.max(...allValues,1);
+    const minVal=Math.min(...allValues,0);
+    const range=maxVal-minVal||1;
+    
+    const getX=idx=>padding.left+(idx/(data.length-1||1))*chartWidth;
+    const getY=val=>padding.top+chartHeight-((val-minVal)/range)*chartHeight;
+    
+    // 各ラインのパス
+    const incomePath=data.map((d,i)=>`${i===0?'M':'L'}${getX(i)},${getY(d.inc)}`).join(' ');
+    const expensePath=data.map((d,i)=>`${i===0?'M':'L'}${getX(i)},${getY(d.exp)}`).join(' ');
+    const surplusPath=data.map((d,i)=>`${i===0?'M':'L'}${getX(i)},${getY(d.surplus)}`).join(' ');
+    
+    // グリッド線
+    const gridLines=[];
+    for(let i=0;i<=4;i++){
+      const val=minVal+(range/4)*i;
+      const y=getY(val);
+      gridLines.push(`<line x1="${padding.left}" y1="${y}" x2="${width-padding.right}" y2="${y}" stroke="var(--gb)" stroke-width="1"/>`);
+      gridLines.push(`<text x="${padding.left-5}" y="${y+4}" text-anchor="end" fill="var(--t3)" font-size="11">${fmt(val)}</text>`);
+    }
+    
+    // ポイントとラベル
+    const points=data.map((d,i)=>{
+      const x=getX(i);
+      const incY=getY(d.inc);
+      const expY=getY(d.exp);
+      const surplusY=getY(d.surplus);
+      return`
+        ${window.yearLineVisibility.income?`<circle cx="${x}" cy="${incY}" r="4" fill="var(--green)"/>`:''}
+        ${window.yearLineVisibility.expense?`<circle cx="${x}" cy="${expY}" r="4" fill="var(--red)"/>`:''}
+        ${window.yearLineVisibility.surplus?`<circle cx="${x}" cy="${surplusY}" r="4" fill="var(--blue)"/>`:''}
+        <text x="${x}" y="${height-8}" text-anchor="middle" fill="var(--t2)" font-size="11" font-weight="500">${d.month}月</text>
+      `;
     }).join('');
+    
+    chartEl.innerHTML=`
+      <svg width="100%" height="${height}" viewBox="0 0 ${width} ${height}">
+        ${gridLines.join('')}
+        ${window.yearLineVisibility.income?`<path d="${incomePath}" fill="none" stroke="var(--green)" stroke-width="2"/>`:''}
+        ${window.yearLineVisibility.expense?`<path d="${expensePath}" fill="none" stroke="var(--red)" stroke-width="2"/>`:''}
+        ${window.yearLineVisibility.surplus?`<path d="${surplusPath}" fill="none" stroke="var(--blue)" stroke-width="2"/>`:''}
+        ${points}
+      </svg>
+    `;
   }
+  
   const gridEl=document.getElementById('year-month-grid');
   if(gridEl){
     gridEl.innerHTML=data.map(d=>`<div class="year-month-card" onclick="S.currentYear=${d.year};S.currentMonth=${d.month};setViewMode('month',document.querySelectorAll('.view-tab')[0])">
@@ -1991,6 +2114,21 @@ function buildYearView(){
     });
     matrixEl.innerHTML=html;
   }
+}
+
+function toggleYearLine(line){
+  if(!window.yearLineVisibility){
+    window.yearLineVisibility={income:true,expense:true,surplus:true};
+  }
+  window.yearLineVisibility[line]=!window.yearLineVisibility[line];
+  
+  // 凡例の表示を更新
+  const legendEl=document.getElementById(`year-legend-${line}`);
+  if(legendEl){
+    legendEl.style.opacity=window.yearLineVisibility[line]?'1':'0.3';
+  }
+  
+  buildYearView();
 }
 
 function buildTrendChart(){
@@ -2189,7 +2327,7 @@ function buildInvestTrendChart(){
     const val=minVal+(range/4)*i;
     const y=getY(val);
     gridLines.push(`<line x1="${padding.left}" y1="${y}" x2="${width-padding.right}" y2="${y}" stroke="var(--gb)" stroke-width="1"/>`);
-    gridLines.push(`<text x="${padding.left-5}" y="${y+4}" text-anchor="end" fill="var(--t3)" font-size="10">${fmt(val)}</text>`);
+    gridLines.push(`<text x="${padding.left-5}" y="${y+4}" text-anchor="end" fill="var(--t3)" font-size="11">${fmt(val)}</text>`);
   }
   
   // ポイントとラベル
@@ -2201,7 +2339,7 @@ function buildInvestTrendChart(){
     return`
       ${window.investLineVisibility.balance?`<circle cx="${x}" cy="${balanceY}" r="4" fill="var(--blue)"/>`:''}
       ${window.investLineVisibility.profit?`<circle cx="${x}" cy="${profitY}" r="4" fill="var(--lime)"/>`:''}
-      <text x="${x}" y="${height-10}" text-anchor="middle" fill="${color}" font-size="10" font-weight="${d.isCurrent?700:400}">${d.label}</text>
+      <text x="${x}" y="${height-8}" text-anchor="middle" fill="${color}" font-size="11" font-weight="${d.isCurrent?700:500}">${d.label}</text>
     `;
   }).join('');
   
@@ -2280,73 +2418,98 @@ function buildInvestCalendar(){
   const wrap=document.getElementById('invest-cal-swipe');
   if(!wrap)return;
   
-  // 前後3ヶ月（合計7ヶ月）
-  const months=[];
-  for(let i=-3;i<=3;i++){
-    let m=S.currentMonth+i;
-    let y=S.currentYear;
-    while(m<1){m+=12;y--;}
-    while(m>12){m-=12;y++;}
-    months.push({year:y,month:m});
-  }
+  // 1月-12月の全月
+  const fy=getFY(S.currentYear,S.currentMonth);
+  const fyMonths=getFYMonths(fy);
   
-  const inner=document.createElement('div');
-  inner.className='cal-swipe-inner';
-  inner.style.width=`${months.length*100}%`;
-  
-  let currentMonthIndex=-1;
-  months.forEach(({year,month},idx)=>{
-    if(year===S.currentYear&&month===S.currentMonth)currentMonthIndex=idx;
+  const data=fyMonths.map(({year,month})=>{
     const ym=`${year}-${pad(month)}`;
     
-    // 該当月の取引を取得
-    const transactions=S.investments.filter(i=>i.date&&i.date.startsWith(ym+'-'));
+    // この月の最終日までの購入・売却を集計して残高を計算
+    const lastDay=new Date(year,month,0).getDate();
+    const endOfMonth=`${ym}-${pad(lastDay)}`;
     
-    const item=document.createElement('div');
-    item.className='cal-swipe-item';
-    item.style.width=`${100/months.length}%`;
+    // 証券会社（銘柄）ごとにその月末時点の残高を計算
+    const brokerBalances={};
+    const brokerEvals={};
     
-    let html=`<div style="font-size:13px;font-weight:700;margin-bottom:8px;text-align:center">${year}年${month}月</div>`;
+    // 全銘柄をループ
+    const allBrokers=[...new Set(S.investments.map(i=>i.broker))];
     
-    if(transactions.length>0){
-      html+=transactions.map(t=>{
-        const typeLabel=t.type==='buy'?'購入':'売却';
-        const typeColor=t.type==='buy'?'var(--blue)':'var(--lime)';
-        const profit=t.type==='sell'?((t.eval||0)-t.amount):0;
-        return`<div style="padding:8px;margin-bottom:4px;background:var(--card);border-radius:4px;font-size:11px">
-          <div style="display:flex;justify-content:space-between;margin-bottom:4px">
-            <span style="color:${typeColor};font-weight:700">${typeLabel}</span>
-            <span style="color:var(--t3)">${t.date.slice(5)}</span>
-          </div>
-          <div style="color:var(--t2)">${t.broker} - ${t.fund||'—'}</div>
-          <div style="display:flex;justify-content:space-between;margin-top:4px">
-            <span>金額: ${fmt(t.amount)}</span>
-            ${t.type==='sell'?`<span style="color:${profit>=0?'var(--lime)':'var(--red)'}">利益: ${fmt(profit)}</span>`:''}
-          </div>
-        </div>`;
-      }).join('');
-    }else{
-      html+='<div style="color:var(--t3);font-size:10px;text-align:center;padding:16px">取引なし</div>';
-    }
+    allBrokers.forEach(broker=>{
+      // この銘柄のその月末までの購入・売却
+      const brokerBuys=S.investments.filter(i=>i.broker===broker&&i.type==='buy'&&i.date&&i.date<=endOfMonth);
+      const brokerSales=S.investments.filter(i=>i.broker===broker&&i.type==='sell'&&i.date&&i.date<=endOfMonth);
+      
+      const buyTotal=brokerBuys.reduce((s,t)=>s+t.amount,0);
+      const saleTotal=brokerSales.reduce((s,t)=>s+t.amount,0);
+      
+      brokerBalances[broker]=buyTotal-saleTotal;
+      
+      // 現在の評価額を取得（この銘柄の最新の評価額）
+      const latestInv=S.investments.filter(i=>i.broker===broker&&i.eval).sort((a,b)=>b.date.localeCompare(a.date))[0];
+      brokerEvals[broker]=latestInv?latestInv.eval:0;
+    });
     
-    item.innerHTML=html;
-    inner.appendChild(item);
+    // 全体の積立額と評価額
+    const totalBalance=Object.values(brokerBalances).reduce((s,v)=>s+v,0);
+    const totalValue=Object.values(brokerEvals).reduce((s,v)=>s+v,0);
+    
+    // 今月の取引件数
+    const monthBuys=S.investments.filter(i=>i.type==='buy'&&i.date&&i.date.startsWith(ym+'-'));
+    const monthSales=S.investments.filter(i=>i.type==='sell'&&i.date&&i.date.startsWith(ym+'-'));
+    
+    // 総利益 = 評価額 - 積立額
+    const totalProfit=totalValue-totalBalance;
+    
+    // 月次利益の計算（より正確に）
+    // 各銘柄ごとに「先月末の評価額」と「今月末の評価額」を比較
+    let monthProfit=0;
+    
+    // 先月のデータを取得
+    let prevMonth=month-1;
+    let prevYear=year;
+    if(prevMonth<1){prevMonth=12;prevYear--;}
+    const prevYM=`${prevYear}-${pad(prevMonth)}`;
+    const prevLastDay=new Date(prevYear,prevMonth,0).getDate();
+    const prevEndOfMonth=`${prevYM}-${pad(prevLastDay)}`;
+    
+    allBrokers.forEach(broker=>{
+      // 先月末時点のこの銘柄の積立額
+      const prevBuyTotal=S.investments.filter(i=>i.broker===broker&&i.type==='buy'&&i.date&&i.date<=prevEndOfMonth).reduce((s,t)=>s+t.amount,0);
+      const prevSaleTotal=S.investments.filter(i=>i.broker===broker&&i.type==='sell'&&i.date&&i.date<=prevEndOfMonth).reduce((s,t)=>s+t.amount,0);
+      const prevBalance=prevBuyTotal-prevSaleTotal;
+      
+      // 先月末時点のこの銘柄の評価額
+      const prevLatestInv=S.investments.filter(i=>i.broker===broker&&i.eval&&i.date<=prevEndOfMonth).sort((a,b)=>b.date.localeCompare(a.date))[0];
+      const prevValue=prevLatestInv?prevLatestInv.eval:prevBalance;
+      
+      // 今月末時点のデータ
+      const currentBalance=brokerBalances[broker]||0;
+      const currentValue=brokerEvals[broker]||0;
+      
+      // この銘柄の今月の利益 = (今月末評価額 - 今月末積立額) - (先月末評価額 - 先月末積立額)
+      const prevProfit=prevValue-prevBalance;
+      const currentProfit=currentValue-currentBalance;
+      const brokerMonthProfit=currentProfit-prevProfit;
+      
+      monthProfit+=brokerMonthProfit;
+    });
+    
+    return{year,month,balance:totalBalance,currentValue:totalValue,totalProfit,monthProfit,buyCount:monthBuys.length,saleCount:monthSales.length};
   });
   
-  wrap.innerHTML='';
-  wrap.appendChild(inner);
-  
-  // 現在月を中央に表示
-  if(currentMonthIndex>=0){
-    setTimeout(()=>{
-      const itemWidth=wrap.querySelector('.cal-swipe-item')?.offsetWidth||0;
-      const wrapWidth=wrap.offsetWidth||0;
-      if(itemWidth&&wrapWidth){
-        const centerOffset=(wrapWidth/2)-(itemWidth/2);
-        wrap.scrollLeft=(currentMonthIndex*itemWidth)-centerOffset;
-      }
-    },50);
-  }
+  wrap.innerHTML=`<div class="year-month-grid">${data.map(d=>{
+    const isCurrent=(d.year===S.currentYear&&d.month===S.currentMonth);
+    return`<div class="year-month-card" style="${isCurrent?'border:2px solid var(--lime)':''}">
+      <div class="ymc-label">${d.month}月</div>
+      <div class="ymc-row"><span class="ymc-key">積立額</span><span class="ymc-val" style="color:var(--t2)">${fmt(d.balance)}</span></div>
+      <div class="ymc-row"><span class="ymc-key">評価額</span><span class="ymc-val" style="color:var(--blue)">${fmt(d.currentValue)}</span></div>
+      <div class="ymc-row"><span class="ymc-key">総利益</span><span class="ymc-val" style="color:${d.totalProfit>=0?'var(--lime)':'var(--red)'}">${d.totalProfit>=0?'+':''}${fmt(d.totalProfit)}</span></div>
+      <div class="ymc-row"><span class="ymc-key">月次利益</span><span class="ymc-val" style="color:${d.monthProfit>=0?'var(--lime)':'var(--red)'}">${d.monthProfit>=0?'+':''}${fmt(d.monthProfit)}</span></div>
+      ${d.buyCount>0||d.saleCount>0?`<div style="font-size:9px;color:var(--t3);margin-top:4px;text-align:center">${d.buyCount>0?`購${d.buyCount}`:''}${d.buyCount>0&&d.saleCount>0?' / ':''}${d.saleCount>0?`売${d.saleCount}`:''}</div>`:''}
+    </div>`;
+  }).join('')}</div>`;
 }
 
 function calculateMonthDiff(){
