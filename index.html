@@ -1695,6 +1695,27 @@ function toggleChartLine(key){
   buildTrendChart();
 }
 
+function getPaymentDisplay(pay){
+  if(!pay)return '—';
+  if(pay.startsWith('method:'))return pay.replace('method:','');
+  if(pay.startsWith('card:')){
+    const cardId=pay.replace('card:','');
+    const card=S.cards.find(c=>c.id==cardId);
+    return card?card.name:'削除済みカード';
+  }
+  if(pay.startsWith('prepaid:')){
+    const prepaidId=pay.replace('prepaid:','');
+    const prepaid=S.prepaids.find(p=>p.id==prepaidId);
+    return prepaid?prepaid.name:'削除済みプリペイド';
+  }
+  if(pay.startsWith('bank:')){
+    const bankId=pay.replace('bank:','');
+    const bank=S.banks.find(b=>b.id==bankId);
+    return bank?bank.name:'削除済み銀行';
+  }
+  return pay;
+}
+
 function openCalDetail(date,cards){
   document.getElementById('cal-detail-title').textContent=date+' の引き落とし';
   let html='';
@@ -3063,6 +3084,7 @@ function saveData(){
       incomes:S.incomes,
       fixedCosts:S.fixedCosts,
       prepaids:S.prepaids,
+      paymentMethods:S.paymentMethods,
       cats:S.cats,
       currentYear:S.currentYear,
       currentMonth:S.currentMonth,
@@ -3089,11 +3111,20 @@ function loadData(){
       S.incomes=data.incomes||[];
       S.fixedCosts=data.fixedCosts||[];
       S.prepaids=data.prepaids||[];
+      S.paymentMethods=data.paymentMethods||['現金'];
       if(data.cats&&data.cats.length>0)S.cats=data.cats;
       // currentYear/currentMonthは常に現在の日付を使用（LocalStorageの値は無視）
       S.currentYear=now.getFullYear();
       S.currentMonth=now.getMonth()+1;
       S.viewMode=data.viewMode||'month';
+      
+      // 固定費の古いデータにidとpayフィールドを追加
+      S.fixedCosts=S.fixedCosts.map(f=>{
+        if(!f.id)f.id=Date.now()+Math.random();
+        if(!f.pay)f.pay='method:現金';
+        return f;
+      });
+      
       console.log('データを読み込みました');
       return true;
     }
