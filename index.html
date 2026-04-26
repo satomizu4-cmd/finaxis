@@ -183,7 +183,7 @@ body{display:flex;flex-direction:column;max-width:480px;margin:0 auto}
 
 /* 年次グラフ */
 .year-chart-wrap{margin-bottom:12px}
-.year-chart{display:grid;grid-template-columns:repeat(12,1fr);gap:4px;height:180px;align-items:flex-end;padding:10px 0}
+.year-chart{height:220px}
 .year-bar{display:flex;flex-direction:column;align-items:center;gap:2px}
 .year-bar-income{background:var(--green);border-radius:2px 2px 0 0;width:100%;transition:height .3s}
 .year-bar-exp{background:var(--red);border-radius:0;width:100%;transition:height .3s}
@@ -1376,15 +1376,47 @@ function openExpenseDetail(i){
   
   // カテゴリ選択肢を設定
   const catSel=document.getElementById('edit-exp-cat');
-  catSel.innerHTML=S.cats.map(c=>`<option value="${c}">${c}</option>`).join('');
+  catSel.innerHTML=S.cats.map(c=>`<option value="${c}">${c}</option>`).join('')+`<option value="__new__">+ 新規追加</option>`;
   catSel.value=e.cat;
+  catSel.onchange=()=>{
+    if(catSel.value==='__new__'){
+      const newCat=prompt('新しいカテゴリ名を入力してください:');
+      if(newCat&&newCat.trim()&&!S.cats.includes(newCat.trim())){
+        S.cats.push(newCat.trim());
+        catSel.innerHTML=S.cats.map(c=>`<option value="${c}">${c}</option>`).join('')+`<option value="__new__">+ 新規追加</option>`;
+        catSel.value=newCat.trim();
+        saveData();
+        rebuildSelects();
+      }else{
+        catSel.value=e.cat;
+      }
+    }
+  };
   
   // 決済方法選択肢を設定
   const paySel=document.getElementById('edit-exp-pay');
   let opts=S.paymentMethods.map(p=>`<option value="method:${p}">${p}</option>`).join('');
   opts+=S.cards.filter(c=>!c.hideFromPayment).map(c=>`<option value="card:${c.id}">${c.name}</option>`).join('');
+  opts+=`<option value="__new__">+ 新規追加</option>`;
   paySel.innerHTML=opts;
   paySel.value=e.pay;
+  paySel.onchange=()=>{
+    if(paySel.value==='__new__'){
+      const newPay=prompt('新しい決済方法を入力してください:');
+      if(newPay&&newPay.trim()&&!S.paymentMethods.includes(newPay.trim())){
+        S.paymentMethods.push(newPay.trim());
+        let newOpts=S.paymentMethods.map(p=>`<option value="method:${p}">${p}</option>`).join('');
+        newOpts+=S.cards.filter(c=>!c.hideFromPayment).map(c=>`<option value="card:${c.id}">${c.name}</option>`).join('');
+        newOpts+=`<option value="__new__">+ 新規追加</option>`;
+        paySel.innerHTML=newOpts;
+        paySel.value=`method:${newPay.trim()}`;
+        saveData();
+        rebuildSelects();
+      }else{
+        paySel.value=e.pay;
+      }
+    }
+  };
   
   document.getElementById('expense-detail-modal').classList.add('show');
 }
@@ -1797,6 +1829,8 @@ function buildSwipeCal(wrapperId,expenses,showCards,months){
     const item=document.createElement('div');item.className='cal-swipe-item';
     const label=document.createElement('div');label.className='cal-month-label';
     label.textContent=`${year}年${month}月`;
+    label.style.cursor='pointer';
+    label.onclick=()=>{S.currentYear=year;S.currentMonth=month;renderAll();};
     item.appendChild(label);
     const grid=document.createElement('div');grid.className='cal-grid';
     ['日','月','火','水','木','金','土'].forEach(d=>{const h=document.createElement('div');h.className='cal-dh';h.textContent=d;grid.appendChild(h);});
@@ -1853,9 +1887,8 @@ function buildSwipeCal(wrapperId,expenses,showCards,months){
         }
         if(hasFixed){
           const fdot=document.createElement('div');fdot.className='cal-dot-fixed';cell.appendChild(fdot);
-          [...monthlyFixed,...yearlyFixed].forEach(f=>{
-            const fe=document.createElement('div');fe.className='cal-entry fixed';fe.textContent=f.name.slice(0,4);cell.appendChild(fe);
-          });
+          const fixedTotal=[...monthlyFixed,...yearlyFixed].reduce((s,f)=>s+f.amount,0);
+          const fa=document.createElement('div');fa.className='cal-entry fixed';fa.textContent=fmt(fixedTotal);cell.appendChild(fa);
         }
         if(hasExpense){
           const dot=document.createElement('div');dot.className='cal-dot';cell.appendChild(dot);
@@ -2023,7 +2056,8 @@ function buildYearView(){
     const inc=S.incomes.filter(i=>i.date.startsWith(ym)).reduce((s,i)=>s+i.amount,0);
     const exp=S.expenses.filter(e=>e.date.startsWith(ym)&&!e.excludeFromBudget).reduce((s,e)=>s+e.amount,0);
     const fixed=S.fixedCosts.filter(f=>f.cycle==='monthly'&&!f.excludeFromBudget).reduce((s,f)=>s+f.amount,0);
-    const totalExp=exp+fixed;
+    // 固定費以外（通常の支出）が0の場合は、支出を0にする
+    const totalExp=exp>0?(exp+fixed):0;
     return{year,month,inc,exp:totalExp,surplus:inc-totalExp};
   });
   
@@ -2896,6 +2930,7 @@ function saveData(){
       incomes:S.incomes,
       fixedCosts:S.fixedCosts,
       prepaids:S.prepaids,
+      cats:S.cats,
       currentYear:S.currentYear,
       currentMonth:S.currentMonth,
       viewMode:S.viewMode
@@ -2921,6 +2956,7 @@ function loadData(){
       S.incomes=data.incomes||[];
       S.fixedCosts=data.fixedCosts||[];
       S.prepaids=data.prepaids||[];
+      if(data.cats&&data.cats.length>0)S.cats=data.cats;
       // currentYear/currentMonthは常に現在の日付を使用（LocalStorageの値は無視）
       S.currentYear=now.getFullYear();
       S.currentMonth=now.getMonth()+1;
