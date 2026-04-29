@@ -2,42 +2,45 @@
 <html lang="ja">
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+<meta name="viewport" content="width=393, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 <title>FINAXIS — Personal Finance OS</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+JP:wght@400;500;700&family=Space+Mono:wght@400;700&display=swap" rel="stylesheet">
 <style>
 *,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
 :root{
-  --bg:#080808;--bg2:#101010;--bg3:#161616;--bg4:#1e1e1e;
-  --g:rgba(255,255,255,0.035);--gb:rgba(255,255,255,0.07);--gbh:rgba(255,255,255,0.055);
-  --t:#ebebeb;--t2:#969696;--t3:#4b4b4b;
-  --lime:#b8f000;--blue:#00c8f0;--red:#f06060;--amber:#f0a030;--green:#58d080;--purple:#b060e0;
-  --r:10px;--r2:6px;--r3:4px;--field-h:48px;--nav-h:60px;
+  --bg:#0a0a0f;--bg2:#12121a;--bg3:rgba(25,25,35,0.6);--bg4:rgba(30,30,42,0.4);
+  --g:rgba(30,30,42,0.4);--gb:rgba(200,200,255,0.08);--gbh:rgba(200,200,255,0.12);
+  --t:#e8e8f0;--t2:#b0b0c8;--t3:#8888a8;
+  --lime:#b8f000;--blue:#00d4ff;--red:#ff6b6b;--amber:#ffb347;--green:#5edb8f;--purple:#b885ff;
+  --r:12px;--r2:8px;--r3:4px;--field-h:48px;--nav-h:60px;
 }
-html,body{height:100%;background:var(--bg);color:var(--t);font-family:'Noto Sans JP',sans-serif;font-size:13px;line-height:1.5;overflow:hidden}
-body{display:flex;flex-direction:column;max-width:480px;margin:0 auto}
-.app-header{padding:14px 12px;border-bottom:1px solid var(--gb);flex-shrink:0}
+html,body{height:100%;background:linear-gradient(135deg,#0a0a0f 0%,#1a1a28 100%);color:var(--t);font-family:'Noto Sans JP',sans-serif;font-size:14px;line-height:1.5;overflow:hidden}
+body{display:flex;flex-direction:column;width:393px;max-width:393px;min-width:393px;margin:0 auto;height:100vh;height:100dvh;padding-top:env(safe-area-inset-top);padding-bottom:env(safe-area-inset-bottom)}
+@media (max-width:393px){body{width:100%;min-width:100%;max-width:100%}}
+.app-header{padding:14px 12px;border-bottom:1px solid var(--gb);flex-shrink:0;background:rgba(18,18,26,0.5);backdrop-filter:blur(10px);padding-left:max(12px,env(safe-area-inset-left));padding-right:max(12px,env(safe-area-inset-right))}
 .logo-main{font-size:16px;font-weight:700;letter-spacing:1px}
 .logo-main span{color:var(--lime)}
 .logo-sub{font-size:9px;color:var(--t3);font-family:'Space Mono',monospace}
 .app-content{flex:1;overflow-y:auto;-webkit-overflow-scrolling:touch;position:relative}
-.app-nav{height:var(--nav-h);background:var(--bg2);border-top:1px solid var(--gb);display:flex;flex-shrink:0}
+.app-nav{height:var(--nav-h);background:rgba(18,18,26,0.8);backdrop-filter:blur(20px);border-top:1px solid var(--gb);display:flex;flex-shrink:0}
 .nav-btn{flex:1;border:none;background:transparent;color:var(--t3);font-family:'Noto Sans JP',sans-serif;font-size:9px;font-weight:500;cursor:pointer;transition:.15s;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:3px;padding:6px 2px}
 .nav-btn .ni{font-size:18px;line-height:1}
 .nav-btn.on{color:var(--lime)}
 .pnl{display:none}.pnl.on{display:block}
-.pnl-inner{padding:12px 10px 4px}
-.card{background:var(--g);border:1px solid var(--gb);border-radius:var(--r);padding:14px;margin-bottom:10px}
-.card-ttl{font-size:10px;font-weight:700;color:var(--t2);text-transform:uppercase;letter-spacing:.8px;margin-bottom:12px;display:flex;align-items:center;justify-content:space-between}
+.pnl-inner{padding:12px 10px 4px;padding-left:max(10px,env(safe-area-inset-left));padding-right:max(10px,env(safe-area-inset-right))}
+.card{background:rgba(30,30,42,0.4);backdrop-filter:blur(20px);border:1px solid var(--gb);border-radius:var(--r);padding:16px;margin-bottom:12px;box-shadow:0 8px 32px 0 rgba(0,0,0,0.2)}
+.card-ttl{font-size:11px;font-weight:700;color:var(--t2);text-transform:uppercase;letter-spacing:.8px;margin-bottom:14px;display:flex;align-items:center;justify-content:space-between}
 .card-ttl-l{display:flex;align-items:center;gap:6px}
 .card-ttl-l::before{content:'';width:2px;height:10px;background:var(--lime);border-radius:2px}
-.kpis{display:grid;grid-template-columns:repeat(2,1fr);gap:8px;margin-bottom:10px}
-.kpi{background:var(--bg3);border-radius:var(--r2);padding:11px;position:relative;overflow:hidden;border:1px solid var(--gb)}
-.kpi::after{content:'';position:absolute;top:0;left:0;right:0;height:1.5px;background:var(--ac,var(--lime))}
-.kpi-lbl{font-size:9px;font-weight:700;color:var(--t3);text-transform:uppercase;letter-spacing:.5px;margin-bottom:4px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
-.kpi-val{font-size:15px;font-weight:700;font-family:'Space Mono',monospace;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
-.kpi-sub{font-size:9px;color:var(--t3);margin-top:2px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.kpis{display:grid;grid-template-columns:repeat(2,1fr);gap:10px;margin-bottom:10px}
+.kpi{background:rgba(25,25,35,0.6);backdrop-filter:blur(10px);border-radius:var(--r2);padding:13px;position:relative;overflow:hidden;border:1px solid var(--gb)}
+.kpi::after{content:'';position:absolute;top:0;left:0;right:0;height:1.5px;background:var(--ac,var(--lime));box-shadow:0 0 8px var(--ac,var(--lime))}
+.kpi-lbl{font-size:10px;font-weight:700;color:var(--t2);text-transform:uppercase;letter-spacing:.5px;margin-bottom:5px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.kpi-val{font-size:16px;font-weight:700;font-family:'Space Mono',monospace;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;color:var(--t)}
+.kpi-sub{font-size:10px;color:var(--t3);margin-top:3px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 .fg{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:10px}
 .fg1{display:grid;grid-template-columns:1fr;gap:8px;margin-bottom:10px}
 .field{position:relative;display:flex;flex-direction:column;min-width:0}
@@ -48,7 +51,7 @@ body{display:flex;flex-direction:column;max-width:480px;margin:0 auto}
 .field select option{background:#161616;color:#ebebeb}
 .field.sel::after{content:'';position:absolute;right:10px;bottom:14px;width:0;height:0;border-left:4px solid transparent;border-right:4px solid transparent;border-top:5px solid var(--t3);pointer-events:none}
 .btn{height:34px;padding:0 14px;border-radius:var(--r3);border:none;font-family:'Noto Sans JP',sans-serif;font-size:12px;font-weight:700;cursor:pointer;transition:.15s;white-space:nowrap;display:inline-flex;align-items:center;justify-content:center}
-.btn-p{background:var(--lime);color:#000}.btn-p:hover{opacity:.85}
+.btn-p{background:var(--lime);color:#1a1a1a}.btn-p:hover{opacity:.85}
 .btn-g{background:transparent;color:var(--t2);border:1px solid var(--gb)}.btn-g:hover{background:var(--gbh);color:var(--t)}
 .btn-sm{height:26px;padding:0 8px;font-size:10px}
 .btn-full{width:100%;margin-top:8px}
@@ -73,10 +76,10 @@ body{display:flex;flex-direction:column;max-width:480px;margin:0 auto}
 .badge-ng{background:rgba(240,96,96,.1);color:#f06060;padding:2px 6px;border-radius:10px;font-size:9px;font-weight:700}
 .badge-monthly{background:rgba(0,200,240,.1);color:#00c8f0;padding:2px 6px;border-radius:10px;font-size:9px;font-weight:700}
 .badge-yearly{background:rgba(176,96,224,.12);color:#b060e0;padding:2px 6px;border-radius:10px;font-size:9px;font-weight:700}
-.bar-wrap{margin-bottom:6px}
-.bar-lbl{display:flex;justify-content:space-between;font-size:10px;margin-bottom:3px}
-.bar-bg{height:3px;background:rgba(255,255,255,.05);border-radius:2px;overflow:hidden}
-.bar-fill{height:100%;border-radius:2px;background:var(--lime)}
+.bar-wrap{margin-bottom:10px}
+.bar-lbl{display:flex;justify-content:space-between;font-size:10px;margin-bottom:6px}
+.bar-bg{height:8px;background:rgba(255,255,255,.05);border-radius:4px;overflow:hidden}
+.bar-fill{height:100%;border-radius:4px;background:var(--lime)}
 .inv-card{background:rgba(255,255,255,.015);border:1px solid var(--gb);border-radius:var(--r2);padding:10px;margin-bottom:7px}
 
 /* Detail Modal */
@@ -129,7 +132,7 @@ body{display:flex;flex-direction:column;max-width:480px;margin:0 auto}
 .cal-d.zero-alert{border-color:rgba(240,96,96,.5)!important;background:rgba(240,96,96,.06)!important}
 .cal-d.has-income{border-color:rgba(88,208,128,.25)}
 .cal-dn{font-size:9px;color:var(--t3);margin-bottom:1px}
-.cal-entry{font-size:8px;font-family:'Space Mono',monospace;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;line-height:1.4}
+.cal-entry{font-size:9px;font-family:'Space Mono',monospace;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;line-height:1.4}
 .cal-entry.fixed{color:var(--amber)}
 .cal-entry.income{color:var(--green)}
 .cal-dot{width:3px;height:3px;border-radius:50%;background:var(--lime);position:absolute;top:3px;right:3px}
@@ -182,8 +185,8 @@ body{display:flex;flex-direction:column;max-width:480px;margin:0 auto}
 .exp-amount{font-family:'Space Mono',monospace;font-size:12px;font-weight:700;color:var(--lime);flex-shrink:0}
 
 /* 年次グラフ */
-.year-chart-wrap{margin-bottom:12px}
-.year-chart{height:220px}
+.year-chart-wrap{margin:0;padding:0}
+.year-chart{height:300px;padding:0;margin:0}
 .year-bar{display:flex;flex-direction:column;align-items:center;gap:2px}
 .year-bar-income{background:var(--green);border-radius:2px 2px 0 0;width:100%;transition:height .3s}
 .year-bar-exp{background:var(--red);border-radius:0;width:100%;transition:height .3s}
@@ -224,28 +227,46 @@ body{display:flex;flex-direction:column;max-width:480px;margin:0 auto}
         <div class="kpi" style="--ac:var(--lime)">
           <div class="kpi-lbl">総資産</div>
           <div class="kpi-val" id="d-total">¥0</div>
-          <div class="kpi-sub" id="d-total-diff">—</div>
+          <div class="kpi-sub" id="d-total-diff">先月と同額</div>
         </div>
         <div class="kpi" style="--ac:var(--teal)">
           <div class="kpi-lbl">残高</div>
           <div class="kpi-val" id="d-balance">¥0</div>
-          <div class="kpi-sub" id="d-balance-diff">—</div>
+          <div class="kpi-sub" id="d-balance-diff">先月と同額</div>
         </div>
         <div class="kpi" style="--ac:var(--blue)">
           <div class="kpi-lbl">現金</div>
           <div class="kpi-val" id="d-cash">¥0</div>
-          <div class="kpi-sub" id="d-cash-diff">—</div>
+          <div class="kpi-sub" id="d-cash-diff">先月と同額</div>
         </div>
         <div class="kpi" style="--ac:var(--amber)">
           <div class="kpi-lbl">今月支出</div>
           <div class="kpi-val" id="d-exp">¥0</div>
-          <div class="kpi-sub" id="d-exp-diff">—</div>
+          <div class="kpi-sub" id="d-exp-diff">先月と同額</div>
         </div>
       </div>
       
       <div class="card">
         <div class="card-ttl"><div class="card-ttl-l">推移グラフ</div></div>
-        <div id="trend-chart" style="height:200px"></div>
+        <div style="display:flex;gap:12px;justify-content:center;margin-bottom:8px;font-size:11px;flex-wrap:wrap">
+          <div style="display:flex;align-items:center;gap:4px;cursor:pointer" onclick="toggleChartLine('totalAssets')">
+            <div id="legend-totalAssets" style="width:12px;height:12px;background:var(--lime);border-radius:2px"></div>
+            <span>総資産</span>
+          </div>
+          <div style="display:flex;align-items:center;gap:4px;cursor:pointer" onclick="toggleChartLine('balance')">
+            <div id="legend-balance" style="width:12px;height:12px;background:var(--blue);border-radius:2px"></div>
+            <span>残高</span>
+          </div>
+          <div style="display:flex;align-items:center;gap:4px;cursor:pointer" onclick="toggleChartLine('expense')">
+            <div id="legend-expense" style="width:12px;height:12px;background:var(--amber);border-radius:2px"></div>
+            <span>支出</span>
+          </div>
+          <div style="display:flex;align-items:center;gap:4px;cursor:pointer" onclick="toggleChartLine('points')">
+            <div id="legend-points" style="width:12px;height:12px;background:var(--purple);border-radius:2px"></div>
+            <span>ポイント</span>
+          </div>
+        </div>
+        <div id="trend-chart" style="height:300px;padding:0;margin:0;overflow:hidden"></div>
       </div>
       
       <div class="card">
@@ -266,12 +287,13 @@ body{display:flex;flex-direction:column;max-width:480px;margin:0 auto}
             <button class="btn btn-g btn-sm" onclick="exportFixedCostsCSV()">固定費CSV</button>
             <button class="btn btn-g btn-sm" onclick="exportCardsCSV()">カードCSV</button>
           </div>
+          <button class="btn btn-b" onclick="document.getElementById('import-expense-csv').click()">📥 支出CSVをインポート</button>
           <button class="btn btn-g" onclick="document.getElementById('import-file').click()">🔄 バックアップから復元</button>
         </div>
-        <div style="font-size:9px;color:var(--t3);margin-top:8px;line-height:1.4">
-          ※定期的にバックアップを取ることをお勧めします<br>
-          ※CSVはExcelで開けます
+        <div style="font-size:9px;color:var(--t3);margin-top:8px">
+          ※定期的にバックアップを推奨
         </div>
+        <input type="file" id="import-expense-csv" accept=".csv" style="display:none" onchange="importExpenseCSV(event)">
       </div>
     </div>
   </div>
@@ -442,29 +464,29 @@ body{display:flex;flex-direction:column;max-width:480px;margin:0 auto}
         <div class="card-ttl">
           <div class="card-ttl-l">推移</div>
           <div style="display:flex;gap:4px">
-            <button class="view-tab on" id="invest-view-graph" onclick="setInvestView('graph',this)" style="font-size:10px;padding:4px 8px">グラフ</button>
-            <button class="view-tab" id="invest-view-calendar" onclick="setInvestView('calendar',this)" style="font-size:10px;padding:4px 8px">月別</button>
+            <button class="view-tab on" id="invest-view-calendar" onclick="setInvestView('calendar',this)" style="font-size:10px;padding:4px 8px">カレンダー</button>
+            <button class="view-tab" id="invest-view-summary" onclick="setInvestView('summary',this)" style="font-size:10px;padding:4px 8px">月別</button>
           </div>
-        </div>
-        
-        <!-- グラフ表示 -->
-        <div id="invest-graph-view">
-          <div style="display:flex;gap:12px;justify-content:center;margin-bottom:8px;font-size:11px;flex-wrap:wrap">
-            <div style="display:flex;align-items:center;gap:4px;cursor:pointer" onclick="toggleInvestLine('balance')">
-              <div id="invest-legend-balance" style="width:12px;height:12px;background:var(--blue);border-radius:2px"></div>
-              <span>残高</span>
-            </div>
-            <div style="display:flex;align-items:center;gap:4px;cursor:pointer" onclick="toggleInvestLine('profit')">
-              <div id="invest-legend-profit" style="width:12px;height:12px;background:var(--lime);border-radius:2px"></div>
-              <span>利益</span>
-            </div>
-          </div>
-          <div id="invest-trend-chart" style="height:200px"></div>
         </div>
         
         <!-- カレンダー表示 -->
-        <div id="invest-calendar-view" style="display:none">
-          <div class="cal-swipe-wrap" id="invest-cal-swipe"></div>
+        <div id="invest-calendar-view">
+          <div style="display:flex;gap:8px;font-size:10px;margin-bottom:8px;flex-wrap:wrap">
+            <div style="display:flex;align-items:center;gap:4px">
+              <div style="width:6px;height:6px;background:var(--teal);border-radius:50%"></div>
+              <span style="color:var(--t3)">購入</span>
+            </div>
+            <div style="display:flex;align-items:center;gap:4px">
+              <div style="width:6px;height:6px;background:var(--lime);border-radius:50%"></div>
+              <span style="color:var(--t3)">売却</span>
+            </div>
+          </div>
+          <div class="cal-swipe-wrap" id="invest-transaction-cal" style="min-height:320px"></div>
+        </div>
+        
+        <!-- 月別サマリー表示 -->
+        <div id="invest-summary-view" style="display:none">
+          <div id="invest-cal-swipe"></div>
         </div>
       </div>
       
@@ -480,11 +502,11 @@ body{display:flex;flex-direction:column;max-width:480px;margin:0 auto}
             <div style="font-size:16px;font-weight:700" id="invest-current-value">¥0</div>
           </div>
           <div>
-            <div style="color:var(--t3);font-size:10px;margin-bottom:4px">今月売却利益</div>
+            <div style="color:var(--t3);font-size:10px;margin-bottom:4px">今月利益</div>
             <div style="font-size:16px;font-weight:700" id="invest-month-profit">¥0</div>
           </div>
           <div>
-            <div style="color:var(--t3);font-size:10px;margin-bottom:4px">今年売却利益（1月〜）</div>
+            <div style="color:var(--t3);font-size:10px;margin-bottom:4px">今年利益（1月〜）</div>
             <div style="font-size:16px;font-weight:700" id="invest-year-profit">¥0</div>
           </div>
         </div>
@@ -661,8 +683,8 @@ body{display:flex;flex-direction:column;max-width:480px;margin:0 auto}
               <span>収支</span>
             </div>
           </div>
-          <div class="year-chart-wrap">
-            <div class="year-chart" id="year-chart"></div>
+          <div class="year-chart-wrap" style="padding:0;margin:0">
+            <div class="year-chart" id="year-chart" style="padding:0;margin:0;overflow:hidden"></div>
           </div>
         </div>
         
@@ -1692,6 +1714,13 @@ const chartVisible={totalAssets:true,balance:true,expense:true,points:true};
 
 function toggleChartLine(key){
   chartVisible[key]=!chartVisible[key];
+  
+  // 凡例の視覚的フィードバック
+  const legend=document.getElementById(`legend-${key}`);
+  if(legend){
+    legend.style.opacity=chartVisible[key]?'1':'0.3';
+  }
+  
   buildTrendChart();
 }
 
@@ -1836,6 +1865,55 @@ function importData(event){
   reader.readAsText(file);
 }
 
+function importExpenseCSV(event){
+  const file=event.target.files[0];
+  if(!file)return;
+  
+  const reader=new FileReader();
+  reader.onload=(e)=>{
+    try{
+      const text=e.target.result;
+      const lines=text.split('\n').filter(l=>l.trim());
+      
+      // ヘッダー行をスキップ
+      const dataLines=lines.slice(1);
+      let imported=0;
+      
+      dataLines.forEach(line=>{
+        const cols=line.split(',').map(c=>c.trim().replace(/^"|"$/g,''));
+        if(cols.length<5)return;
+        
+        const[date,category,amount,pay,excludeFlag]=cols;
+        
+        // 日付、カテゴリ、金額が必須
+        if(!date||!category||!amount)return;
+        
+        // 集計除外フラグがtrueの場合はスキップ
+        if(excludeFlag==='true'||excludeFlag==='TRUE')return;
+        
+        const expense={
+          id:Date.now()+'-'+Math.random().toString(36).substr(2,9),
+          date:date,
+          cat:category,
+          amount:parseFloat(amount)||0,
+          pay:pay||'method:現金',
+          excludeFromBudget:false
+        };
+        
+        S.expenses.push(expense);
+        imported++;
+      });
+      
+      saveData();
+      renderAll();
+      alert(`${imported}件の支出データをインポートしました`);
+    }catch(err){
+      alert('CSVファイルの読み込みに失敗しました: '+err.message);
+    }
+    event.target.value='';
+  };
+  reader.readAsText(file);
+}
 
 function toggleFixedCostFields(){
   const cat=document.getElementById('e-cat').value;
@@ -2023,30 +2101,67 @@ function buildSwipeCal(wrapperId,expenses,showCards,months){
           });
         }
       } else {
-        const de=expenses.filter(e=>e.date===ds);
-        const di=S.incomes.filter(i=>i.date===ds);
-        const monthlyFixed=S.fixedCosts.filter(f=>f.cycle==='monthly'&&f.day===d);
-        const yearlyFixed=S.fixedCosts.filter(f=>f.cycle==='yearly'&&f.day===d);
-        const hasExpense=de.length>0;
-        const hasIncome=di.length>0;
-        const hasFixed=monthlyFixed.length>0||yearlyFixed.length>0;
-        if(hasExpense||hasFixed)cell.classList.add('has');
-        if(hasIncome)cell.classList.add('has-income');
-        if(isPast&&!hasExpense&&!hasFixed&&!hasIncome)cell.classList.add('zero-alert');
-        if(hasIncome){
-          const idot=document.createElement('div');idot.className='cal-dot-income';cell.appendChild(idot);
-          const itotal=di.reduce((s,i)=>s+i.amount,0);
-          const ia=document.createElement('div');ia.className='cal-entry income';ia.textContent=fmt(itotal);cell.appendChild(ia);
-        }
-        if(hasFixed){
-          const fdot=document.createElement('div');fdot.className='cal-dot-fixed';cell.appendChild(fdot);
-          const fixedTotal=[...monthlyFixed,...yearlyFixed].reduce((s,f)=>s+f.amount,0);
-          const fa=document.createElement('div');fa.className='cal-entry fixed';fa.textContent=fmt(fixedTotal);cell.appendChild(fa);
-        }
-        if(hasExpense){
-          const dot=document.createElement('div');dot.className='cal-dot';cell.appendChild(dot);
-          const total=de.reduce((s,e)=>s+e.amount,0);
-          const a=document.createElement('div');a.className='cal-entry';a.style.color='var(--lime)';a.textContent=fmt(total);cell.appendChild(a);
+        // 積立データかどうかを判定
+        const isInvestment=expenses.length>0&&expenses[0].type;
+        
+        if(isInvestment){
+          // 積立データの表示
+          const dayTrans=expenses.filter(t=>t.date===ds);
+          const buys=dayTrans.filter(t=>t.type==='buy');
+          const sells=dayTrans.filter(t=>t.type==='sell');
+          
+          if(buys.length>0||sells.length>0)cell.classList.add('has');
+          
+          // 購入と売却を1行で表示
+          if(buys.length>0){
+            const buyTotal=buys.reduce((s,t)=>s+t.amount,0);
+            const bdot=document.createElement('div');bdot.className='cal-dot';bdot.style.background='var(--teal)';cell.appendChild(bdot);
+            const ba=document.createElement('div');ba.className='cal-entry';ba.style.color='var(--teal)';ba.style.fontSize='10px';ba.textContent=`購${fmt(buyTotal).replace('¥','')}`;cell.appendChild(ba);
+          }
+          
+          if(sells.length>0){
+            const sellTotal=sells.reduce((s,t)=>s+t.amount,0);
+            const sellProfit=sells.reduce((s,t)=>s+((t.eval||0)-t.amount),0);
+            const sdot=document.createElement('div');sdot.className='cal-dot';sdot.style.background='var(--lime)';cell.appendChild(sdot);
+            
+            // 売却金額と利益を1行で表示
+            const sa=document.createElement('div');sa.className='cal-entry';sa.style.fontSize='10px';
+            if(sellProfit!==0){
+              sa.style.color=sellProfit>=0?'var(--lime)':'var(--red)';
+              sa.textContent=`売${fmt(sellTotal).replace('¥','')} ${sellProfit>=0?'+':''}${fmt(sellProfit).replace('¥','')}`;
+            }else{
+              sa.style.color='var(--lime)';
+              sa.textContent=`売${fmt(sellTotal).replace('¥','')}`;
+            }
+            cell.appendChild(sa);
+          }
+        } else {
+          // 家計簿データの表示（集計除外を除く）
+          const de=expenses.filter(e=>e.date===ds&&!e.excludeFromBudget);
+          const di=S.incomes.filter(i=>i.date===ds);
+          const monthlyFixed=S.fixedCosts.filter(f=>f.cycle==='monthly'&&f.day===d&&!f.excludeFromBudget);
+          const yearlyFixed=S.fixedCosts.filter(f=>f.cycle==='yearly'&&f.day===d&&!f.excludeFromBudget);
+          const hasExpense=de.length>0;
+          const hasIncome=di.length>0;
+          const hasFixed=monthlyFixed.length>0||yearlyFixed.length>0;
+          if(hasExpense||hasFixed)cell.classList.add('has');
+          if(hasIncome)cell.classList.add('has-income');
+          if(isPast&&!hasExpense&&!hasFixed&&!hasIncome)cell.classList.add('zero-alert');
+          if(hasIncome){
+            const idot=document.createElement('div');idot.className='cal-dot-income';cell.appendChild(idot);
+            const itotal=di.reduce((s,i)=>s+i.amount,0);
+            const ia=document.createElement('div');ia.className='cal-entry income';ia.textContent=fmt(itotal);cell.appendChild(ia);
+          }
+          if(hasFixed){
+            const fdot=document.createElement('div');fdot.className='cal-dot-fixed';cell.appendChild(fdot);
+            const fixedTotal=[...monthlyFixed,...yearlyFixed].reduce((s,f)=>s+f.amount,0);
+            const fa=document.createElement('div');fa.className='cal-entry fixed';fa.textContent=fmt(fixedTotal);cell.appendChild(fa);
+          }
+          if(hasExpense){
+            const dot=document.createElement('div');dot.className='cal-dot';cell.appendChild(dot);
+            const total=de.reduce((s,e)=>s+e.amount,0);
+            const a=document.createElement('div');a.className='cal-entry';a.style.color='var(--lime)';a.textContent=fmt(total);cell.appendChild(a);
+          }
         }
       }
       grid.appendChild(cell);
@@ -2099,7 +2214,7 @@ function buildCatChart(elId,totalId,exps){
   const mt=filteredExps.reduce((s,e)=>s+e.amount,0);
   if(totalId){const el=document.getElementById(totalId);if(el)el.textContent=fmt(mt);}
   const el=document.getElementById(elId);if(!el)return;
-  el.innerHTML=cats.length?cats.map(([cat,amt])=>`<div class="bar-wrap"><div class="bar-lbl"><span class="tag ${tg(cat)}">${cat}</span><span class="num" style="color:var(--t2);font-size:10px">${fmt(amt)}</span></div><div class="bar-bg"><div class="bar-fill" style="width:${Math.round(amt/max*100)}%"></div></div></div>`).join(''):'<div style="color:var(--t3);font-size:10px;text-align:center;padding:8px">データなし</div>';
+  el.innerHTML=cats.length?cats.map(([cat,amt])=>`<div class="bar-wrap"><div class="bar-lbl"><span class="tag ${tg(cat)}" style="font-size:14px">${cat}</span><span class="num" style="color:var(--t);font-size:20px;font-weight:600">${fmt(amt)}</span></div><div class="bar-bg"><div class="bar-fill" style="width:${Math.round(amt/max*100)}%"></div></div></div>`).join(''):'<div style="color:var(--t3);font-size:16px;text-align:center;padding:16px">データなし</div>';
 }
 
 function renderExpList(elId,exps){
@@ -2223,11 +2338,12 @@ function buildYearView(){
       window.yearLineVisibility={income:true,expense:true,surplus:true};
     }
     
-    const width=800;
-    const height=220;
-    const padding={left:70,right:20,top:20,bottom:35};
-    const chartWidth=width-padding.left-padding.right;
-    const chartHeight=height-padding.top-padding.bottom;
+    // パディングを最小化
+    const containerWidth=chartEl.parentElement.offsetWidth;
+    const containerHeight=chartEl.offsetHeight||300;
+    const padding={left:70, right:10, top:10, bottom:25};  // 金額ラベル用のスペースを確保
+    const chartWidth=containerWidth-padding.left-padding.right;
+    const chartHeight=containerHeight-padding.top-padding.bottom;
     
     const incValues=data.map(d=>d.inc);
     const expValues=data.map(d=>d.exp);
@@ -2237,6 +2353,7 @@ function buildYearView(){
     const minVal=Math.min(...allValues,0);
     const range=maxVal-minVal||1;
     
+    // 月を均等に配置（データ数に応じて）
     const getX=idx=>padding.left+(idx/(data.length-1||1))*chartWidth;
     const getY=val=>padding.top+chartHeight-((val-minVal)/range)*chartHeight;
     
@@ -2245,31 +2362,35 @@ function buildYearView(){
     const expensePath=data.map((d,i)=>`${i===0?'M':'L'}${getX(i)},${getY(d.exp)}`).join(' ');
     const surplusPath=data.map((d,i)=>`${i===0?'M':'L'}${getX(i)},${getY(d.surplus)}`).join(' ');
     
-    // グリッド線
+    // グリッド線とY軸ラベル
     const gridLines=[];
-    for(let i=0;i<=4;i++){
-      const val=minVal+(range/4)*i;
+    // グリッド線を6本に変更（推移グラフと同じ）
+    for(let i=0;i<=5;i++){
+      const val=minVal+(range/5)*i;
       const y=getY(val);
-      gridLines.push(`<line x1="${padding.left}" y1="${y}" x2="${width-padding.right}" y2="${y}" stroke="var(--gb)" stroke-width="1"/>`);
-      gridLines.push(`<text x="${padding.left-5}" y="${y+4}" text-anchor="end" fill="var(--t3)" font-size="11">${fmt(val)}</text>`);
+      // グリッド線を薄く細く
+      gridLines.push(`<line x1="${padding.left}" y1="${y}" x2="${containerWidth-padding.right}" y2="${y}" stroke="var(--gb)" stroke-width="0.5" opacity="0.3"/>`);
+      // Y軸ラベルを左端に配置、推移グラフと同じY位置
+      gridLines.push(`<text x="0" y="${y}" text-anchor="start" fill="var(--t2)" font-size="11" font-weight="500">${fmt(val)}</text>`);
     }
     
-    // ポイントとラベル
+    // ポイントとラベル（X軸）
     const points=data.map((d,i)=>{
       const x=getX(i);
       const incY=getY(d.inc);
       const expY=getY(d.exp);
       const surplusY=getY(d.surplus);
+      // ドットを小さく
       return`
-        ${window.yearLineVisibility.income?`<circle cx="${x}" cy="${incY}" r="4" fill="var(--green)"/>`:''}
-        ${window.yearLineVisibility.expense?`<circle cx="${x}" cy="${expY}" r="4" fill="var(--red)"/>`:''}
-        ${window.yearLineVisibility.surplus?`<circle cx="${x}" cy="${surplusY}" r="4" fill="var(--blue)"/>`:''}
-        <text x="${x}" y="${height-8}" text-anchor="middle" fill="var(--t2)" font-size="11" font-weight="500">${d.month}月</text>
+        ${window.yearLineVisibility.income?`<circle cx="${x}" cy="${incY}" r="3" fill="var(--green)"/>`:''}
+        ${window.yearLineVisibility.expense?`<circle cx="${x}" cy="${expY}" r="3" fill="var(--red)"/>`:''}
+        ${window.yearLineVisibility.surplus?`<circle cx="${x}" cy="${surplusY}" r="3" fill="var(--blue)"/>`:''}
+        <text x="${x}" y="${containerHeight-8}" text-anchor="middle" fill="var(--t)" font-size="11" font-weight="500">${d.month}月</text>
       `;
     }).join('');
     
     chartEl.innerHTML=`
-      <svg width="100%" height="${height}" viewBox="0 0 ${width} ${height}">
+      <svg viewBox="0 0 ${containerWidth} ${containerHeight}" preserveAspectRatio="none" style="width:100%;height:100%;display:block">
         ${gridLines.join('')}
         ${window.yearLineVisibility.income?`<path d="${incomePath}" fill="none" stroke="var(--green)" stroke-width="2"/>`:''}
         ${window.yearLineVisibility.expense?`<path d="${expensePath}" fill="none" stroke="var(--red)" stroke-width="2"/>`:''}
@@ -2350,15 +2471,15 @@ function buildTrendChart(){
   const minVal=Math.min(...data.map(d=>Math.min(d.totalAssets,d.balance,d.exp,d.points)),0);
   const range=maxVal-minVal;
   
-  // グラフサイズ
-  const width=600;
-  const height=240;
-  const paddingLeft=60;
+  // パディングを最小化し枠いっぱいに広げる
+  const containerWidth=chartEl.parentElement.offsetWidth;
+  const containerHeight=chartEl.offsetHeight||300;
+  const paddingLeft=70;    // 金額ラベル用のスペースを確保
   const paddingRight=10;
   const paddingTop=10;
-  const paddingBottom=30;
-  const chartWidth=width-paddingLeft-paddingRight;
-  const chartHeight=height-paddingTop-paddingBottom;
+  const paddingBottom=25;  // 月ラベル用
+  const chartWidth=containerWidth-paddingLeft-paddingRight;
+  const chartHeight=containerHeight-paddingTop-paddingBottom;
   
   const getY=(val)=>{
     const ratio=(val-minVal)/range;
@@ -2370,8 +2491,10 @@ function buildTrendChart(){
     for(let i=0;i<=5;i++){
       const y=paddingTop+(chartHeight/5)*i;
       const val=maxVal-(range/5)*i;
-      lines+=`<line x1="${paddingLeft}" y1="${y}" x2="${width-paddingRight}" y2="${y}" stroke="var(--gb)" stroke-width="0.5" opacity="0.3"/>`;
-      lines+=`<text x="${paddingLeft-5}" y="${y+1.5}" text-anchor="end" font-size="8" fill="var(--t3)">${fmt(val)}</text>`;
+      // グリッド線を薄く細く
+      lines+=`<line x1="${paddingLeft}" y1="${y}" x2="${containerWidth-paddingRight}" y2="${y}" stroke="var(--gb)" stroke-width="0.5" opacity="0.3"/>`;
+      // Y軸ラベルをさらに左端に配置
+      lines+=`<text x="2" y="${y+4}" text-anchor="start" font-size="11" fill="var(--t2)" font-weight="500">${fmt(val)}</text>`;
     }
     return lines;
   };
@@ -2383,16 +2506,18 @@ function buildTrendChart(){
       const y=getY(val);
       return`${x},${y}`;
     }).join(' ');
-    return`<polyline points="${points}" fill="none" stroke="${color}" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"/>`;
+    // 線を細く
+    return`<polyline points="${points}" fill="none" stroke="${color}" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>`;
   };
   
   const createDots=(values,color)=>{
     return values.map((val,idx)=>{
       const x=paddingLeft+(idx/(values.length-1))*chartWidth;
       const y=getY(val);
+      // ドットを小さく
       return`<g>
         <circle cx="${x}" cy="${y}" r="5" fill="var(--bg)"/>
-        <circle cx="${x}" cy="${y}" r="3.5" fill="${color}"/>
+        <circle cx="${x}" cy="${y}" r="3" fill="${color}"/>
         <title>${data[idx].month}: ${fmt(val)}</title>
       </g>`;
     }).join('');
@@ -2401,8 +2526,9 @@ function buildTrendChart(){
   const createLabels=()=>{
     return data.map((d,idx)=>{
       const x=paddingLeft+(idx/(data.length-1))*chartWidth;
-      const y=paddingTop+chartHeight+15;
-      return`<text x="${x}" y="${y}" text-anchor="middle" font-size="10" fill="var(--t2)" font-weight="500">${d.month}</text>`;
+      const y=containerHeight-8;
+      // X軸ラベル（月）を右下に配置
+      return`<text x="${x}" y="${y}" text-anchor="end" font-size="11" fill="var(--t)" font-weight="500">${d.month}</text>`;
     }).join('');
   };
   
@@ -2414,39 +2540,19 @@ function buildTrendChart(){
   };
   
   chartEl.innerHTML=`
-    <div style="display:flex;gap:10px;justify-content:center;font-size:10px;padding:10px;flex-wrap:wrap;border-bottom:1px solid var(--gb)">
-      <div style="display:flex;align-items:center;gap:5px;cursor:pointer;padding:5px 10px;border-radius:5px;background:${chartVisible.totalAssets?'rgba(184,240,0,.15)':'transparent'};transition:all 0.2s" onclick="toggleChartLine('totalAssets')">
-        <div style="width:12px;height:12px;background:var(--lime);border-radius:3px;opacity:${chartVisible.totalAssets?1:0.3}"></div>
-        <span style="color:var(--t);opacity:${chartVisible.totalAssets?1:0.5};font-weight:500">総資産</span>
-      </div>
-      <div style="display:flex;align-items:center;gap:5px;cursor:pointer;padding:5px 10px;border-radius:5px;background:${chartVisible.balance?'rgba(0,150,255,.15)':'transparent'};transition:all 0.2s" onclick="toggleChartLine('balance')">
-        <div style="width:12px;height:12px;background:var(--blue);border-radius:3px;opacity:${chartVisible.balance?1:0.3}"></div>
-        <span style="color:var(--t);opacity:${chartVisible.balance?1:0.5};font-weight:500">残高</span>
-      </div>
-      <div style="display:flex;align-items:center;gap:5px;cursor:pointer;padding:5px 10px;border-radius:5px;background:${chartVisible.expense?'rgba(255,180,0,.15)':'transparent'};transition:all 0.2s" onclick="toggleChartLine('expense')">
-        <div style="width:12px;height:12px;background:var(--amber);border-radius:3px;opacity:${chartVisible.expense?1:0.3}"></div>
-        <span style="color:var(--t);opacity:${chartVisible.expense?1:0.5};font-weight:500">支出</span>
-      </div>
-      <div style="display:flex;align-items:center;gap:5px;cursor:pointer;padding:5px 10px;border-radius:5px;background:${chartVisible.points?'rgba(180,0,255,.15)':'transparent'};transition:all 0.2s" onclick="toggleChartLine('points')">
-        <div style="width:12px;height:12px;background:var(--purple);border-radius:3px;opacity:${chartVisible.points?1:0.3}"></div>
-        <span style="color:var(--t);opacity:${chartVisible.points?1:0.5};font-weight:500">ポイント</span>
-      </div>
-    </div>
-    <div style="padding:8px;overflow:hidden">
-      <svg viewBox="0 0 ${width} ${height}" preserveAspectRatio="xMidYMid meet" style="width:100%;height:auto;max-width:100%;display:block">
-        ${createGridLines()}
-        ${createVerticalLines()}
-        ${chartVisible.totalAssets?createPath(data.map(d=>d.totalAssets),'var(--lime)'):''}
-        ${chartVisible.balance?createPath(data.map(d=>d.balance),'var(--blue)'):''}
-        ${chartVisible.expense?createPath(data.map(d=>d.exp),'var(--amber)'):''}
-        ${chartVisible.points?createPath(data.map(d=>d.points),'var(--purple)'):''}
-        ${chartVisible.totalAssets?createDots(data.map(d=>d.totalAssets),'var(--lime)'):''}
-        ${chartVisible.balance?createDots(data.map(d=>d.balance),'var(--blue)'):''}
-        ${chartVisible.expense?createDots(data.map(d=>d.exp),'var(--amber)'):''}
-        ${chartVisible.points?createDots(data.map(d=>d.points),'var(--purple)'):''}
-        ${createLabels()}
-      </svg>
-    </div>
+    <svg viewBox="0 0 ${containerWidth} ${containerHeight}" preserveAspectRatio="none" style="width:100%;height:100%;display:block">
+      ${createGridLines()}
+      ${createVerticalLines()}
+      ${chartVisible.totalAssets?createPath(data.map(d=>d.totalAssets),'var(--lime)'):''}
+      ${chartVisible.balance?createPath(data.map(d=>d.balance),'var(--blue)'):''}
+      ${chartVisible.expense?createPath(data.map(d=>d.exp),'var(--amber)'):''}
+      ${chartVisible.points?createPath(data.map(d=>d.points),'var(--purple)'):''}
+      ${chartVisible.totalAssets?createDots(data.map(d=>d.totalAssets),'var(--lime)'):''}
+      ${chartVisible.balance?createDots(data.map(d=>d.balance),'var(--blue)'):''}
+      ${chartVisible.expense?createDots(data.map(d=>d.exp),'var(--amber)'):''}
+      ${chartVisible.points?createDots(data.map(d=>d.points),'var(--purple)'):''}
+      ${createLabels()}
+    </svg>
   `;
 }
 
@@ -2590,15 +2696,18 @@ function toggleInvestLine(line){
 
 function setInvestView(view,btn){
   // ボタンの状態更新
-  document.querySelectorAll('#invest-view-graph, #invest-view-calendar').forEach(b=>b.classList.remove('on'));
+  document.querySelectorAll('#invest-view-calendar, #invest-view-summary').forEach(b=>b.classList.remove('on'));
   if(btn)btn.classList.add('on');
   
   // 表示切り替え
-  document.getElementById('invest-graph-view').style.display=view==='graph'?'block':'none';
   document.getElementById('invest-calendar-view').style.display=view==='calendar'?'block':'none';
+  document.getElementById('invest-summary-view').style.display=view==='summary'?'block':'none';
   
-  if(view==='calendar'){
+  if(view==='summary'){
     buildInvestCalendar();
+  }
+  if(view==='calendar'){
+    buildInvestTransactionCal();
   }
 }
 
@@ -2684,20 +2793,56 @@ function buildInvestCalendar(){
       monthProfit+=brokerMonthProfit;
     });
     
-    return{year,month,balance:totalBalance,currentValue:totalValue,totalProfit,monthProfit,buyCount:monthBuys.length,saleCount:monthSales.length};
+    return{year,month,balance:totalBalance,currentValue:totalValue,totalProfit,monthProfit,buyCount:monthBuys.length,saleCount:monthSales.length,monthBuys,monthSales};
   });
   
   wrap.innerHTML=`<div class="year-month-grid">${data.map(d=>{
     const isCurrent=(d.year===S.currentYear&&d.month===S.currentMonth);
+    
+    // 取引日を表示
+    const transactions=[];
+    d.monthBuys.forEach(b=>transactions.push({date:b.date,type:'buy',amount:b.amount,broker:b.broker}));
+    d.monthSales.forEach(s=>transactions.push({date:s.date,type:'sell',amount:s.amount,broker:s.broker,profit:(s.eval||0)-s.amount}));
+    transactions.sort((a,b)=>a.date.localeCompare(b.date));
+    
+    const transHtml=transactions.length>0?transactions.map(t=>{
+      const day=t.date.split('-')[2];
+      if(t.type==='buy'){
+        return`<div style="font-size:9px;color:var(--blue);margin-top:2px">${day}日 購入 ${fmt(t.amount)}</div>`;
+      }else{
+        const profitColor=t.profit>=0?'var(--lime)':'var(--red)';
+        return`<div style="font-size:9px;color:var(--blue);margin-top:2px">${day}日 売却 ${fmt(t.amount)} <span style="color:${profitColor}">${t.profit>=0?'+':''}${fmt(t.profit)}</span></div>`;
+      }
+    }).join(''):'';
+    
     return`<div class="year-month-card" style="${isCurrent?'border:2px solid var(--lime)':''}">
       <div class="ymc-label">${d.month}月</div>
       <div class="ymc-row"><span class="ymc-key">積立額</span><span class="ymc-val" style="color:var(--t2)">${fmt(d.balance)}</span></div>
       <div class="ymc-row"><span class="ymc-key">評価額</span><span class="ymc-val" style="color:var(--blue)">${fmt(d.currentValue)}</span></div>
       <div class="ymc-row"><span class="ymc-key">総利益</span><span class="ymc-val" style="color:${d.totalProfit>=0?'var(--lime)':'var(--red)'}">${d.totalProfit>=0?'+':''}${fmt(d.totalProfit)}</span></div>
       <div class="ymc-row"><span class="ymc-key">月次利益</span><span class="ymc-val" style="color:${d.monthProfit>=0?'var(--lime)':'var(--red)'}">${d.monthProfit>=0?'+':''}${fmt(d.monthProfit)}</span></div>
+      ${transHtml}
       ${d.buyCount>0||d.saleCount>0?`<div style="font-size:9px;color:var(--t3);margin-top:4px;text-align:center">${d.buyCount>0?`購${d.buyCount}`:''}${d.buyCount>0&&d.saleCount>0?' / ':''}${d.saleCount>0?`売${d.saleCount}`:''}</div>`:''}
     </div>`;
   }).join('')}</div>`;
+}
+
+function buildInvestTransactionCal(){
+  const wrap=document.getElementById('invest-transaction-cal');
+  if(!wrap)return;
+  
+  // 前後3ヶ月（合計7ヶ月）
+  const months=[];
+  for(let i=-3;i<=3;i++){
+    let m=S.currentMonth+i;
+    let y=S.currentYear;
+    while(m<1){m+=12;y--;}
+    while(m>12){m-=12;y++;}
+    months.push({year:y,month:m});
+  }
+  
+  // 既存のbuildSwipeCal関数を使用（家計簿と同じ方式）
+  buildSwipeCal('invest-transaction-cal', S.investments, false, months);
 }
 
 function calculateMonthDiff(){
@@ -2780,7 +2925,7 @@ function renderAll(){
   setKPI('d-exp',fmt(met));
   
   buildTrendChart();
-  buildInvestTrendChart();
+  buildInvestTransactionCal();
   calculateMonthDiff();
 
   // カレンダー: 現在月の前後3ヶ月（合計7ヶ月）
@@ -3012,7 +3157,7 @@ function renderAll(){
       const actualIndex=S.points.indexOf(p);
       return`<div class="item-card draggable" draggable="true" data-type="point" data-index="${actualIndex}">
       <div class="item-card-header">
-        <div style="font-size:13px;font-weight:700">${p.name}</div>
+        <input class="inline-edit" type="text" value="${p.name}" style="font-size:13px;font-weight:700;width:120px" onchange="S.points[${actualIndex}].name=this.value;saveData();renderAll()" onclick="event.stopPropagation()">
         <div style="display:flex;gap:4px;align-items:center">
           <span class="num" style="color:var(--purple);font-weight:700;font-size:13px">${fmt(p.balance*p.rate)}</span>
           <button class="btn btn-g btn-sm" style="font-size:9px;padding:2px 6px" onclick="event.stopPropagation();togglePointVisibility(${actualIndex})">非表示</button>
@@ -3021,7 +3166,7 @@ function renderAll(){
       <div class="item-card-info">
         <div class="item-card-row">
           <span style="color:var(--t3);font-size:9px">レート</span>
-          <span>1pt = ${p.rate}円</span>
+          <span>1pt = <input class="inline-edit" type="number" value="${p.rate}" style="width:50px" onchange="S.points[${actualIndex}].rate=+this.value||1;saveData();renderAll()" onclick="event.stopPropagation()">円</span>
         </div>
         <div class="item-card-row">
           <span style="color:var(--t3);font-size:9px">保有</span>
