@@ -5,6 +5,7 @@
 <meta name="viewport" content="width=393, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="theme-color" content="#0a0a0f">
 <title>FINAXIS — Personal Finance OS</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+JP:wght@400;500;700&family=Space+Mono:wght@400;700&display=swap" rel="stylesheet">
@@ -17,7 +18,9 @@
   --lime:#b8f000;--blue:#00d4ff;--red:#ff6b6b;--amber:#ffb347;--green:#5edb8f;--purple:#b885ff;--teal:#00c8c8;
   --r:12px;--r2:8px;--r3:4px;--field-h:48px;--nav-h:60px;
 }
-html,body{height:100%;background:linear-gradient(135deg,#0a0a0f 0%,#1a1a28 100%);color:var(--t);font-family:'Noto Sans JP',sans-serif;font-size:14px;line-height:1.5;overflow:hidden}
+html{background:#0a0a0f}
+html,body{height:100%;color:var(--t);font-family:'Noto Sans JP',sans-serif;font-size:14px;line-height:1.5;overflow:hidden}
+body{background:linear-gradient(135deg,#0a0a0f 0%,#1a1a28 100%)}
 body{display:flex;flex-direction:column;width:393px;max-width:393px;min-width:393px;margin:0 auto;height:100vh;height:100dvh;padding-top:env(safe-area-inset-top);padding-bottom:env(safe-area-inset-bottom)}
 @media (max-width:393px){body{width:100%;min-width:100%;max-width:100%}}
 .app-header{padding:14px 12px;border-bottom:1px solid var(--gb);flex-shrink:0;background:rgba(18,18,26,0.5);backdrop-filter:blur(10px);padding-left:max(12px,env(safe-area-inset-left));padding-right:max(12px,env(safe-area-inset-right))}
@@ -282,19 +285,33 @@ body{display:flex;flex-direction:column;width:393px;max-width:393px;min-width:39
         <div class="card-ttl"><div class="card-ttl-l">データ管理</div></div>
         <div style="display:grid;gap:8px">
           <button class="btn btn-p" onclick="exportAllData()">📦 全データをバックアップ（JSON）</button>
+          <div style="font-size:9px;font-weight:700;color:var(--t2);margin-top:2px">CSVエクスポート</div>
           <div style="display:grid;grid-template-columns:1fr 1fr;gap:6px">
-            <button class="btn btn-g btn-sm" onclick="exportExpensesCSV()">支出CSV</button>
-            <button class="btn btn-g btn-sm" onclick="exportIncomesCSV()">収入CSV</button>
-            <button class="btn btn-g btn-sm" onclick="exportFixedCostsCSV()">固定費CSV</button>
-            <button class="btn btn-g btn-sm" onclick="exportCardsCSV()">カードCSV</button>
+            <button class="btn btn-g btn-sm" onclick="exportExpensesCSV()">支出</button>
+            <button class="btn btn-g btn-sm" onclick="exportIncomesCSV()">収入</button>
+            <button class="btn btn-g btn-sm" onclick="exportFixedCostsCSV()">固定費</button>
+            <button class="btn btn-g btn-sm" onclick="exportCardsCSV()">カード</button>
+            <button class="btn btn-g btn-sm" onclick="exportBanksCSV()">銀行</button>
+            <button class="btn btn-g btn-sm" onclick="exportInvestmentsCSV()">積立</button>
           </div>
-          <button class="btn btn-b" onclick="document.getElementById('import-expense-csv').click()">📥 支出CSVをインポート</button>
+          <div style="font-size:9px;font-weight:700;color:var(--t2);margin-top:2px">CSVインポート</div>
+          <div style="display:grid;grid-template-columns:1fr 1fr;gap:6px">
+            <button class="btn btn-b btn-sm" onclick="document.getElementById('import-expense-csv').click()">支出</button>
+            <button class="btn btn-b btn-sm" onclick="document.getElementById('import-income-csv').click()">収入</button>
+            <button class="btn btn-b btn-sm" onclick="document.getElementById('import-fixed-csv').click()">固定費</button>
+            <button class="btn btn-b btn-sm" onclick="document.getElementById('import-invest-csv').click()">積立</button>
+            <button class="btn btn-b btn-sm" onclick="document.getElementById('import-bank-csv').click()">銀行</button>
+            <button class="btn btn-b btn-sm" onclick="document.getElementById('import-card-csv').click()">カード</button>
+          </div>
           <button class="btn btn-g" onclick="document.getElementById('import-file').click()">🔄 バックアップから復元</button>
         </div>
-        <div style="font-size:9px;color:var(--t3);margin-top:8px">
-          ※定期的にバックアップを推奨
-        </div>
+        <div style="font-size:9px;color:var(--t3);margin-top:8px">※定期的にバックアップを推奨</div>
         <input type="file" id="import-expense-csv" accept=".csv" style="display:none" onchange="importExpenseCSV(event)">
+        <input type="file" id="import-income-csv" accept=".csv" style="display:none" onchange="importIncomesCSV(event)">
+        <input type="file" id="import-fixed-csv" accept=".csv" style="display:none" onchange="importFixedCostsCSV(event)">
+        <input type="file" id="import-invest-csv" accept=".csv" style="display:none" onchange="importInvestmentsCSV(event)">
+        <input type="file" id="import-bank-csv" accept=".csv" style="display:none" onchange="importBanksCSV(event)">
+        <input type="file" id="import-card-csv" accept=".csv" style="display:none" onchange="importCardsCSV(event)">
       </div>
     </div>
   </div>
@@ -747,14 +764,27 @@ body{display:flex;flex-direction:column;width:393px;max-width:393px;min-width:39
       </div>
       <div style="margin-bottom:16px">
         <div style="font-size:11px;font-weight:700;color:var(--t2);margin-bottom:8px">CSVエクスポート</div>
-        <div style="display:grid;gap:6px">
-          <button class="btn btn-g" onclick="exportExpensesCSV()">支出データ（CSV）</button>
-          <button class="btn btn-g" onclick="exportIncomesCSV()">収入データ（CSV）</button>
-          <button class="btn btn-g" onclick="exportFixedCostsCSV()">固定費データ（CSV）</button>
-          <button class="btn btn-g" onclick="exportCardsCSV()">カード一覧（CSV）</button>
-          <button class="btn btn-g" onclick="exportBanksCSV()">銀行一覧（CSV）</button>
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:6px">
+          <button class="btn btn-g btn-sm" onclick="exportExpensesCSV()">支出</button>
+          <button class="btn btn-g btn-sm" onclick="exportIncomesCSV()">収入</button>
+          <button class="btn btn-g btn-sm" onclick="exportFixedCostsCSV()">固定費</button>
+          <button class="btn btn-g btn-sm" onclick="exportCardsCSV()">カード</button>
+          <button class="btn btn-g btn-sm" onclick="exportBanksCSV()">銀行</button>
+          <button class="btn btn-g btn-sm" onclick="exportInvestmentsCSV()">積立</button>
         </div>
         <div style="font-size:9px;color:var(--t3);margin-top:4px">※Excelで開いて分析できます</div>
+      </div>
+      <div style="margin-bottom:16px">
+        <div style="font-size:11px;font-weight:700;color:var(--t2);margin-bottom:8px">CSVインポート</div>
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:6px">
+          <button class="btn btn-b btn-sm" onclick="document.getElementById('import-expense-csv').click()">支出</button>
+          <button class="btn btn-b btn-sm" onclick="document.getElementById('import-income-csv').click()">収入</button>
+          <button class="btn btn-b btn-sm" onclick="document.getElementById('import-fixed-csv').click()">固定費</button>
+          <button class="btn btn-b btn-sm" onclick="document.getElementById('import-invest-csv').click()">積立</button>
+          <button class="btn btn-b btn-sm" onclick="document.getElementById('import-bank-csv').click()">銀行</button>
+          <button class="btn btn-b btn-sm" onclick="document.getElementById('import-card-csv').click()">カード</button>
+        </div>
+        <div style="font-size:9px;color:var(--t3);margin-top:4px">※エクスポートしたCSVをそのままインポート可</div>
       </div>
       <div>
         <div style="font-size:11px;font-weight:700;color:var(--t2);margin-bottom:8px">データの復元</div>
@@ -944,6 +974,7 @@ const S={
 };
 
 const fmt=n=>'¥'+Math.round(n).toLocaleString();
+const fmtC=n=>{const a=Math.abs(Math.round(n));const s=n<0?'-':'';if(a>=10000)return s+(a/10000).toFixed(1).replace(/\.0$/,'')+'万';if(a>=1000)return s+Math.round(a/1000)+'千';return s+String(a);};
 const catTag={食費:'tg',外食:'tl',交通費:'tb',日用品:'to','趣味・娯楽':'tp',旅行:'tr2','美容・健康':'tg',衣類:'tb',サブスク:'to',固定費:'tr2',その他:'to'};
 const tg=c=>catTag[c]||'to';
 const dayLabel=d=>d===99?'末日':`${d}日`;
@@ -1721,7 +1752,7 @@ function openCalDetail(date,cards){
     const amt=billings[ym]||0;
     html+=`<div style="padding:10px;margin-bottom:8px;background:rgba(255,255,255,.02);border:1px solid var(--gb);border-radius:var(--r2)">
       <div style="font-weight:700;margin-bottom:4px">${c.name}</div>
-      <div style="font-size:10px;color:var(--t3);margin-bottom:4px">引落銀行: ${c.bank}</div>
+      <div style="font-size:10px;color:var(--t3);margin-bottom:4px">引落銀行: ${c.bank}${c.branch?' '+c.branch+'支店':''}</div>
       <div style="font-size:10px;color:var(--t3);margin-bottom:4px">締日: ${dayLabel(c.close)} / 支払日: ${dayLabel(c.pay)}</div>
       <div style="font-size:13px;color:var(--lime);font-weight:700;margin-top:6px">${fmt(amt)}</div>
     </div>`;
@@ -1806,6 +1837,155 @@ function exportBanksCSV(){
   const headers=['銀行名','支店名','役割','残高','備考'];
   const rows=S.banks.map(b=>[b.name,b.branch||'',b.role||'',b.balance,b.note||'']);
   downloadCSV(`銀行一覧_${new Date().toISOString().slice(0,10)}.csv`,toCSV(headers,rows));
+}
+
+function exportInvestmentsCSV(){
+  const headers=['証券会社','銘柄','種別','金額','取引日','評価額'];
+  const rows=S.investments.map(i=>[i.broker,i.fund||'',i.type==='buy'?'積立/購入':'売却',i.amount,i.date,i.eval||'']);
+  downloadCSV(`積立データ_${new Date().toISOString().slice(0,10)}.csv`,toCSV(headers,rows));
+}
+
+// CSV パース共通（ダブルクォート対応）
+function parseCSVLine(line){
+  const result=[];let cur='';let inQ=false;
+  for(let i=0;i<line.length;i++){
+    const c=line[i];
+    if(c==='"'){if(inQ&&line[i+1]==='"'){cur+='"';i++;}else{inQ=!inQ;}}
+    else if(c===','&&!inQ){result.push(cur.trim());cur='';}
+    else{cur+=c;}
+  }
+  result.push(cur.trim());
+  return result;
+}
+
+function importIncomesCSV(event){
+  const file=event.target.files[0];if(!file)return;
+  const typeMap={'給料':'salary','ボーナス':'bonus','副業・フリーランス':'freelance','副業':'freelance','投資収益':'invest','その他収入':'other','その他':'other'};
+  const reader=new FileReader();
+  reader.onload=e=>{
+    try{
+      const lines=e.target.result.split('\n').filter(l=>l.trim());
+      let n=0;
+      lines.slice(1).forEach(line=>{
+        const [date,type,amount,note]=parseCSVLine(line);
+        if(!date||!amount)return;
+        S.incomes.push({id:Date.now()+Math.random(),date,type:typeMap[type]||'other',amount:parseFloat(amount)||0,note:note||''});
+        n++;
+      });
+      S.incomes.sort((a,b)=>b.date.localeCompare(a.date));
+      saveData();renderAll();alert(`${n}件の収入データをインポートしました`);
+    }catch(err){alert('CSVの読み込みに失敗しました: '+err.message);}
+    event.target.value='';
+  };
+  reader.readAsText(file);
+}
+
+function importFixedCostsCSV(event){
+  const file=event.target.files[0];if(!file)return;
+  const reader=new FileReader();
+  reader.onload=e=>{
+    try{
+      const lines=e.target.result.split('\n').filter(l=>l.trim());
+      let n=0;
+      lines.slice(1).forEach(line=>{
+        const [name,amount,cycleLabel,day,cat,startDate,excludeLabel]=parseCSVLine(line);
+        if(!name||!amount)return;
+        S.fixedCosts.push({
+          id:Date.now()+Math.random(),name,
+          amount:parseFloat(amount)||0,
+          cycle:cycleLabel==='年払い'?'yearly':'monthly',
+          day:parseInt(day)||1,
+          cat:cat||'固定費',
+          startDate:startDate||'',
+          pay:'method:現金',
+          excludeFromBudget:excludeLabel==='除外'
+        });
+        n++;
+      });
+      saveData();renderAll();alert(`${n}件の固定費をインポートしました`);
+    }catch(err){alert('CSVの読み込みに失敗しました: '+err.message);}
+    event.target.value='';
+  };
+  reader.readAsText(file);
+}
+
+function importInvestmentsCSV(event){
+  const file=event.target.files[0];if(!file)return;
+  const reader=new FileReader();
+  reader.onload=e=>{
+    try{
+      const lines=e.target.result.split('\n').filter(l=>l.trim());
+      let n=0;
+      lines.slice(1).forEach(line=>{
+        const [broker,fund,typeLabel,amount,date,evalVal]=parseCSVLine(line);
+        if(!broker||!amount||!date)return;
+        S.investments.push({
+          id:Date.now()+Math.random(),
+          broker,fund:fund||'',
+          type:typeLabel==='売却'?'sell':'buy',
+          amount:parseFloat(amount)||0,
+          date,
+          eval:parseFloat(evalVal)||0
+        });
+        n++;
+      });
+      saveData();renderAll();alert(`${n}件の積立データをインポートしました`);
+    }catch(err){alert('CSVの読み込みに失敗しました: '+err.message);}
+    event.target.value='';
+  };
+  reader.readAsText(file);
+}
+
+function importBanksCSV(event){
+  const file=event.target.files[0];if(!file)return;
+  const reader=new FileReader();
+  reader.onload=e=>{
+    try{
+      const lines=e.target.result.split('\n').filter(l=>l.trim());
+      let n=0;
+      lines.slice(1).forEach(line=>{
+        const [name,branch,role,balance,note]=parseCSVLine(line);
+        if(!name)return;
+        // 既存の同名口座があればスキップ
+        if(S.banks.find(b=>b.name===name&&(b.branch||'')===(branch||'')))return;
+        S.banks.push({id:Date.now()+Math.random(),name,branch:branch||'',role:role||'',balance:parseFloat(balance)||0,note:note||''});
+        n++;
+      });
+      saveData();renderAll();alert(`${n}件の銀行口座をインポートしました`);
+    }catch(err){alert('CSVの読み込みに失敗しました: '+err.message);}
+    event.target.value='';
+  };
+  reader.readAsText(file);
+}
+
+function importCardsCSV(event){
+  const file=event.target.files[0];if(!file)return;
+  const reader=new FileReader();
+  reader.onload=e=>{
+    try{
+      const lines=e.target.result.split('\n').filter(l=>l.trim());
+      let n=0;
+      lines.slice(1).forEach(line=>{
+        const [name,brand,fee,bank,closeDay,payDay,ruleLabel]=parseCSVLine(line);
+        if(!name)return;
+        if(S.cards.find(c=>c.name===name))return;
+        const parseDay=v=>v==='末日'?99:(parseInt(v)||0);
+        S.cards.push({
+          id:Date.now()+Math.random(),name,shortName:'',
+          brand:brand||'Visa',
+          fee:parseFloat(fee)||0,
+          bank:bank||'未設定',branch:'',
+          close:parseDay(closeDay),
+          pay:parseDay(payDay),
+          rule:ruleLabel==='翌営業日'?'after':'before'
+        });
+        n++;
+      });
+      saveData();renderAll();alert(`${n}件のカードをインポートしました`);
+    }catch(err){alert('CSVの読み込みに失敗しました: '+err.message);}
+    event.target.value='';
+  };
+  reader.readAsText(file);
 }
 
 function importData(event){
@@ -2061,9 +2241,12 @@ function buildSwipeCal(wrapperId,expenses,showCards,months){
           const dot=document.createElement('div');dot.className='cal-dot';cell.appendChild(dot);
           cards.forEach(c=>{
             const displayName=c.shortName||c.name.slice(0,3);
-            const nm=document.createElement('div');nm.className='cal-entry';nm.style.color='var(--t2)';nm.textContent=displayName;cell.appendChild(nm);
             const billings=calcCardBilling(c);
-            const am=document.createElement('div');am.className='cal-entry';am.style.color='var(--lime)';am.textContent=fmt(billings[ym]||0);cell.appendChild(am);
+            const line=document.createElement('div');line.className='cal-entry';
+            line.style.cssText='display:flex;justify-content:space-between;gap:1px';
+            const nm=document.createElement('span');nm.style.color='var(--t2)';nm.textContent=displayName;
+            const am=document.createElement('span');am.style.color='var(--lime)';am.textContent=fmtC(billings[ym]||0);
+            line.appendChild(nm);line.appendChild(am);cell.appendChild(line);
           });
         }
       } else {
@@ -2071,35 +2254,23 @@ function buildSwipeCal(wrapperId,expenses,showCards,months){
         const isInvestment=expenses.length>0&&expenses[0].type;
         
         if(isInvestment){
-          // 積立データの表示
           const dayTrans=expenses.filter(t=>t.date===ds);
           const buys=dayTrans.filter(t=>t.type==='buy');
           const sells=dayTrans.filter(t=>t.type==='sell');
-          
           if(buys.length>0||sells.length>0)cell.classList.add('has');
-          
-          // 購入と売却を1行で表示
-          if(buys.length>0){
-            const buyTotal=buys.reduce((s,t)=>s+t.amount,0);
-            const bdot=document.createElement('div');bdot.className='cal-dot';bdot.style.background='var(--teal)';cell.appendChild(bdot);
-            const ba=document.createElement('div');ba.className='cal-entry';ba.style.color='var(--teal)';ba.style.fontSize='10px';ba.textContent=`購${fmt(buyTotal).replace('¥','')}`;cell.appendChild(ba);
-          }
-          
-          if(sells.length>0){
-            const sellTotal=sells.reduce((s,t)=>s+t.amount,0);
-            const sellProfit=sells.reduce((s,t)=>s+((t.eval||0)-t.amount),0);
-            const sdot=document.createElement('div');sdot.className='cal-dot';sdot.style.background='var(--lime)';cell.appendChild(sdot);
-            
-            // 売却金額と利益を1行で表示
-            const sa=document.createElement('div');sa.className='cal-entry';sa.style.fontSize='10px';
-            if(sellProfit!==0){
-              sa.style.color=sellProfit>=0?'var(--lime)':'var(--red)';
-              sa.textContent=`売${fmt(sellTotal).replace('¥','')} ${sellProfit>=0?'+':''}${fmt(sellProfit).replace('¥','')}`;
-            }else{
-              sa.style.color='var(--lime)';
-              sa.textContent=`売${fmt(sellTotal).replace('¥','')}`;
-            }
-            cell.appendChild(sa);
+          const buyTotal=buys.reduce((s,t)=>s+t.amount,0);
+          const sellTotal=sells.reduce((s,t)=>s+t.amount,0);
+          if(buyTotal>0||sellTotal>0){
+            const dot=document.createElement('div');dot.className='cal-dot';
+            dot.style.background=buyTotal>0&&sellTotal>0?'var(--amber)':buyTotal>0?'var(--teal)':'var(--lime)';
+            cell.appendChild(dot);
+            const line=document.createElement('div');line.className='cal-entry';line.style.fontSize='9px';
+            let txt='';
+            if(buyTotal>0)txt+=`購${fmtC(buyTotal)}`;
+            if(sellTotal>0)txt+=(txt?' ':'')+'売'+fmtC(sellTotal);
+            line.style.color=buyTotal>0&&sellTotal>0?'var(--amber)':buyTotal>0?'var(--teal)':'var(--lime)';
+            line.textContent=txt;
+            cell.appendChild(line);
           }
         } else {
           // 家計簿データの表示（集計除外を除く）
@@ -2113,20 +2284,24 @@ function buildSwipeCal(wrapperId,expenses,showCards,months){
           if(hasExpense||hasFixed)cell.classList.add('has');
           if(hasIncome)cell.classList.add('has-income');
           if(isPast&&!hasExpense&&!hasFixed&&!hasIncome)cell.classList.add('zero-alert');
-          if(hasIncome){
-            const idot=document.createElement('div');idot.className='cal-dot-income';cell.appendChild(idot);
-            const itotal=di.reduce((s,i)=>s+i.amount,0);
-            const ia=document.createElement('div');ia.className='cal-entry income';ia.textContent=fmt(itotal);cell.appendChild(ia);
-          }
-          if(hasFixed){
-            const fdot=document.createElement('div');fdot.className='cal-dot-fixed';cell.appendChild(fdot);
-            const fixedTotal=[...monthlyFixed,...yearlyFixed].reduce((s,f)=>s+f.amount,0);
-            const fa=document.createElement('div');fa.className='cal-entry fixed';fa.textContent=fmt(fixedTotal);cell.appendChild(fa);
-          }
-          if(hasExpense){
-            const dot=document.createElement('div');dot.className='cal-dot';cell.appendChild(dot);
-            const total=de.reduce((s,e)=>s+e.amount,0);
-            const a=document.createElement('div');a.className='cal-entry';a.style.color='var(--lime)';a.textContent=fmt(total);cell.appendChild(a);
+          // 収入・固定費・支出を1行にまとめて表示
+          {
+            const itotal=hasIncome?di.reduce((s,i)=>s+i.amount,0):0;
+            const fixedTotal=hasFixed?[...monthlyFixed,...yearlyFixed].reduce((s,f)=>s+f.amount,0):0;
+            const etotal=hasExpense?de.reduce((s,e)=>s+e.amount,0):0;
+            if(hasIncome){const idot=document.createElement('div');idot.className='cal-dot-income';cell.appendChild(idot);}
+            if(hasFixed){const fdot=document.createElement('div');fdot.className='cal-dot-fixed';cell.appendChild(fdot);}
+            if(hasExpense){const dot=document.createElement('div');dot.className='cal-dot';cell.appendChild(dot);}
+            let parts=[];
+            if(hasIncome)parts.push({txt:fmtC(itotal),col:'var(--green)'});
+            if(hasFixed)parts.push({txt:fmtC(fixedTotal),col:'var(--amber)'});
+            if(hasExpense)parts.push({txt:fmtC(etotal),col:'var(--lime)'});
+            if(parts.length){
+              const line=document.createElement('div');
+              line.style.cssText='font-size:9px;font-family:Space Mono,monospace;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;line-height:1.4;display:flex;gap:2px;flex-wrap:nowrap';
+              parts.forEach(p=>{const s=document.createElement('span');s.style.color=p.col;s.textContent=p.txt;line.appendChild(s);});
+              cell.appendChild(line);
+            }
           }
         }
       }
