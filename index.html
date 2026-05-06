@@ -14,7 +14,7 @@
   --bg:#0a0a0f;--bg2:#12121a;--bg3:rgba(25,25,35,0.6);--bg4:rgba(30,30,42,0.4);
   --g:rgba(30,30,42,0.4);--gb:rgba(200,200,255,0.08);--gbh:rgba(200,200,255,0.12);
   --t:#e8e8f0;--t2:#b0b0c8;--t3:#8888a8;
-  --lime:#b8f000;--blue:#00d4ff;--red:#ff6b6b;--amber:#ffb347;--green:#5edb8f;--purple:#b885ff;
+  --lime:#b8f000;--blue:#00d4ff;--red:#ff6b6b;--amber:#ffb347;--green:#5edb8f;--purple:#b885ff;--teal:#00c8c8;
   --r:12px;--r2:8px;--r3:4px;--field-h:48px;--nav-h:60px;
 }
 html,body{height:100%;background:linear-gradient(135deg,#0a0a0f 0%,#1a1a28 100%);color:var(--t);font-family:'Noto Sans JP',sans-serif;font-size:14px;line-height:1.5;overflow:hidden}
@@ -53,6 +53,7 @@ body{display:flex;flex-direction:column;width:393px;max-width:393px;min-width:39
 .btn{height:34px;padding:0 14px;border-radius:var(--r3);border:none;font-family:'Noto Sans JP',sans-serif;font-size:12px;font-weight:700;cursor:pointer;transition:.15s;white-space:nowrap;display:inline-flex;align-items:center;justify-content:center}
 .btn-p{background:var(--lime);color:#1a1a1a}.btn-p:hover{opacity:.85}
 .btn-g{background:transparent;color:var(--t2);border:1px solid var(--gb)}.btn-g:hover{background:var(--gbh);color:var(--t)}
+.btn-b{background:rgba(0,200,240,.1);color:var(--blue);border:1px solid rgba(0,200,240,.3)}.btn-b:hover{background:rgba(0,200,240,.2)}
 .btn-sm{height:26px;padding:0 8px;font-size:10px}
 .btn-full{width:100%;margin-top:8px}
 .tag{display:inline-block;padding:2px 5px;border-radius:3px;font-size:9px;font-weight:700;white-space:nowrap}
@@ -312,7 +313,7 @@ body{display:flex;flex-direction:column;width:393px;max-width:393px;min-width:39
           </div>
           <div class="fg">
             <div class="field"><label>年会費（円）</label><input type="number" id="c-fee" placeholder="34100"></div>
-            <div class="field sel"><label>引落銀行</label><select id="c-bank"></select></div>
+            <div class="field sel"><label>引落銀行</label><select id="c-bank" onchange="updateBranchList()"></select></div>
             <div class="field sel"><label>支店</label><select id="c-branch"><option value="">選択してください</option></select></div>
           </div>
           <div class="fg">
@@ -1031,6 +1032,8 @@ function adjDate(y,m,d,rule){
 
 function rebuildSelects(){
   ['e-cat'].forEach(id=>{const el=document.getElementById(id);if(!el)return;const v=el.value;el.innerHTML=S.cats.map(c=>`<option>${c}</option>`).join('');if(S.cats.includes(v))el.value=v;});
+  const cBankEl=document.getElementById('c-bank');
+  if(cBankEl){const v=cBankEl.value;const uniqueBanks=[...new Set(S.banks.map(b=>b.name))];cBankEl.innerHTML='<option value="">選択してください</option>'+uniqueBanks.map(n=>`<option value="${n}">${n}</option>`).join('');if(v)cBankEl.value=v;}
   const payEl=document.getElementById('e-pay');
   if(payEl){
     const v=payEl.value;
@@ -1280,15 +1283,8 @@ function savePrepaidDetail(){
   p.brand=document.getElementById('edit-pre-brand').value;
   p.balance=+document.getElementById('edit-pre-bal').value||0;
   p.note=document.getElementById('edit-pre-note').value;
-  closePrepaidDetail();
-  renderAll();
-}
-function deleteCurrentPrepaid(){
-  if(S.editingPrepaidIndex===null)return;
-  if(!confirm('このプリペイドカードを削除しますか？'))return;
-  S.prepaids.splice(S.editingPrepaidIndex,1);
-  closePrepaidDetail();
   saveData();
+  closePrepaidDetail();
   renderAll();
 }
 
@@ -1414,6 +1410,7 @@ function saveBankDetail(){
   b.role=document.getElementById('edit-b-role').value;
   b.balance=+document.getElementById('edit-b-bal').value||0;
   b.note=document.getElementById('edit-b-note').value;
+  saveData();
   closeBankDetail();
   renderAll();
 }
@@ -3176,7 +3173,8 @@ function renderAll(){
   }
   
   const pEl=document.getElementById('point-list');if(pEl){pEl.innerHTML=pH;initDragSort('point');}
-  const ptEl=document.getElementById('point-total');if(ptEl)ptEl.textContent=fmt(ptTotal);
+  const ptEl=document.getElementById('pt-total');if(ptEl)ptEl.textContent=fmt(ptTotal);
+  const ptrEl=document.getElementById('pt-total-row');if(ptrEl)ptrEl.style.display=S.points.length?'flex':'none';
 
   // 投資一覧
   const byB={};S.investments.forEach((inv,idx)=>{if(!byB[inv.broker])byB[inv.broker]={items:[],eval:0};byB[inv.broker].items.push({...inv,idx});if(inv.eval)byB[inv.broker].eval=inv.eval;});
