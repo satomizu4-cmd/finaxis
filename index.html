@@ -974,7 +974,6 @@ const S={
 };
 
 const fmt=n=>'¥'+Math.round(n).toLocaleString();
-const fmtC=n=>{const a=Math.abs(Math.round(n));const s=n<0?'-':'';if(a>=10000)return s+(a/10000).toFixed(1).replace(/\.0$/,'')+'万';if(a>=1000)return s+Math.round(a/1000)+'千';return s+String(a);};
 const catTag={食費:'tg',外食:'tl',交通費:'tb',日用品:'to','趣味・娯楽':'tp',旅行:'tr2','美容・健康':'tg',衣類:'tb',サブスク:'to',固定費:'tr2',その他:'to'};
 const tg=c=>catTag[c]||'to';
 const dayLabel=d=>d===99?'末日':`${d}日`;
@@ -2245,7 +2244,7 @@ function buildSwipeCal(wrapperId,expenses,showCards,months){
             const line=document.createElement('div');line.className='cal-entry';
             line.style.cssText='display:flex;justify-content:space-between;gap:1px';
             const nm=document.createElement('span');nm.style.color='var(--t2)';nm.textContent=displayName;
-            const am=document.createElement('span');am.style.color='var(--lime)';am.textContent=fmtC(billings[ym]||0);
+            const am=document.createElement('span');am.style.color='var(--lime)';am.textContent=fmt(billings[ym]||0);
             line.appendChild(nm);line.appendChild(am);cell.appendChild(line);
           });
         }
@@ -2266,8 +2265,8 @@ function buildSwipeCal(wrapperId,expenses,showCards,months){
             cell.appendChild(dot);
             const line=document.createElement('div');line.className='cal-entry';line.style.fontSize='9px';
             let txt='';
-            if(buyTotal>0)txt+=`購${fmtC(buyTotal)}`;
-            if(sellTotal>0)txt+=(txt?' ':'')+'売'+fmtC(sellTotal);
+            if(buyTotal>0)txt+=`購${fmt(buyTotal)}`;
+            if(sellTotal>0)txt+=(txt?' ':'')+'売'+fmt(sellTotal);
             line.style.color=buyTotal>0&&sellTotal>0?'var(--amber)':buyTotal>0?'var(--teal)':'var(--lime)';
             line.textContent=txt;
             cell.appendChild(line);
@@ -2293,9 +2292,9 @@ function buildSwipeCal(wrapperId,expenses,showCards,months){
             if(hasFixed){const fdot=document.createElement('div');fdot.className='cal-dot-fixed';cell.appendChild(fdot);}
             if(hasExpense){const dot=document.createElement('div');dot.className='cal-dot';cell.appendChild(dot);}
             let parts=[];
-            if(hasIncome)parts.push({txt:fmtC(itotal),col:'var(--green)'});
-            if(hasFixed)parts.push({txt:fmtC(fixedTotal),col:'var(--amber)'});
-            if(hasExpense)parts.push({txt:fmtC(etotal),col:'var(--lime)'});
+            if(hasIncome)parts.push({txt:fmt(itotal),col:'var(--green)'});
+            if(hasFixed)parts.push({txt:fmt(fixedTotal),col:'var(--amber)'});
+            if(hasExpense)parts.push({txt:fmt(etotal),col:'var(--lime)'});
             if(parts.length){
               const line=document.createElement('div');
               line.style.cssText='font-size:9px;font-family:Space Mono,monospace;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;line-height:1.4;display:flex;gap:2px;flex-wrap:nowrap';
