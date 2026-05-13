@@ -342,7 +342,7 @@ function App() {
   const [settlements, setSettlements] = useState([]); 
   const [appSettings, setAppSettings] = useState({
     startDay: 1, notifyRemind: false, notifyPayment: false, notifyClosing: false, darkMode: true,
-    userName: "NUMA", plan: "premium",
+    userName: "未設定", plan: "free",
     noMoneyMode: true, noMoneyEmoji: "✅", noMoneyColor: "#ff7a1a",
     monthlyBudget: 200000, budgetAlert: true, weeklyReport: true, comparisonMode: "MoM"
   });
@@ -628,6 +628,101 @@ function App() {
         showToast("精算済みにしました");
       }
     });
+  };
+
+  // CSVインポート: 家計簿の取引データを一括追加
+  const [importPreview, setImportPreview] = useState(null); // { rows: [...], errors: [...] }
+  const csvInputRef = useRef(null);
+
+  const parseCsvText = (text) => {
+    // BOM除去
+    text = text.replace(/^\uFEFF/, '');
+    const lines = text.split(/\r?\n/).filter(l => l.trim());
+    if (lines.length < 2) return { rows: [], errors: ['データが空、もしくはヘッダー行のみです'] };
+    
+    // ヘッダー解析（小文字化して正規化）
+    const headers = lines[0].split(',').map(h => h.trim().toLowerCase().replace(/["']/g, ''));
+    
+    // 必須カラム探索
+    const dateIdx = headers.findIndex(h => /日付|date/.test(h));
+    const amountIdx = headers.findIndex(h => /金額|amount|price/.test(h));
+    const nameIdx = headers.findIndex(h => /内容|名称|memo|name|description|摘要|店舗|店名/.test(h));
+    const categoryIdx = headers.findIndex(h => /カテゴリ|category|分類/.test(h));
+    
+    if (dateIdx === -1 || amountIdx === -1) {
+      return { rows: [], errors: ['「日付」「金額」のカラムが見つかりません。\nCSVに 日付,金額 列が必要です。'] };
+    }
+    
+    const rows = [];
+    const errors = [];
+    
+    for (let i = 1; i < lines.length; i++) {
+      const cells = lines[i].split(',').map(c => c.trim().replace(/^["']|["']$/g, ''));
+      const dateRaw = cells[dateIdx];
+      const amountRaw = cells[amountIdx];
+      
+      // 日付正規化 (YYYY/M/D → YYYY-MM-DD)
+      let date = dateRaw;
+      const m = dateRaw.match(/^(\d{4})[/\-](\d{1,2})[/\-](\d{1,2})/);
+      if (m) date = `${m[1]}-${pad(parseInt(m[2]))}-${pad(parseInt(m[3]))}`;
+      
+      // 金額正規化（¥, カンマ, スペース除去）
+      const amount = Number(String(amountRaw).replace(/[¥,\s]/g, ''));
+      
+      if (!date.match(/^\d{4}-\d{2}-\d{2}$/) || isNaN(amount) || amount === 0) {
+        errors.push(`${i+1}行目: 日付or金額が不正 (${dateRaw}, ${amountRaw})`);
+        continue;
+      }
+      
+      // マイナス金額は支出として絶対値化
+      const absAmount = Math.abs(amount);
+      
+      // カテゴリマッチング（既存カテゴリ名で部分一致、なければ「その他」）
+      let category = 'その他';
+      if (categoryIdx !== -1 && cells[categoryIdx]) {
+        const catRaw = cells[categoryIdx];
+        const found = categories.find(c => c.name === catRaw || catRaw.includes(c.name));
+        if (found) category = found.name;
+      }
+      
+      const name = nameIdx !== -1 ? (cells[nameIdx] || '') : '';
+      
+      rows.push({
+        id: `imp-${Date.now()}-${i}`,
+        date,
+        amount: absAmount,
+        name,
+        category,
+        methodId: 'cash',
+        exclude: false
+      });
+    }
+    
+    return { rows, errors };
+  };
+
+  const handleCsvFile = (e) => {
+    const file = e.target.files[0];
+    if (!file) return;
+    const reader = new FileReader();
+    reader.onload = (ev) => {
+      const result = parseCsvText(ev.target.result);
+      if (result.rows.length === 0 && result.errors.length > 0) {
+        showToast(result.errors[0], true);
+        return;
+      }
+      setImportPreview(result);
+    };
+    reader.onerror = () => showToast("ファイル読み込みエラー", true);
+    reader.readAsText(file, 'UTF-8');
+    e.target.value = ''; // 同じファイルを再選択できるようリセット
+  };
+
+  const confirmImport = () => {
+    if (!importPreview || importPreview.rows.length === 0) return;
+    setLedger([...importPreview.rows, ...ledger]);
+    showToast(`${importPreview.rows.length}件の取引を追加しました`);
+    setImportPreview(null);
   };
 
   const tooltipBg = appSettings.darkMode ? '#1a1a1c' : '#fff';
@@ -998,6 +1093,14 @@ function App() {
                   <button onClick={() => setLedgerMode('yearly')} className={`flex-1 py-2.5 text-xs font-black rounded-[14px] ${ledgerMode === 'yearly' ? 'bg-slate-100 dark:bg-[#2d2d31] text-orange-600 dark:text-[#ff7a1a]' : 'text-slate-500 dark:text-white/40'}`}>年間</button>
                 </div>
 
+                {/* CSV取込ボタン */}
+                <div className="flex justify-center">
+                  <input ref={csvInputRef} type="file" accept=".csv,text/csv" onChange={handleCsvFile} className="hidden"/>
+                  <button onClick={() => csvInputRef.current && csvInputRef.current.click()} className="flex items-center gap-2 px-5 py-2.5 bg-white dark:bg-[#1a1a1c] border border-slate-200 dark:border-[#2d2d31] rounded-full text-[12px] font-black text-slate-700 dark:text-white/80 hover:bg-slate-50 dark:hover:bg-[#222226] active:scale-95 transition-all shadow-sm">
+                    <Upload size={14}/>CSVから取込
+                  </button>
+                </div>
+
                 <div className="flex items-center justify-between px-6 py-2">
                   <button onClick={() => setViewDate(new Date(viewYear, ledgerMode==='monthly'?viewMonth-2:0, 1))} className="p-3 bg-white dark:bg-[#1a1a1c] rounded-full shadow-sm active:scale-90"><ChevronLeft size={22}/></button>
                   <span className="text-xl font-black tracking-[0.2em]">{viewYear}年{ledgerMode==='monthly' ? `${viewMonth}月` : ''}</span>
@@ -1217,18 +1320,19 @@ function App() {
             <div className="space-y-8">
               {settingsView === 'main' ? (
                 <>
-                  <div className="bg-white dark:bg-[#1a1a1c] rounded-[32px] p-6 border border-slate-200 dark:border-[#2d2d31] flex items-center gap-5 shadow-sm">
-                     <div className="w-16 h-16 rounded-full bg-slate-100 dark:bg-[#222226] border-2 border-orange-600 dark:border-[#ff7a1a] flex items-center justify-center relative">
+                  <div onClick={() => setSettingsView('profile')} className="bg-white dark:bg-[#1a1a1c] rounded-[32px] p-6 border border-slate-200 dark:border-[#2d2d31] flex items-center gap-5 shadow-sm cursor-pointer active:scale-95 transition-transform hover:bg-slate-50 dark:hover:bg-[#222226]">
+                     <div className={`w-16 h-16 rounded-full bg-slate-100 dark:bg-[#222226] border-2 ${appSettings.userName === '未設定' ? 'border-dashed border-slate-300 dark:border-white/20' : 'border-orange-600 dark:border-[#ff7a1a]'} flex items-center justify-center relative`}>
                        <User size={32} className="text-slate-400 dark:text-white/20" />
                        {appSettings.plan === 'premium' && <div className="absolute -bottom-1 -right-1 bg-amber-400 p-1 rounded-full text-black"><Crown size={12} fill="currentColor"/></div>}
                      </div>
                      <div className="flex-1">
-                       <div className="flex items-center gap-2 mb-1">
-                         <span className="text-xl font-black">{String(appSettings.userName)}</span>
+                       <div className="flex items-center gap-2 mb-1 flex-wrap">
+                         <span className={`text-xl font-black ${appSettings.userName === '未設定' ? 'text-slate-400 dark:text-white/30' : ''}`}>{String(appSettings.userName)}</span>
                          {appSettings.plan === 'premium' && <div className="bg-amber-400 text-black text-[9px] font-black px-2 py-0.5 rounded-sm">PREMIUM</div>}
                        </div>
-                       <div className="text-xs text-slate-500 dark:text-white/40 font-bold tracking-widest uppercase">Plan & Profile</div>
+                       <div className="text-xs text-slate-500 dark:text-white/40 font-bold tracking-widest uppercase">{appSettings.userName === '未設定' ? 'タップして設定' : 'プロフィール'}</div>
                      </div>
+                     <ChevronRight size={20} className="text-slate-300 dark:text-white/20"/>
                   </div>
 
                   <SettingsSection title="基本情報"><SettingsListItem title="基本設定（開始日・通知・外観）" icon={<Settings size={20}/>} onClick={()=>setSettingsView('basic')} /></SettingsSection>
@@ -1249,6 +1353,59 @@ function App() {
                     <div className="p-2 bg-slate-100 dark:bg-[#222226] rounded-full"><ChevronLeft size={22} className="text-orange-600 dark:text-[#ff7a1a]"/></div>
                     <span className="font-black tracking-widest text-slate-500 dark:text-white/50">設定メニューへ戻る</span>
                   </button>
+
+                  {/* プロフィール編集 */}
+                  {settingsView === 'profile' && (
+                    <div className="space-y-6">
+                      <GlassCard title="プロフィール編集" icon={<User size={18} className="text-orange-600 dark:text-[#ff7a1a]"/>}>
+                        <div className="flex flex-col items-center mb-8">
+                          <div className={`w-24 h-24 rounded-full bg-slate-100 dark:bg-[#222226] border-4 ${appSettings.userName === '未設定' ? 'border-dashed border-slate-300 dark:border-white/20' : 'border-orange-600 dark:border-[#ff7a1a]'} flex items-center justify-center relative mb-4`}>
+                            <User size={48} className="text-slate-400 dark:text-white/20" />
+                            {appSettings.plan === 'premium' && <div className="absolute -bottom-1 -right-1 bg-amber-400 p-1.5 rounded-full text-black shadow-md"><Crown size={16} fill="currentColor"/></div>}
+                          </div>
+                          <div className="text-[11px] text-slate-400 dark:text-white/30 font-bold tracking-widest uppercase">アバター画像は将来対応予定</div>
+                        </div>
+
+                        <div className="space-y-5">
+                          <InputField 
+                            label="表示名" 
+                            value={appSettings.userName === '未設定' ? '' : appSettings.userName} 
+                            onChange={e => setAppSettings({...appSettings, userName: e.target.value || '未設定'})} 
+                            placeholder="例: たろう、はなこ"
+                            hint="家計簿で表示される名前"
+                          />
+                        </div>
+                      </GlassCard>
+
+                      <GlassCard title="プラン" icon={<Crown size={18} className="text-amber-500"/>}>
+                        <div className="space-y-3">
+                          <div 
+                            onClick={() => setAppSettings({...appSettings, plan: 'free'})}
+                            className={`p-5 rounded-[24px] border-2 cursor-pointer transition-all active:scale-95 ${appSettings.plan === 'free' ? 'bg-slate-50 dark:bg-[#222226] border-orange-500 dark:border-[#ff7a1a]' : 'bg-white dark:bg-[#1a1a1c] border-slate-200 dark:border-[#2d2d31]'}`}
+                          >
+                            <div className="flex items-center justify-between mb-2">
+                              <div className="font-black text-[16px] text-slate-900 dark:text-white">スタンダード</div>
+                              {appSettings.plan === 'free' && <CheckCircle size={20} className="text-orange-600 dark:text-[#ff7a1a]"/>}
+                            </div>
+                            <div className="text-[12px] text-slate-500 dark:text-white/50 leading-relaxed">基本的な家計簿機能<br/>無料</div>
+                          </div>
+
+                          <div 
+                            onClick={() => setAppSettings({...appSettings, plan: 'premium'})}
+                            className={`p-5 rounded-[24px] border-2 cursor-pointer transition-all active:scale-95 relative overflow-hidden ${appSettings.plan === 'premium' ? 'bg-amber-50 dark:bg-amber-500/10 border-amber-500' : 'bg-white dark:bg-[#1a1a1c] border-slate-200 dark:border-[#2d2d31]'}`}
+                          >
+                            <div className="flex items-center justify-between mb-2">
+                              <div className="font-black text-[16px] text-slate-900 dark:text-white flex items-center gap-2">
+                                <Crown size={18} className="text-amber-500" fill="currentColor"/>プレミアム
+                              </div>
+                              {appSettings.plan === 'premium' && <CheckCircle size={20} className="text-amber-500"/>}
+                            </div>
+                            <div className="text-[12px] text-slate-500 dark:text-white/50 leading-relaxed">月間予算分析・比較モード<br/>¥500/月</div>
+                          </div>
+                        </div>
+                      </GlassCard>
+                    </div>
+                  )}
 
                   {/* 基本設定 - 全部復元 */}
                   {settingsView === 'basic' && (
@@ -1715,6 +1872,67 @@ function App() {
               <div className="flex gap-4">
                 <button className="flex-1 py-4 bg-slate-100 dark:bg-white/5 rounded-2xl font-black text-slate-500 dark:text-white/50" onClick={() => setConfirmDialog(null)}>キャンセル</button>
                 <button className="flex-1 py-4 btn-primary rounded-2xl font-black text-white dark:text-black" onClick={confirmDialog.onConfirm}>実行</button>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* CSVインポートプレビューモーダル */}
+        {importPreview && (
+          <div className="fixed inset-0 z-[150] flex items-center justify-center p-4 bg-black/60 backdrop-blur-md">
+            <div className="bg-white dark:bg-[#1a1a1c] rounded-[32px] w-full max-w-md shadow-2xl border border-slate-200 dark:border-[#2d2d31] flex flex-col max-h-[85vh]">
+              <div className="p-6 border-b border-slate-200 dark:border-[#2d2d31]">
+                <div className="flex items-center gap-2 mb-2">
+                  <Upload size={20} className="text-orange-600 dark:text-[#ff7a1a]"/>
+                  <h3 className="font-black text-lg text-slate-900 dark:text-white">CSV取込プレビュー</h3>
+                </div>
+                <div className="text-[12px] text-slate-500 dark:text-white/50">
+                  <span className="font-black text-emerald-600 dark:text-emerald-400">{importPreview.rows.length}件</span> の取引を取り込みます
+                  {importPreview.errors.length > 0 && <span> / <span className="text-rose-500">{importPreview.errors.length}件 スキップ</span></span>}
+                </div>
+              </div>
+
+              <div className="overflow-y-auto flex-1 p-4 no-scrollbar">
+                {importPreview.rows.length === 0 && (
+                  <div className="text-center py-8 text-slate-400 dark:text-white/30 text-sm font-bold">取込できるデータがありません</div>
+                )}
+                <div className="space-y-2">
+                  {importPreview.rows.slice(0, 50).map((r, i) => {
+                    const meta = getCatMeta(r.category);
+                    return (
+                      <div key={`prev-${i}`} className="flex justify-between items-center p-3 bg-slate-50 dark:bg-[#222226] rounded-[16px] border border-slate-200 dark:border-[#2d2d31]">
+                        <div className="flex items-center gap-3 flex-1 min-w-0">
+                          <div className="w-9 h-9 rounded-[12px] flex items-center justify-center text-base shrink-0" style={{backgroundColor: `${meta.color}22`, border: `1px solid ${meta.color}44`}}>{String(meta.emoji)}</div>
+                          <div className="min-w-0 flex-1">
+                            <div className="font-bold text-[13px] text-slate-900 dark:text-white truncate">{String(r.name || r.category)}</div>
+                            <div className="text-[10px] text-slate-500 dark:text-white/40 font-mono">{String(r.date)} • {String(r.category)}</div>
+                          </div>
+                        </div>
+                        <div className="font-mono font-bold text-[14px] text-rose-500 dark:text-rose-400 ml-2">-{fmt(r.amount)}</div>
+                      </div>
+                    );
+                  })}
+                  {importPreview.rows.length > 50 && (
+                    <div className="text-center py-3 text-[11px] text-slate-400 dark:text-white/30 font-bold">他 {importPreview.rows.length - 50} 件...</div>
+                  )}
+                </div>
+
+                {importPreview.errors.length > 0 && (
+                  <div className="mt-4 p-3 bg-rose-50 dark:bg-rose-500/10 border border-rose-200 dark:border-rose-500/30 rounded-[16px]">
+                    <div className="font-black text-[12px] text-rose-700 dark:text-rose-300 mb-2 flex items-center gap-1.5"><AlertTriangle size={14}/>スキップされた行</div>
+                    <div className="text-[11px] text-rose-600 dark:text-rose-300/80 space-y-1 max-h-24 overflow-y-auto no-scrollbar font-mono">
+                      {importPreview.errors.slice(0, 10).map((e, i) => <div key={`err-${i}`}>• {String(e)}</div>)}
+                      {importPreview.errors.length > 10 && <div>• 他 {importPreview.errors.length - 10} 件...</div>}
+                    </div>
+                  </div>
+                )}
+              </div>
+
+              <div className="p-6 border-t border-slate-200 dark:border-[#2d2d31] flex gap-3">
+                <button onClick={() => setImportPreview(null)} className="flex-1 py-3.5 bg-slate-100 dark:bg-white/5 rounded-2xl font-black text-slate-500 dark:text-white/50">キャンセル</button>
+                <button onClick={confirmImport} disabled={importPreview.rows.length === 0} className={`flex-1 py-3.5 rounded-2xl font-black ${importPreview.rows.length === 0 ? 'bg-slate-100 dark:bg-white/5 text-slate-300 dark:text-white/20 cursor-not-allowed' : 'btn-primary'}`}>
+                  {importPreview.rows.length}件 取り込む
+                </button>
               </div>
             </div>
           </div>
