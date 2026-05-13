@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover" />
-<title>家計簿 - Finaxis Preview</title>
+<title>Finaxis - 家計簿</title>
 
 <!-- 開発用CDN警告を抑制 -->
 <script>
@@ -143,14 +143,21 @@ const availableEmojis = Array.from(new Set([
 ]));
 
 const defaultCategories = [
-  { id: 'c1', name: '食費', emoji: '🍔', color: '#0ea5e9', budget: 50000 },
-  { id: 'c2', name: '日用品', emoji: '🛒', color: '#22c55e', budget: 20000 },
-  { id: 'c3', name: '交通費', emoji: '🚆', color: '#eab308', budget: 15000 },
-  { id: 'c4', name: '交際費', emoji: '🍻', color: '#ef4444', budget: 30000 },
-  { id: 'c5', name: '住宅', emoji: '🏠', color: '#d946ef', budget: 80000 },
-  { id: 'c6', name: '美容・衣服', emoji: '👗', color: '#64748b', budget: 15000 },
-  { id: 'c7', name: '医療', emoji: '🏥', color: '#3b82f6', budget: 5000 },
-  { id: 'c8', name: 'その他', emoji: '📝', color: '#84cc16', budget: 10000 }
+  // 支出カテゴリ
+  { id: 'c1', name: '食費', emoji: '🍔', color: '#0ea5e9', budget: 50000, type: 'expense' },
+  { id: 'c2', name: '日用品', emoji: '🛒', color: '#22c55e', budget: 20000, type: 'expense' },
+  { id: 'c3', name: '交通費', emoji: '🚆', color: '#eab308', budget: 15000, type: 'expense' },
+  { id: 'c4', name: '交際費', emoji: '🍻', color: '#ef4444', budget: 30000, type: 'expense' },
+  { id: 'c5', name: '住宅', emoji: '🏠', color: '#d946ef', budget: 80000, type: 'expense' },
+  { id: 'c6', name: '美容・衣服', emoji: '👗', color: '#64748b', budget: 15000, type: 'expense' },
+  { id: 'c7', name: '医療', emoji: '🏥', color: '#3b82f6', budget: 5000, type: 'expense' },
+  { id: 'c8', name: 'その他', emoji: '📝', color: '#84cc16', budget: 10000, type: 'expense' },
+  // 収入カテゴリ
+  { id: 'i1', name: '給与', emoji: '💼', color: '#10b981', budget: 0, type: 'income' },
+  { id: 'i2', name: '副業', emoji: '💻', color: '#3b82f6', budget: 0, type: 'income' },
+  { id: 'i3', name: '賞与', emoji: '🎁', color: '#f59e0b', budget: 0, type: 'income' },
+  { id: 'i4', name: '利子・配当', emoji: '💹', color: '#8b5cf6', budget: 0, type: 'income' },
+  { id: 'i5', name: 'その他収入', emoji: '🪙', color: '#64748b', budget: 0, type: 'income' }
 ];
 
 const CURRENT_MONTH = new Date().toISOString().slice(0, 7);
@@ -187,7 +194,7 @@ const sampleLedger = [
   { id: 'l5', date: `${today.getFullYear()}-${pad(today.getMonth()+1)}-${pad(Math.max(1,today.getDate()-5))}`, amount: 580, name: '電車', category: '交通費', methodId: 'cash', exclude: false },
 ];
 const sampleIncomes = [
-  { id: 'in1', date: `${today.getFullYear()}-${pad(today.getMonth()+1)}-25`, amount: 280000, name: '給与', methodId: 'b1' },
+  { id: 'in1', date: `${today.getFullYear()}-${pad(today.getMonth()+1)}-25`, amount: 280000, name: '5月分給与', category: '給与' },
 ];
 const sampleFixedCosts = [
   { id: 'f1', name: '家賃', amount: 75000, paymentDay: 27, category: '住宅', methodId: 'b1', cycle: 'monthly' },
@@ -350,6 +357,7 @@ function App() {
   // --- UI制御 ---
   const [settingsView, setSettingsView] = useState('main'); 
   const [settingsSubTab, setSettingsSubTab] = useState('banks');
+  const [categoryEditTab, setCategoryEditTab] = useState('expense'); // expense | income
   const [entryMode, setEntryMode] = useState('expense'); // expense / income / fixed
   const [editingItem, setEditingItem] = useState(null);
   const [confirmDelete, setConfirmDelete] = useState(false);
@@ -369,7 +377,7 @@ function App() {
   const [ledgerMode, setLedgerMode] = useState('monthly'); 
 
   const [newEntry, setNewEntry] = useState({ amount: '', name: '', category: '食費', methodId: 'cash', exclude: false, date: CURRENT_DATE });
-  const [newIncomeEntry, setNewIncomeEntry] = useState({ amount: '', name: '', date: CURRENT_DATE });
+  const [newIncomeEntry, setNewIncomeEntry] = useState({ amount: '', name: '', category: '給与', date: CURRENT_DATE });
   const [newFixedEntry, setNewFixedEntry] = useState({ name: '', amount: '', category: '住宅', methodId: 'cash', paymentDay: 1 });
 
   // 登録フォームの「記入に表示する」用 state (true=表示)
@@ -597,11 +605,21 @@ function App() {
     else if (type === 'income') setIncomes(incomes.map(i => i.id === cleanData.id ? { ...cleanData, amount: amt } : i));
     else if (type === 'fixedCost') setFixedCosts(fixedCosts.map(f => f.id === cleanData.id ? { ...cleanData, amount: amt } : f));
     else if (type === 'category') {
-      const oldName = categories.find(c => c.id === cleanData.id)?.name;
-      setCategories(categories.map(c => c.id === cleanData.id ? { ...cleanData } : c));
-      if (oldName && oldName !== cleanData.name) {
-        setLedger(ledger.map(l => l.category === oldName ? { ...l, category: cleanData.name } : l));
-        setFixedCosts(fixedCosts.map(f => f.category === oldName ? { ...f, category: cleanData.name } : f));
+      const isNew = data._isNew;
+      const cleanCat = { ...cleanData };
+      delete cleanCat._isNew;
+      if (isNew) {
+        // 新規追加
+        setCategories([...categories, cleanCat]);
+      } else {
+        // 既存編集
+        const oldName = categories.find(c => c.id === cleanData.id)?.name;
+        setCategories(categories.map(c => c.id === cleanCat.id ? { ...cleanCat } : c));
+        if (oldName && oldName !== cleanCat.name) {
+          setLedger(ledger.map(l => l.category === oldName ? { ...l, category: cleanCat.name } : l));
+          setFixedCosts(fixedCosts.map(f => f.category === oldName ? { ...f, category: cleanCat.name } : f));
+          setIncomes(incomes.map(i => i.category === oldName ? { ...i, category: cleanCat.name } : i));
+        }
       }
     }
     setEditingItem(null); showToast("保存しました");
@@ -725,10 +743,44 @@ function App() {
     setImportPreview(null);
   };
 
+  // CSVテンプレートを生成してダウンロード
+  const downloadCsvTemplate = () => {
+    const today = new Date();
+    const y = today.getFullYear();
+    const m = pad(today.getMonth() + 1);
+    const sampleRows = [
+      ['日付', '金額', '内容', 'カテゴリ'],
+      [`${y}-${m}-01`, '1280', 'ランチ', '食費'],
+      [`${y}-${m}-02`, '3500', 'スーパー', '食費'],
+      [`${y}-${m}-03`, '580', '電車', '交通費'],
+      [`${y}-${m}-03`, '980', 'ドラッグストア', '日用品'],
+      [`${y}-${m}-04`, '4500', '飲み会', '交際費'],
+      [`${y}-${m}-06`, '75000', '家賃', '住宅'],
+      [`${y}-${m}-07`, '1490', 'Netflix', 'その他'],
+      [`${y}-${m}-09`, '3280', 'ユニクロ', '美容・衣服'],
+    ];
+    const csv = sampleRows.map(r => r.join(',')).join('\r\n');
+    const bom = '\uFEFF'; // Excel文字化け対策
+    const blob = new Blob([bom + csv], { type: 'text/csv;charset=utf-8;' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `finaxis_import_template_${y}-${m}.csv`;
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    URL.revokeObjectURL(url);
+    showToast("テンプレートをダウンロードしました");
+  };
+
   const tooltipBg = appSettings.darkMode ? '#1a1a1c' : '#fff';
   const tooltipBorder = appSettings.darkMode ? '#3a3a3f' : '#e2e8f0';
 
-  const categoryOptions = categories.map(c => ({ label: c.name, value: c.name, emoji: c.emoji }));
+  // type未定義の旧データは expense とみなす
+  const expenseCategories = categories.filter(c => (c.type || 'expense') === 'expense');
+  const incomeCategories = categories.filter(c => c.type === 'income');
+  const categoryOptions = expenseCategories.map(c => ({ label: c.name, value: c.name, emoji: c.emoji }));
+  const incomeCategoryOptions = incomeCategories.map(c => ({ label: c.name, value: c.name, emoji: c.emoji }));
   
   // 支払方法: visibleInEntry === false は除外
   const paymentOptions = [
@@ -781,7 +833,7 @@ function App() {
         `}</style>
 
         <header className="sticky top-0 z-20 bg-white/90 dark:bg-[#0f0f10]/90 backdrop-blur-2xl border-b border-slate-200 dark:border-[#26262a] px-6 pb-4 pt-safe flex items-center justify-between transition-colors">
-          <h1 className="text-2xl font-black tracking-tighter">家計<span className="text-orange-600 dark:text-[#ff7a1a]">簿</span></h1>
+          <h1 className="text-2xl font-black tracking-tighter">Fin<span className="text-orange-600 dark:text-[#ff7a1a]">axis</span></h1>
         </header>
 
         <main className="max-w-4xl mx-auto p-4 md:p-6 pb-safe relative z-10">
@@ -1026,12 +1078,13 @@ function App() {
                   <div className="space-y-6">
                     <InputField label="日付" type="date" value={newIncomeEntry.date} onChange={e=>setNewIncomeEntry({...newIncomeEntry, date:e.target.value})} />
                     <InputField label="金額 (¥)" type="number" value={newIncomeEntry.amount} onChange={e=>setNewIncomeEntry({...newIncomeEntry, amount:e.target.value})} />
-                    <InputField label="内容・メモ" value={newIncomeEntry.name} onChange={e=>setNewIncomeEntry({...newIncomeEntry, name:e.target.value})} placeholder="例: 給与、副業収入" />
+                    <InputField label="内容・メモ" value={newIncomeEntry.name} onChange={e=>setNewIncomeEntry({...newIncomeEntry, name:e.target.value})} placeholder="例: 5月分給与、ライティング報酬" />
+                    <CheckboxSelect label="カテゴリ" value={newIncomeEntry.category} options={incomeCategoryOptions} onChange={(v) => setNewIncomeEntry({...newIncomeEntry, category: v})} />
                     <button onClick={() => { 
                       if(!newIncomeEntry.amount) { showToast("エラー: 金額を入力してください", true); return; }
                       setIncomes([{...newIncomeEntry, id:Date.now().toString(), date: newIncomeEntry.date || CURRENT_DATE}, ...incomes]); 
                       showToast("収入を記録しました"); 
-                      setNewIncomeEntry({ amount: '', name: '', date: CURRENT_DATE });
+                      setNewIncomeEntry({ amount: '', name: '', category: incomeCategories[0]?.name || '給与', date: CURRENT_DATE });
                     }} className="w-full h-16 mt-4 font-black text-lg bg-green-500 hover:bg-green-600 text-white rounded-[24px] shadow-lg active:scale-95 transition-transform">収入を記録する</button>
                   </div>
                 </GlassCard>
@@ -1093,11 +1146,14 @@ function App() {
                   <button onClick={() => setLedgerMode('yearly')} className={`flex-1 py-2.5 text-xs font-black rounded-[14px] ${ledgerMode === 'yearly' ? 'bg-slate-100 dark:bg-[#2d2d31] text-orange-600 dark:text-[#ff7a1a]' : 'text-slate-500 dark:text-white/40'}`}>年間</button>
                 </div>
 
-                {/* CSV取込ボタン */}
-                <div className="flex justify-center">
+                {/* CSV取込・テンプレート */}
+                <div className="flex justify-center gap-2 flex-wrap">
                   <input ref={csvInputRef} type="file" accept=".csv,text/csv" onChange={handleCsvFile} className="hidden"/>
                   <button onClick={() => csvInputRef.current && csvInputRef.current.click()} className="flex items-center gap-2 px-5 py-2.5 bg-white dark:bg-[#1a1a1c] border border-slate-200 dark:border-[#2d2d31] rounded-full text-[12px] font-black text-slate-700 dark:text-white/80 hover:bg-slate-50 dark:hover:bg-[#222226] active:scale-95 transition-all shadow-sm">
                     <Upload size={14}/>CSVから取込
+                  </button>
+                  <button onClick={downloadCsvTemplate} className="flex items-center gap-2 px-5 py-2.5 bg-white dark:bg-[#1a1a1c] border border-slate-200 dark:border-[#2d2d31] rounded-full text-[12px] font-black text-slate-700 dark:text-white/80 hover:bg-slate-50 dark:hover:bg-[#222226] active:scale-95 transition-all shadow-sm">
+                    <Download size={14}/>テンプレートDL
                   </button>
                 </div>
 
@@ -1457,17 +1513,49 @@ function App() {
                   {/* カテゴリ編集 */}
                   {settingsView === 'categories' && (
                     <GlassCard title="カテゴリー・予算の編集">
-                      <div className="space-y-3">
-                        {categories.map(c => (
+                      {/* 支出/収入タブ */}
+                      <div className="flex bg-slate-100 dark:bg-[#0a0a0a] rounded-[18px] p-1.5 mb-6">
+                        <button onClick={() => setCategoryEditTab('expense')} className={`flex-1 py-2.5 text-xs font-black rounded-[12px] transition-all ${categoryEditTab === 'expense' ? 'bg-rose-500 text-white shadow' : 'text-slate-500 dark:text-white/40'}`}>支出カテゴリ ({expenseCategories.length})</button>
+                        <button onClick={() => setCategoryEditTab('income')} className={`flex-1 py-2.5 text-xs font-black rounded-[12px] transition-all ${categoryEditTab === 'income' ? 'bg-emerald-500 text-white shadow' : 'text-slate-500 dark:text-white/40'}`}>収入カテゴリ ({incomeCategories.length})</button>
+                      </div>
+
+                      <div className="space-y-3 mb-4">
+                        {(categoryEditTab === 'expense' ? expenseCategories : incomeCategories).map(c => (
                           <div key={`cat-list-${c.id}`} className="flex justify-between p-4 bg-slate-50 dark:bg-[#222226] border border-slate-200 dark:border-[#2d2d31] rounded-2xl cursor-pointer active:scale-95" onClick={() => setEditingItem({type: 'category', data: c})}>
                             <div className="flex items-center gap-3"><div className="w-10 h-10 rounded-xl flex items-center justify-center text-xl" style={{backgroundColor:`${c.color}22`}}>{String(c.emoji)}</div><span className="font-bold">{String(c.name)}</span></div>
                             <div className="flex items-center gap-3">
-                              {c.budget > 0 && <span className="text-[12px] font-mono font-bold text-slate-400">予算: {fmt(c.budget)}</span>}
+                              {c.type !== 'income' && c.budget > 0 && <span className="text-[12px] font-mono font-bold text-slate-400">予算: {fmt(c.budget)}</span>}
                               <ChevronRight size={18} className="text-slate-300 dark:text-white/20"/>
                             </div>
                           </div>
                         ))}
+                        {(categoryEditTab === 'expense' ? expenseCategories : incomeCategories).length === 0 && (
+                          <div className="text-center py-10 text-slate-400 dark:text-white/30 font-bold text-sm">カテゴリがありません</div>
+                        )}
                       </div>
+
+                      {/* 新規追加ボタン */}
+                      <button 
+                        onClick={() => {
+                          const newCat = {
+                            id: `cat-${Date.now()}`,
+                            name: '',
+                            emoji: categoryEditTab === 'expense' ? '📝' : '💰',
+                            color: categoryEditTab === 'expense' ? '#84cc16' : '#10b981',
+                            budget: 0,
+                            type: categoryEditTab,
+                            _isNew: true
+                          };
+                          setEditingItem({type: 'category', data: newCat});
+                        }}
+                        className={`w-full h-14 rounded-[20px] font-black text-[14px] border-2 border-dashed flex items-center justify-center gap-2 active:scale-95 transition-all ${
+                          categoryEditTab === 'expense' 
+                            ? 'border-rose-300 dark:border-rose-500/30 text-rose-600 dark:text-rose-400 hover:bg-rose-50 dark:hover:bg-rose-500/5' 
+                            : 'border-emerald-300 dark:border-emerald-500/30 text-emerald-600 dark:text-emerald-400 hover:bg-emerald-50 dark:hover:bg-emerald-500/5'
+                        }`}
+                      >
+                        <Plus size={18}/>{categoryEditTab === 'expense' ? '支出' : '収入'}カテゴリを追加
+                      </button>
                     </GlassCard>
                   )}
 
@@ -1578,17 +1666,6 @@ function App() {
                             {t==='banks'?'銀行':t==='cards'?'カード':t==='cash'?'現金':t==='points'?'ポイント':t==='prepaids'?'プリペイド':'積立'}
                           </button>
                         ))}
-                      </div>
-
-                      {/* 固定費に関する案内 */}
-                      <div className="mb-6 p-4 bg-orange-50 dark:bg-[#ff7a1a]/5 border border-orange-200 dark:border-[#ff7a1a]/20 rounded-[20px] text-sm">
-                        <div className="flex items-start gap-3">
-                          <Info size={18} className="text-orange-600 dark:text-[#ff7a1a] mt-0.5 shrink-0"/>
-                          <div className="flex-1">
-                            <div className="font-black text-slate-800 dark:text-white mb-1">固定費・サブスクの登録について</div>
-                            <div className="text-[12px] text-slate-600 dark:text-white/60 leading-relaxed">固定費の登録は<span className="font-black text-orange-600 dark:text-[#ff7a1a]">「記入」タブの「固定費」</span>から行えるようになりました。</div>
-                          </div>
-                        </div>
                       </div>
 
                       {/* 銀行 */}
@@ -1968,6 +2045,9 @@ function App() {
                     {editingItem.type === 'expense' && (
                       <CheckboxSelect label="カテゴリ" value={editingItem.data.category || ''} options={categoryOptions} onChange={(v) => setEditingItem({...editingItem, data:{...editingItem.data, category: v}})} />
                     )}
+                    {editingItem.type === 'income' && (
+                      <CheckboxSelect label="カテゴリ" value={editingItem.data.category || ''} options={incomeCategoryOptions} onChange={(v) => setEditingItem({...editingItem, data:{...editingItem.data, category: v}})} />
+                    )}
                     {editingItem.type === 'expense' && (
                       <CheckboxSelect label="支払方法" value={editingItem.data.methodId || ''} options={paymentOptions} onChange={(v) => setEditingItem({...editingItem, data:{...editingItem.data, methodId: v}})} />
                     )}
@@ -2044,9 +2124,14 @@ function App() {
 
                 {editingItem.type === 'category' && (
                   <>
-                    <InputField label="カテゴリ名" value={editingItem.data.name || ''} onChange={e=>setEditingItem({...editingItem, data:{...editingItem.data, name:e.target.value}})} />
-                    <InputField label="絵文字" value={editingItem.data.emoji || ''} onChange={e=>setEditingItem({...editingItem, data:{...editingItem.data, emoji:e.target.value}})} />
-                    <InputField label="月間予算" type="number" value={editingItem.data.budget || ''} onChange={e=>setEditingItem({...editingItem, data:{...editingItem.data, budget:Number(e.target.value)}})} />
+                    <div className={`text-[11px] font-black uppercase tracking-widest pl-4 mb-2 ${editingItem.data.type === 'income' ? 'text-emerald-600 dark:text-emerald-400' : 'text-rose-500 dark:text-rose-400'}`}>
+                      {editingItem.data.type === 'income' ? '💰 収入カテゴリ' : '💸 支出カテゴリ'}
+                    </div>
+                    <InputField label="カテゴリ名" value={editingItem.data.name || ''} onChange={e=>setEditingItem({...editingItem, data:{...editingItem.data, name:e.target.value}})} placeholder={editingItem.data.type === 'income' ? '例: 還付金、お小遣い' : '例: サブスク、ペット'} />
+                    <InputField label="絵文字（1つ）" value={editingItem.data.emoji || ''} onChange={e=>setEditingItem({...editingItem, data:{...editingItem.data, emoji:e.target.value}})} placeholder="🏠" />
+                    {editingItem.data.type !== 'income' && (
+                      <InputField label="月間予算（任意）" type="number" value={editingItem.data.budget || ''} onChange={e=>setEditingItem({...editingItem, data:{...editingItem.data, budget:Number(e.target.value)}})} hint="0で予算なし" />
+                    )}
                   </>
                 )}
 
