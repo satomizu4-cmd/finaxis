@@ -5,6 +5,23 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover" />
 <title>家計簿 - Finaxis Preview</title>
 
+<!-- 開発用CDN警告を抑制 -->
+<script>
+  (function() {
+    const originalWarn = console.warn;
+    console.warn = function(...args) {
+      const msg = args[0];
+      if (typeof msg === 'string' && (
+        msg.includes('cdn.tailwindcss.com should not be used in production') ||
+        msg.includes('Babel') && msg.includes('in-browser')
+      )) {
+        return;
+      }
+      originalWarn.apply(console, args);
+    };
+  })();
+</script>
+
 <script src="https://cdn.tailwindcss.com"></script>
 <script>
   tailwind.config = { darkMode: 'class', theme: { extend: {} } };
@@ -200,7 +217,7 @@ function KpiCard({ title, amount, suffix = "", color }) {
   return (
     <div className="bg-white dark:bg-[#222226] border border-slate-200 dark:border-[#2d2d31] rounded-[28px] p-5 shadow-sm transition-transform active:scale-95">
       <div className="text-[10px] font-black text-slate-400 dark:text-white/30 uppercase tracking-widest mb-2">{String(title)}</div>
-      <div className={`text-xl font-mono font-black tracking-tighter ${color}`}>
+      <div className={`text-2xl font-mono font-black tracking-tighter ${color}`}>
         {suffix ? `${amount}${suffix}` : fmt(amount)}
       </div>
     </div>
@@ -216,7 +233,7 @@ function InputField({ label, id, type="text", placeholder, value, onChange, step
       </label>
       <input 
         id={id} type={type} step={step} min={min} max={max} placeholder={placeholder} value={value} onChange={onChange} 
-        className="h-14 bg-slate-100 dark:bg-[#1a1a1c] border border-slate-200 dark:border-[#2d2d31] rounded-[24px] px-5 text-slate-900 dark:text-white outline-none focus:border-orange-500 dark:focus:border-[#ff7a1a] transition-all font-bold text-[15px]" 
+        className="h-16 bg-slate-100 dark:bg-[#1a1a1c] border border-slate-200 dark:border-[#2d2d31] rounded-[24px] px-5 text-slate-900 dark:text-white outline-none focus:border-orange-500 dark:focus:border-[#ff7a1a] transition-all font-bold text-[15px]" 
       />
     </div>
   );
@@ -271,10 +288,10 @@ function SettingsSection({ title, children }) {
 
 function SettingsListItem({ title, value, icon, onClick, borderBottom }) {
   return (
-    <div onClick={onClick} className={`flex justify-between items-center p-5 bg-white dark:bg-[#1a1a1c] hover:bg-slate-50 dark:hover:bg-[#1a1a1a] transition-all cursor-pointer active:bg-slate-100 dark:active:bg-[#222] ${borderBottom ? 'border-b border-slate-200 dark:border-[#2d2d31]' : ''}`}>
+    <div onClick={onClick} className={`flex justify-between items-center p-6 bg-white dark:bg-[#1a1a1c] hover:bg-slate-50 dark:hover:bg-[#1a1a1a] transition-all cursor-pointer active:bg-slate-100 dark:active:bg-[#222] ${borderBottom ? 'border-b border-slate-200 dark:border-[#2d2d31]' : ''}`}>
       <div className="flex items-center gap-4 text-slate-900 dark:text-white">
         <div className="text-slate-400 dark:text-white/30">{icon}</div>
-        <span className="text-[15px] font-bold">{String(title)}</span>
+        <span className="text-[16px] font-bold">{String(title)}</span>
       </div>
       <div className="flex items-center gap-3">
         {value && <span className="text-[13px] font-bold text-slate-400 dark:text-white/40">{String(value)}</span>}
@@ -286,11 +303,11 @@ function SettingsListItem({ title, value, icon, onClick, borderBottom }) {
 
 function ToggleRow({ label, icon, active, onClick, borderBottom, disabled, badge }) {
   return (
-    <div className={`flex justify-between items-center p-5 bg-white dark:bg-[#1a1a1c] transition-all ${disabled ? 'opacity-60' : 'cursor-pointer active:bg-slate-50 dark:active:bg-[#1a1a1a]'} ${borderBottom ? 'border-b border-slate-200 dark:border-[#2d2d31]' : ''}`} onClick={disabled ? undefined : onClick}>
+    <div className={`flex justify-between items-center p-6 bg-white dark:bg-[#1a1a1c] transition-all ${disabled ? 'opacity-60' : 'cursor-pointer active:bg-slate-50 dark:active:bg-[#1a1a1a]'} ${borderBottom ? 'border-b border-slate-200 dark:border-[#2d2d31]' : ''}`} onClick={disabled ? undefined : onClick}>
       <div className="flex items-center gap-4 text-slate-900 dark:text-white">
         <div className="text-slate-400 dark:text-white/30">{icon}</div>
         <div className="flex flex-col gap-1">
-          <span className="text-[15px] font-bold">{String(label)}</span>
+          <span className="text-[16px] font-bold">{String(label)}</span>
           {badge && (
             <span className="inline-flex items-center gap-1 text-[9px] font-black px-2 py-0.5 rounded-md bg-amber-100 text-amber-700 dark:bg-amber-500/15 dark:text-amber-400 w-fit uppercase tracking-wider">
               <Clock size={10}/>{String(badge)}
@@ -298,8 +315,8 @@ function ToggleRow({ label, icon, active, onClick, borderBottom, disabled, badge
           )}
         </div>
       </div>
-      <div className={`w-12 h-[28px] rounded-full relative transition-all flex items-center px-0.5 ${active ? 'bg-orange-500 dark:bg-[#ff7a1a]' : 'bg-slate-200 dark:bg-[#2d2d31]'}`}>
-        <div className={`w-[22px] h-[22px] rounded-full bg-white shadow-sm transform transition-all ${active ? 'translate-x-[20px]' : 'translate-x-0'}`}></div>
+      <div className={`w-14 h-[32px] rounded-full relative transition-all flex items-center px-0.5 ${active ? 'bg-orange-500 dark:bg-[#ff7a1a]' : 'bg-slate-200 dark:bg-[#2d2d31]'}`}>
+        <div className={`w-[26px] h-[26px] rounded-full bg-white shadow-sm transform transition-all ${active ? 'translate-x-[24px]' : 'translate-x-0'}`}></div>
       </div>
     </div>
   );
@@ -346,6 +363,7 @@ function App() {
 
   const [homeCalDate, setHomeCalDate] = useState(new Date());
   const [selectedHomeDay, setSelectedHomeDay] = useState(new Date().getDate());
+  const [selectedLedgerDay, setSelectedLedgerDay] = useState(null);
 
   const [viewDate, setViewDate] = useState(new Date());
   const [ledgerMode, setLedgerMode] = useState('monthly'); 
@@ -513,7 +531,22 @@ function App() {
     monthLedger.forEach(item => catTotals[item.category] = (catTotals[item.category] || 0) + (Number(item.amount)||0));
     const sortedCats = Object.entries(catTotals).sort((a, b) => b[1] - a[1]);
 
-    return { monthLedger, monthIncomes, inc, exp, sur, sortedCats };
+    // 日別の収支データ（カレンダー用）
+    const dailyData = {};
+    monthLedger.forEach(l => {
+      if (!l.date) return;
+      const d = parseInt(l.date.split('-')[2], 10);
+      if (!dailyData[d]) dailyData[d] = { exp: 0, inc: 0 };
+      dailyData[d].exp += Number(l.amount) || 0;
+    });
+    monthIncomes.forEach(i => {
+      if (!i.date) return;
+      const d = parseInt(i.date.split('-')[2], 10);
+      if (!dailyData[d]) dailyData[d] = { exp: 0, inc: 0 };
+      dailyData[d].inc += Number(i.amount) || 0;
+    });
+
+    return { monthLedger, monthIncomes, inc, exp, sur, sortedCats, dailyData };
   }, [ledger, incomes, fixedCosts, viewYear, viewMonth, ledgerYmStr]);
 
   const ledgerYearData = useMemo(() => {
@@ -575,16 +608,24 @@ function App() {
   };
 
   const handleSettlePayment = (card, amount) => {
-    const bank = banks.find(b => b.id === card.bankId);
-    if (!bank) { showToast("引落口座が未設定か削除されています", true); return; }
     const paymentMonthStr = `${homeCalYear}-${pad(homeCalMonth)}`;
+    const key = `${card.id}_${paymentMonthStr}`;
+    const isAlreadySettled = settlements.includes(key);
 
+    // 精算済 → 未精算に戻す（確認なしで即実行）
+    if (isAlreadySettled) {
+      setSettlements(settlements.filter(s => s !== key));
+      showToast("精算を取り消しました");
+      return;
+    }
+
+    // 未精算 → 精算済みにする（確認ダイアログ）
     setConfirmDialog({
-      message: `${String(card.name)}の ${fmt(amount)} を\n${String(bank.name)}から引き落としますか？`,
+      message: `${String(card.name)}の ${fmt(amount)} を\n精算済みにしますか？\n\n※ 口座残高には影響しません`,
       onConfirm: () => {
-        setBanks(banks.map(b => b.id === bank.id ? {...b, balance: Number(b.balance) - amount} : b));
-        setSettlements([...settlements, `${card.id}_${paymentMonthStr}`]);
-        setConfirmDialog(null); showToast("精算しました");
+        setSettlements([...settlements, key]);
+        setConfirmDialog(null);
+        showToast("精算済みにしました");
       }
     });
   };
@@ -671,30 +712,55 @@ function App() {
                 </GlassCard>
               )}
 
-              {/* 引落カレンダー（文字大きく） */}
+              {/* 引落カレンダー */}
               <GlassCard title="引落カレンダー" icon={<CalendarIcon size={18} className="text-slate-400 dark:text-white/30"/>}>
                 <div className="flex justify-between items-center mb-6 px-2">
                   <button onClick={() => setHomeCalDate(new Date(homeCalYear, homeCalMonth-2, 1))} className="p-2 bg-slate-100 dark:bg-white/5 rounded-full"><ChevronLeft size={20}/></button>
                   <span className="font-black tracking-widest text-lg text-slate-800 dark:text-white">{homeCalYear}年{homeCalMonth}月</span>
                   <button onClick={() => setHomeCalDate(new Date(homeCalYear, homeCalMonth, 1))} className="p-2 bg-slate-100 dark:bg-white/5 rounded-full"><ChevronRight size={20}/></button>
                 </div>
-                <div className="grid grid-cols-7 gap-1.5">
+
+                {/* 曜日ヘッダー */}
+                <div className="grid grid-cols-7 gap-1 sm:gap-1.5 mb-2">
+                  {['月','火','水','木','金','土','日'].map((w, i) => (
+                    <div key={`wkh-home-${i}`} className={`text-center text-[11px] font-black uppercase tracking-widest pb-2 ${i === 5 ? 'text-sky-500' : i === 6 ? 'text-rose-500' : 'text-slate-400 dark:text-white/30'}`}>
+                      {w}
+                    </div>
+                  ))}
+                </div>
+
+                <div className="grid grid-cols-7 gap-1 sm:gap-1.5">
                   {getCalendarDaysArr(homeCalYear, homeCalMonth).map((d, i) => {
                     const dayInfo = d ? homeCalData[d] : null;
                     const hasData = dayInfo && dayInfo.total > 0;
+                    // 精算済 / 未精算の判定
+                    const banksArr = hasData ? Object.values(dayInfo.banks) : [];
+                    const hasSettled = banksArr.some(b => b.isSettled);
+                    const hasUnsettled = banksArr.some(b => !b.isSettled);
+                    const isToday = d === new Date().getDate() && homeCalMonth === new Date().getMonth() + 1 && homeCalYear === new Date().getFullYear();
+                    const isSelected = selectedHomeDay === d;
                     return (
-                      <div key={`cal-home-${i}`} onClick={() => d && setSelectedHomeDay(d)} className={`h-32 rounded-[18px] p-2 relative flex flex-col cursor-pointer ${d ? (selectedHomeDay === d ? 'bg-slate-200 dark:bg-white/20 border border-slate-300 dark:border-white/40 shadow-md' : 'bg-slate-50 dark:bg-[#222226] border border-slate-200 dark:border-[#2d2d31]') : 'opacity-0'}`}>
-                        <span className={`text-lg font-black absolute top-1.5 left-2 ${d === new Date().getDate() && homeCalMonth === new Date().getMonth() + 1 ? 'text-[#e0651a] dark:text-[#ff7a1a]' : 'text-slate-600 dark:text-white/80'}`}>{d}</span>
-                        {hasData && (
-                          <div className="absolute bottom-1.5 left-0 right-0 flex flex-col items-center gap-1 px-1">
-                            {Object.values(dayInfo.banks).map((bank, bIdx) => (
-                              <span key={`bk-${bIdx}`} className={`w-full text-center font-mono font-black px-1 py-0.5 rounded-md leading-tight flex flex-col items-center ${bank.isSettled ? 'bg-green-100 text-green-700 dark:bg-emerald-400/15 dark:text-emerald-300' : 'bg-orange-100 text-orange-600 dark:bg-[#ff7a1a]/20 dark:text-[#ff9a4d]'}`}>
-                                <span className="text-[10px] opacity-80 truncate w-full">{String(bank.name)}</span>
-                                <span className="text-[12px]">-{fmt(bank.amount).replace('¥','')}</span>
-                              </span>
-                            ))}
-                          </div>
-                        )}
+                      <div
+                        key={`cal-home-${i}`}
+                        onClick={() => d && setSelectedHomeDay(isSelected ? null : d)}
+                        className={`aspect-square rounded-[14px] p-1.5 flex flex-col items-center justify-center cursor-pointer transition-all ${
+                          d ? (
+                            isSelected
+                              ? 'bg-orange-100 dark:bg-[#ff7a1a]/20 border-2 border-orange-500 dark:border-[#ff7a1a] shadow-md'
+                              : 'bg-slate-50 dark:bg-[#222226] border border-slate-200 dark:border-[#2d2d31] hover:bg-slate-100 dark:hover:bg-[#2d2d31]'
+                          ) : 'opacity-0 pointer-events-none'
+                        }`}
+                      >
+                        <span className={`text-[14px] sm:text-[16px] font-black ${isToday ? 'text-orange-600 dark:text-[#ff7a1a]' : 'text-slate-700 dark:text-white/80'}`}>{d}</span>
+                        {/* 引落ドット（精算済=緑 / 未精算=オレンジ） */}
+                        <div className="flex gap-1 mt-1 h-2.5 items-center">
+                          {hasSettled && (
+                            <span className="w-2.5 h-2.5 rounded-full bg-emerald-500 dark:bg-emerald-400 shadow-sm"></span>
+                          )}
+                          {hasUnsettled && (
+                            <span className="w-2.5 h-2.5 rounded-full bg-orange-500 dark:bg-[#ff7a1a] shadow-sm"></span>
+                          )}
+                        </div>
                       </div>
                     )
                   })}
@@ -723,8 +789,8 @@ function App() {
                                   <div className="text-right flex items-center gap-3">
                                     <div className="font-mono font-bold text-[15px] text-slate-900 dark:text-white">{fmt(c.amount)}</div>
                                     {isSettled ? 
-                                      <div className="px-2 py-1 bg-green-100 text-green-600 dark:bg-emerald-400/10 dark:text-emerald-300 rounded-full text-[10px] font-black flex items-center gap-1"><CheckCircle size={12}/> 済</div> : 
-                                      <button onClick={() => handleSettlePayment(c, c.amount)} className="bg-orange-600 dark:bg-[#ff7a1a] text-white dark:text-black text-[10px] font-black px-3 py-1.5 rounded-full">精算</button>
+                                      <button onClick={() => handleSettlePayment(c, c.amount)} className="px-3 py-1.5 bg-emerald-100 text-emerald-700 dark:bg-emerald-400/15 dark:text-emerald-300 rounded-full text-[10px] font-black flex items-center gap-1 active:scale-95 transition-transform" title="タップで取り消し"><CheckCircle size={12}/> 精算済</button> : 
+                                      <button onClick={() => handleSettlePayment(c, c.amount)} className="bg-orange-600 dark:bg-[#ff7a1a] text-white dark:text-black text-[10px] font-black px-3 py-1.5 rounded-full active:scale-95 transition-transform">精算</button>
                                     }
                                   </div>
                                 </div>
@@ -917,7 +983,7 @@ function App() {
 
           {/* ==================== 家計簿 ==================== */}
           {activeTab === 'ledger' && (() => {
-            const { monthLedger, monthIncomes, inc, exp, sur, sortedCats } = ledgerMonthData;
+            const { monthLedger, monthIncomes, inc, exp, sur, sortedCats, dailyData } = ledgerMonthData;
             const { inc: yInc, exp: yExp, sur: ySur, chartData: yChartData } = ledgerYearData;
             const displayCategoryData = sortedCats.length > 0 
               ? sortedCats.map(([cat, amt]) => ({ name: cat, value: amt, color: getCatMeta(cat).color }))
@@ -991,6 +1057,88 @@ function App() {
                       </div>
                     </GlassCard>
 
+                    {/* 日別収支カレンダー */}
+                    <GlassCard title="家計簿カレンダー" icon={<CalendarIcon size={18} className="text-slate-400 dark:text-white/30"/>}>
+                      <div className="grid grid-cols-7 gap-1 sm:gap-1.5 mb-2">
+                        {['月','火','水','木','金','土','日'].map((w, i) => (
+                          <div key={`wkh-${i}`} className={`text-center text-[11px] font-black uppercase tracking-widest pb-2 ${i === 5 ? 'text-sky-500' : i === 6 ? 'text-rose-500' : 'text-slate-400 dark:text-white/30'}`}>
+                            {w}
+                          </div>
+                        ))}
+                      </div>
+                      <div className="grid grid-cols-7 gap-1 sm:gap-1.5">
+                        {getCalendarDaysArr(viewYear, viewMonth).map((d, i) => {
+                          const dayInfo = d ? dailyData[d] : null;
+                          const hasInc = dayInfo && dayInfo.inc > 0;
+                          const hasExp = dayInfo && dayInfo.exp > 0;
+                          const isToday = d === new Date().getDate() && viewMonth === new Date().getMonth() + 1 && viewYear === new Date().getFullYear();
+                          const isSelected = selectedLedgerDay === d;
+                          return (
+                            <div
+                              key={`cal-ledger-${i}`}
+                              onClick={() => d && setSelectedLedgerDay(isSelected ? null : d)}
+                              className={`aspect-square rounded-[14px] p-1.5 flex flex-col items-center justify-center cursor-pointer transition-all ${
+                                d ? (
+                                  isSelected
+                                    ? 'bg-orange-100 dark:bg-[#ff7a1a]/20 border-2 border-orange-500 dark:border-[#ff7a1a] shadow-md'
+                                    : 'bg-slate-50 dark:bg-[#222226] border border-slate-200 dark:border-[#2d2d31] hover:bg-slate-100 dark:hover:bg-[#2d2d31]'
+                                ) : 'opacity-0 pointer-events-none'
+                              }`}
+                            >
+                              <span className={`text-[14px] sm:text-[16px] font-black ${isToday ? 'text-orange-600 dark:text-[#ff7a1a]' : 'text-slate-700 dark:text-white/80'}`}>{d}</span>
+                              {/* 収支ドット */}
+                              <div className="flex gap-1 mt-1 h-2.5 items-center">
+                                {hasInc && (
+                                  <span className="w-2.5 h-2.5 rounded-full bg-emerald-500 dark:bg-emerald-400 shadow-sm"></span>
+                                )}
+                                {hasExp && (
+                                  <span className="w-2.5 h-2.5 rounded-full bg-rose-500 dark:bg-rose-400 shadow-sm"></span>
+                                )}
+                              </div>
+                            </div>
+                          );
+                        })}
+                      </div>
+
+                      {/* 選択日の詳細 */}
+                      {selectedLedgerDay && (
+                        <div className="mt-6 pt-6 border-t border-slate-200 dark:border-[#2d2d31]">
+                          <div className="flex items-center justify-between mb-4">
+                            <div className="font-black text-lg text-slate-800 dark:text-white">{viewMonth}月{selectedLedgerDay}日の取引</div>
+                            <button onClick={() => setSelectedLedgerDay(null)} className="text-xs font-black text-slate-400 dark:text-white/40 px-3 py-1 rounded-full bg-slate-100 dark:bg-white/5">閉じる</button>
+                          </div>
+                          {(() => {
+                            const targetDate = `${viewYear}-${pad(viewMonth)}-${pad(selectedLedgerDay)}`;
+                            const dayL = monthLedger.filter(l => l.date === targetDate);
+                            const dayI = monthIncomes.filter(i => i.date === targetDate);
+                            const records = [...dayL.map(l=>({...l,_t:'expense'})), ...dayI.map(i=>({...i,_t:'income'}))];
+                            if (records.length === 0) return <div className="text-center py-8 text-slate-400 dark:text-white/20 font-bold text-sm">記録はありません</div>;
+                            return (
+                              <div className="space-y-2 max-h-72 overflow-y-auto no-scrollbar">
+                                {records.map(l => {
+                                  const meta = getCatMeta(l.category);
+                                  return (
+                                    <div key={`day-${l.id}`} className="flex justify-between items-center p-3 bg-slate-50 dark:bg-[#222226] rounded-[16px] border border-slate-200 dark:border-[#2d2d31] cursor-pointer active:scale-95" onClick={() => setEditingItem({type: l._t, data: l})}>
+                                      <div className="flex items-center gap-3">
+                                        <div className="w-9 h-9 rounded-[12px] flex items-center justify-center text-base" style={{backgroundColor: `${meta.color}22`, border: `1px solid ${meta.color}44`}}>{String(meta.emoji)}</div>
+                                        <div>
+                                          <div className="font-bold text-[14px] text-slate-900 dark:text-white">{String(l.name || l.category || '記録')}</div>
+                                          {l._t === 'expense' && <div className="text-[10px] text-slate-500 dark:text-white/40 font-mono">{String(l.category)}</div>}
+                                        </div>
+                                      </div>
+                                      <div className={`font-mono font-bold text-[15px] ${l._t === 'income' ? 'text-emerald-600 dark:text-emerald-400' : 'text-rose-500 dark:text-rose-400'}`}>
+                                        {l._t === 'income' ? '+' : '-'}{fmt(l.amount)}
+                                      </div>
+                                    </div>
+                                  );
+                                })}
+                              </div>
+                            );
+                          })()}
+                        </div>
+                      )}
+                    </GlassCard>
+
                     <div>
                       <div className="flex overflow-x-auto gap-2 no-scrollbar px-1 mb-4">
                         <button onClick={() => setLedgerCategoryFilter('all')} className={`px-5 py-2.5 rounded-[16px] text-[12px] font-black whitespace-nowrap active:scale-95 ${ledgerCategoryFilter === 'all' ? 'bg-orange-600 dark:bg-[#ff7a1a] text-white dark:text-black' : 'bg-white dark:bg-[#1a1a1c] text-slate-500 dark:text-white/50 border border-slate-200 dark:border-[#2d2d31]'}`}>全て</button>
@@ -1012,7 +1160,7 @@ function App() {
                               return (
                                 <div key={`ledger-item-${l.id}`} className={`flex justify-between items-center p-4 rounded-[24px] border cursor-pointer active:scale-95 ${isNoMoney ? 'bg-slate-50 dark:bg-[#222226]' : 'bg-white dark:bg-[#1a1a1c] border-slate-200 dark:border-[#2d2d31]'}`} onClick={()=>setEditingItem({type:l._t, data:l})}>
                                    <div className="flex items-center gap-4">
-                                      <div className="w-11 h-11 rounded-[16px] flex items-center justify-center text-xl" style={{backgroundColor: isNoMoney ? `${appSettings.noMoneyColor}33` : `${meta.color}22`, border: `1px solid ${isNoMoney ? appSettings.noMoneyColor : meta.color}44`}}>
+                                      <div className="w-12 h-12 rounded-[16px] flex items-center justify-center text-2xl" style={{backgroundColor: isNoMoney ? `${appSettings.noMoneyColor}33` : `${meta.color}22`, border: `1px solid ${isNoMoney ? appSettings.noMoneyColor : meta.color}44`}}>
                                         {String(isNoMoney ? appSettings.noMoneyEmoji : meta.emoji)}
                                       </div>
                                       <div>
@@ -1020,7 +1168,7 @@ function App() {
                                         <div className="text-[11px] text-slate-500 dark:text-white/30 font-mono">{String(l.name ? `${l.category} • ` : '')}{String(l.date)}</div>
                                       </div>
                                    </div>
-                                   <div className={`font-mono font-bold text-lg ${l._t === 'income' ? 'text-green-500' : ''}`}>{l._t === 'income' ? `+${fmt(l.amount)}` : `-${fmt(l.amount)}`}</div>
+                                   <div className={`font-mono font-bold text-xl ${l._t === 'income' ? 'text-green-500' : ''}`}>{l._t === 'income' ? `+${fmt(l.amount)}` : `-${fmt(l.amount)}`}</div>
                                 </div>
                               );
                             })}
@@ -1088,6 +1236,9 @@ function App() {
                     <SettingsListItem title="カテゴリー・予算の編集" icon={<Tags size={20}/>} onClick={()=>setSettingsView('categories')} borderBottom />
                     <SettingsListItem title="口座・決済手段の管理" icon={<CreditCard size={20}/>} onClick={()=>{ setSettingsSubTab('banks'); setSettingsView('accounts'); }} />
                   </SettingsSection>
+                  <SettingsSection title="データ管理">
+                    <SettingsListItem title="データの削除" icon={<Trash2 size={20}/>} onClick={()=>setSettingsView('dataDelete')} />
+                  </SettingsSection>
                   <SettingsSection title="サポート・規約">
                     <SettingsListItem title="バージョン" value="1.0.0 (Preview)" icon={<Info size={20}/>} onClick={() => {}} />
                   </SettingsSection>
@@ -1131,7 +1282,7 @@ function App() {
                             </div>
                             <input type="number" step="1000" value={appSettings.monthlyBudget} onChange={e=>setAppSettings({...appSettings, monthlyBudget: Number(e.target.value)})} className="w-28 h-10 bg-slate-100 dark:bg-[#2d2d31] border border-slate-200 dark:border-[#3a3a3f] rounded-lg text-right px-3 font-bold" />
                           </div>
-                          <div className="p-5 bg-white dark:bg-[#1a1a1c]">
+                          <div className="p-6 bg-white dark:bg-[#1a1a1c]">
                             <label className="text-[11px] font-black text-slate-500 dark:text-white/30 uppercase mb-3 block">比較モード</label>
                             <div className="grid grid-cols-3 gap-2">
                               {['MoM', 'YoY', 'Avg3'].map(mode => (
@@ -1161,6 +1312,104 @@ function App() {
                         ))}
                       </div>
                     </GlassCard>
+                  )}
+
+                  {/* データ削除 */}
+                  {settingsView === 'dataDelete' && (
+                    <div className="space-y-6">
+                      <GlassCard title="部分削除" icon={<Trash2 size={18} className="text-rose-500"/>}>
+                        <div className="text-[12px] text-slate-500 dark:text-white/50 mb-5 leading-relaxed">
+                          カテゴリ別にデータを削除します。<br/>削除前に必ず確認ダイアログが表示されます。
+                        </div>
+                        <div className="space-y-3">
+                          {[
+                            { key: 'ledger', label: '取引履歴（支出）', count: ledger.length, color: 'rose', exec: () => setLedger([]) },
+                            { key: 'incomes', label: '収入記録', count: incomes.length, color: 'emerald', exec: () => setIncomes([]) },
+                            { key: 'fixedCosts', label: '固定費・サブスク', count: fixedCosts.length, color: 'orange', exec: () => setFixedCosts([]) },
+                            { key: 'banks', label: '銀行口座', count: banks.length, color: 'slate', exec: () => setBanks([]) },
+                            { key: 'cards', label: 'クレジットカード', count: cards.length, color: 'slate', exec: () => setCards([]) },
+                            { key: 'cash', label: '現金', count: cash.length, color: 'slate', exec: () => setCash([]) },
+                            { key: 'investments', label: '積立・証券', count: investments.length, color: 'slate', exec: () => setInvestments([]) },
+                            { key: 'prepaids', label: 'プリペイド', count: prepaids.length, color: 'slate', exec: () => setPrepaids([]) },
+                            { key: 'points', label: 'ポイント', count: points.length, color: 'slate', exec: () => setPoints([]) },
+                            { key: 'settlements', label: '精算履歴', count: settlements.length, color: 'slate', exec: () => setSettlements([]) },
+                          ].map(item => (
+                            <div key={`del-${item.key}`} className="flex justify-between items-center p-4 bg-slate-50 dark:bg-[#222226] rounded-[20px] border border-slate-200 dark:border-[#2d2d31]">
+                              <div className="flex-1">
+                                <div className="text-[15px] font-bold text-slate-900 dark:text-white">{String(item.label)}</div>
+                                <div className="text-[11px] font-mono font-bold text-slate-400 dark:text-white/40 mt-1">{item.count} 件</div>
+                              </div>
+                              <button 
+                                disabled={item.count === 0}
+                                onClick={() => {
+                                  setConfirmDialog({
+                                    message: `「${item.label}」のデータ ${item.count} 件を\n全て削除します。\n\nこの操作は取り消せません。実行しますか？`,
+                                    onConfirm: () => {
+                                      item.exec();
+                                      setConfirmDialog(null);
+                                      showToast(`${item.label}を削除しました`);
+                                    }
+                                  });
+                                }}
+                                className={`px-4 py-2 rounded-full text-[12px] font-black active:scale-95 transition-transform ${
+                                  item.count === 0 
+                                    ? 'bg-slate-100 dark:bg-white/5 text-slate-300 dark:text-white/20 cursor-not-allowed' 
+                                    : 'bg-rose-100 dark:bg-rose-500/20 text-rose-600 dark:text-rose-400 hover:bg-rose-200 dark:hover:bg-rose-500/30'
+                                }`}
+                              >
+                                <span className="flex items-center gap-1.5"><Trash2 size={12}/>削除</span>
+                              </button>
+                            </div>
+                          ))}
+                        </div>
+                      </GlassCard>
+
+                      <GlassCard title="全データ削除" icon={<AlertTriangle size={18} className="text-rose-500"/>}>
+                        <div className="bg-rose-50 dark:bg-rose-500/10 border border-rose-200 dark:border-rose-500/30 rounded-[20px] p-4 mb-5">
+                          <div className="flex items-start gap-3">
+                            <AlertTriangle size={20} className="text-rose-500 mt-0.5 shrink-0"/>
+                            <div>
+                              <div className="font-black text-rose-700 dark:text-rose-300 mb-2">警告：全データを削除します</div>
+                              <div className="text-[12px] text-rose-600 dark:text-rose-300/80 leading-relaxed">
+                                取引履歴、口座、カード、固定費、カテゴリ、設定など、全てのデータが初期化されます。<br/>この操作は取り消せません。
+                              </div>
+                            </div>
+                          </div>
+                        </div>
+                        <button 
+                          onClick={() => {
+                            setConfirmDialog({
+                              message: `本当に全てのデータを削除しますか？\n\nアプリは初期状態に戻ります。\nこの操作は取り消せません。`,
+                              onConfirm: () => {
+                                setLedger([]);
+                                setIncomes([]);
+                                setFixedCosts([]);
+                                setBanks([]);
+                                setCards([]);
+                                setCash([]);
+                                setInvestments([]);
+                                setPrepaids([]);
+                                setPoints([]);
+                                setSettlements([]);
+                                setCategories(defaultCategories);
+                                setAppSettings({
+                                  startDay: 1, notifyRemind: false, notifyPayment: false, notifyClosing: false, darkMode: true,
+                                  userName: "ゲストユーザー", plan: "free",
+                                  noMoneyMode: true, noMoneyEmoji: "✅", noMoneyColor: "#ff7a1a",
+                                  monthlyBudget: 200000, budgetAlert: true, weeklyReport: true, comparisonMode: "MoM"
+                                });
+                                setConfirmDialog(null);
+                                setSettingsView('main');
+                                showToast("全てのデータを削除しました");
+                              }
+                            });
+                          }}
+                          className="w-full h-14 bg-rose-500 hover:bg-rose-600 dark:bg-rose-500 text-white font-black rounded-[24px] shadow-lg shadow-rose-500/30 active:scale-95 transition-transform flex items-center justify-center gap-2"
+                        >
+                          <Trash2 size={18}/>全てのデータを削除する
+                        </button>
+                      </GlassCard>
+                    </div>
                   )}
 
                   {/* 口座・決済手段の管理（固定費は記入タブへ移動） */}
@@ -1195,7 +1444,7 @@ function App() {
                             <div className="col-span-2 bg-white dark:bg-[#1a1a1c] rounded-[16px] border border-slate-200 dark:border-[#2d2d31] overflow-hidden">
                               <ToggleRow label="家計簿の記入に表示する" icon={<Eye size={18}/>} active={newBankVisible} onClick={() => setNewBankVisible(!newBankVisible)} />
                             </div>
-                            <button className="col-span-2 btn-primary h-12 mt-2 text-[14px]" onClick={() => {
+                            <button className="col-span-2 btn-primary h-14 mt-2 text-[15px]" onClick={() => {
                               const n = document.getElementById('set_b_name').value; 
                               if(!n) { showToast("エラー: 銀行名を入力してください", true); return; }
                               setBanks([...banks, {id: Date.now().toString(), name: n, branch: document.getElementById('set_b_branch').value || '', balance: Number(document.getElementById('set_b_bal').value)||0, visibleInEntry: newBankVisible}]);
@@ -1315,7 +1564,7 @@ function App() {
                             <div className="col-span-2 bg-white dark:bg-[#1a1a1c] rounded-[16px] border border-slate-200 dark:border-[#2d2d31] overflow-hidden">
                               <ToggleRow label="家計簿の記入に表示する" icon={<Eye size={18}/>} active={newCashVisible} onClick={() => setNewCashVisible(!newCashVisible)} />
                             </div>
-                            <button className="col-span-2 btn-primary h-12 mt-2 text-[14px]" onClick={() => {
+                            <button className="col-span-2 btn-primary h-14 mt-2 text-[15px]" onClick={() => {
                               const n = document.getElementById('set_cash_name').value; 
                               if(!n) { showToast("エラー: 名称を入力してください", true); return; }
                               setCash([...cash, {id: Date.now().toString(), name: n, balance: Number(document.getElementById('set_cash_bal').value)||0, visibleInEntry: newCashVisible}]);
@@ -1441,13 +1690,13 @@ function App() {
 
         {/* ナビゲーション */}
         <nav className="fixed bottom-0 left-0 right-0 w-full bg-white/95 dark:bg-[#1a1a1c]/95 backdrop-blur-xl border-t border-slate-200 dark:border-[#2d2d31] rounded-t-[32px] z-50 flex items-center px-2 pt-2 pb-nav-safe">
-           <NavBtn active={activeTab === 'home'} onClick={() => setActiveTab('home')} icon={<Home size={26}/>} label="ホーム" />
-           <NavBtn active={activeTab === 'assets'} onClick={() => setActiveTab('assets')} icon={<Wallet size={26}/>} label="資産" />
+           <NavBtn active={activeTab === 'home'} onClick={() => setActiveTab('home')} icon={<Home size={28}/>} label="ホーム" />
+           <NavBtn active={activeTab === 'assets'} onClick={() => setActiveTab('assets')} icon={<Wallet size={28}/>} label="資産" />
            <div className="relative flex-1 flex justify-center">
-              <button onClick={() => setActiveTab('add')} className={`w-[70px] h-[70px] rounded-full flex items-center justify-center -mt-8 shadow-2xl border-[6px] border-slate-50 dark:border-[#050505] bg-gradient-to-br from-orange-500 to-orange-700 dark:from-[#ff7a1a] dark:to-[#e0651a] text-white active:scale-90`}><Plus size={36} strokeWidth={3}/></button>
+              <button onClick={() => setActiveTab('add')} className={`w-[76px] h-[76px] rounded-full flex items-center justify-center -mt-8 shadow-2xl border-[6px] border-slate-50 dark:border-[#050505] bg-gradient-to-br from-orange-500 to-orange-700 dark:from-[#ff7a1a] dark:to-[#e0651a] text-white active:scale-90`}><Plus size={38} strokeWidth={3}/></button>
            </div>
-           <NavBtn active={activeTab === 'ledger'} onClick={() => setActiveTab('ledger')} icon={<BookOpen size={26}/>} label="家計簿" />
-           <NavBtn active={activeTab === 'settings'} onClick={() => { setActiveTab('settings'); setSettingsView('main'); }} icon={<Settings size={26}/>} label="設定" />
+           <NavBtn active={activeTab === 'ledger'} onClick={() => setActiveTab('ledger')} icon={<BookOpen size={28}/>} label="家計簿" />
+           <NavBtn active={activeTab === 'settings'} onClick={() => { setActiveTab('settings'); setSettingsView('main'); }} icon={<Settings size={28}/>} label="設定" />
         </nav>
 
         {/* トースト */}
@@ -1534,19 +1783,19 @@ function App() {
                     <InputField label="カード名" value={editingItem.data.name || ''} onChange={e=>setEditingItem({...editingItem, data:{...editingItem.data, name:e.target.value}})} />
                     <div className="flex flex-col gap-2">
                       <label className="text-[11px] font-black text-slate-500 dark:text-white/40 uppercase tracking-widest pl-4">ブランド</label>
-                      <select className="h-14 bg-slate-100 dark:bg-[#1a1a1c] border border-slate-200 dark:border-[#2d2d31] rounded-[24px] px-5 outline-none font-bold appearance-none" value={editingItem.data.brand || 'JCB'} onChange={e=>setEditingItem({...editingItem, data:{...editingItem.data, brand:e.target.value}})}>
+                      <select className="h-16 bg-slate-100 dark:bg-[#1a1a1c] border border-slate-200 dark:border-[#2d2d31] rounded-[24px] px-5 outline-none font-bold appearance-none" value={editingItem.data.brand || 'JCB'} onChange={e=>setEditingItem({...editingItem, data:{...editingItem.data, brand:e.target.value}})}>
                         <option value="JCB">JCB</option><option value="VISA">VISA</option><option value="MASTERCARD">MASTERCARD</option><option value="AMEX">AMEX</option><option value="OTHER">その他</option>
                       </select>
                     </div>
                     <div className="flex flex-col gap-2">
                       <label className="text-[11px] font-black text-slate-500 dark:text-white/40 uppercase tracking-widest pl-4">締日</label>
-                      <select className="h-14 bg-slate-100 dark:bg-[#1a1a1c] border border-slate-200 dark:border-[#2d2d31] rounded-[24px] px-5 outline-none font-bold appearance-none" value={editingItem.data.closingDate || '99'} onChange={e=>setEditingItem({...editingItem, data:{...editingItem.data, closingDate:e.target.value}})}>
+                      <select className="h-16 bg-slate-100 dark:bg-[#1a1a1c] border border-slate-200 dark:border-[#2d2d31] rounded-[24px] px-5 outline-none font-bold appearance-none" value={editingItem.data.closingDate || '99'} onChange={e=>setEditingItem({...editingItem, data:{...editingItem.data, closingDate:e.target.value}})}>
                         {[...Array(31)].map((_,i)=><option key={i+1} value={i+1}>{i+1}日</option>)}<option value="99">末日</option>
                       </select>
                     </div>
                     <div className="flex flex-col gap-2">
                       <label className="text-[11px] font-black text-slate-500 dark:text-white/40 uppercase tracking-widest pl-4">支払日</label>
-                      <select className="h-14 bg-slate-100 dark:bg-[#1a1a1c] border border-slate-200 dark:border-[#2d2d31] rounded-[24px] px-5 outline-none font-bold appearance-none" value={editingItem.data.paymentDate || '99'} onChange={e=>setEditingItem({...editingItem, data:{...editingItem.data, paymentDate:e.target.value}})}>
+                      <select className="h-16 bg-slate-100 dark:bg-[#1a1a1c] border border-slate-200 dark:border-[#2d2d31] rounded-[24px] px-5 outline-none font-bold appearance-none" value={editingItem.data.paymentDate || '99'} onChange={e=>setEditingItem({...editingItem, data:{...editingItem.data, paymentDate:e.target.value}})}>
                         {[...Array(31)].map((_,i)=><option key={i+1} value={i+1}>{i+1}日</option>)}<option value="99">末日</option>
                       </select>
                     </div>
@@ -1555,13 +1804,13 @@ function App() {
                         休日の場合
                         <span className="text-[10px] font-bold text-slate-400 normal-case tracking-normal">— 土日祝が支払日なら、翌 or 前営業日に</span>
                       </label>
-                      <select className="h-14 bg-slate-100 dark:bg-[#1a1a1c] border border-slate-200 dark:border-[#2d2d31] rounded-[24px] px-5 outline-none font-bold appearance-none" value={editingItem.data.holidayAdjustment || 'next'} onChange={e=>setEditingItem({...editingItem, data:{...editingItem.data, holidayAdjustment:e.target.value}})}>
+                      <select className="h-16 bg-slate-100 dark:bg-[#1a1a1c] border border-slate-200 dark:border-[#2d2d31] rounded-[24px] px-5 outline-none font-bold appearance-none" value={editingItem.data.holidayAdjustment || 'next'} onChange={e=>setEditingItem({...editingItem, data:{...editingItem.data, holidayAdjustment:e.target.value}})}>
                         <option value="next">翌営業日（一般的）</option><option value="prev">前営業日</option>
                       </select>
                     </div>
                     <div className="flex flex-col gap-2">
                       <label className="text-[11px] font-black text-slate-500 dark:text-white/40 uppercase tracking-widest pl-4">引落銀行</label>
-                      <select className="h-14 bg-slate-100 dark:bg-[#1a1a1c] border border-slate-200 dark:border-[#2d2d31] rounded-[24px] px-5 outline-none font-bold appearance-none" value={editingItem.data.bankId || ''} onChange={e=>setEditingItem({...editingItem, data:{...editingItem.data, bankId:e.target.value}})}>
+                      <select className="h-16 bg-slate-100 dark:bg-[#1a1a1c] border border-slate-200 dark:border-[#2d2d31] rounded-[24px] px-5 outline-none font-bold appearance-none" value={editingItem.data.bankId || ''} onChange={e=>setEditingItem({...editingItem, data:{...editingItem.data, bankId:e.target.value}})}>
                         <option value="">未設定</option>
                         {banks.map(b => <option key={b.id} value={b.id}>{String(b.name)}</option>)}
                       </select>
@@ -1610,7 +1859,7 @@ function NavBtn({ active, onClick, icon, label }) {
   return (
     <button onClick={onClick} className={`flex-1 flex flex-col items-center justify-center gap-1.5 h-16 ${active ? 'text-orange-600 dark:text-[#ff7a1a] scale-110' : 'text-slate-400 dark:text-white/30'}`}>
       {icon}
-      <span className="text-[10px] font-black uppercase tracking-tighter">{String(label)}</span>
+      <span className="text-[11px] font-black uppercase tracking-tighter">{String(label)}</span>
     </button>
   );
 }
