@@ -333,26 +333,39 @@ function ToggleRow({ label, icon, active, onClick, borderBottom, disabled, badge
 // 3. メインアプリケーション
 // ==========================================
 function App() {
+  // localStorage ヘルパー
+  const STORAGE_KEY = 'finaxis_data_v1';
+  const loadFromStorage = (key, fallback) => {
+    try {
+      const raw = localStorage.getItem(STORAGE_KEY);
+      if (!raw) return fallback;
+      const data = JSON.parse(raw);
+      return data[key] !== undefined ? data[key] : fallback;
+    } catch (e) {
+      return fallback;
+    }
+  };
+
   const [activeTab, setActiveTab] = useState('home');
   const [toast, setToast] = useState(null);
 
-  const [banks, setBanks] = useState(sampleBanks);
-  const [cards, setCards] = useState(sampleCards);
-  const [investments, setInvestments] = useState(sampleInvestments);
-  const [prepaids, setPrepaids] = useState(samplePrepaids);
-  const [points, setPoints] = useState(samplePoints);
-  const [cash, setCash] = useState(sampleCash); 
-  const [ledger, setLedger] = useState(sampleLedger); 
-  const [incomes, setIncomes] = useState(sampleIncomes); 
-  const [fixedCosts, setFixedCosts] = useState(sampleFixedCosts); 
-  const [categories, setCategories] = useState(defaultCategories);
-  const [settlements, setSettlements] = useState([]); 
-  const [appSettings, setAppSettings] = useState({
+  const [banks, setBanks] = useState(() => loadFromStorage('banks', sampleBanks));
+  const [cards, setCards] = useState(() => loadFromStorage('cards', sampleCards));
+  const [investments, setInvestments] = useState(() => loadFromStorage('investments', sampleInvestments));
+  const [prepaids, setPrepaids] = useState(() => loadFromStorage('prepaids', samplePrepaids));
+  const [points, setPoints] = useState(() => loadFromStorage('points', samplePoints));
+  const [cash, setCash] = useState(() => loadFromStorage('cash', sampleCash));
+  const [ledger, setLedger] = useState(() => loadFromStorage('ledger', sampleLedger));
+  const [incomes, setIncomes] = useState(() => loadFromStorage('incomes', sampleIncomes));
+  const [fixedCosts, setFixedCosts] = useState(() => loadFromStorage('fixedCosts', sampleFixedCosts));
+  const [categories, setCategories] = useState(() => loadFromStorage('categories', defaultCategories));
+  const [settlements, setSettlements] = useState(() => loadFromStorage('settlements', []));
+  const [appSettings, setAppSettings] = useState(() => loadFromStorage('appSettings', {
     startDay: 1, notifyRemind: false, notifyPayment: false, notifyClosing: false, darkMode: true,
     userName: "未設定", plan: "free",
     noMoneyMode: true, noMoneyEmoji: "✅", noMoneyColor: "#ff7a1a",
     monthlyBudget: 200000, budgetAlert: true, weeklyReport: true, comparisonMode: "MoM"
-  });
+  }));
 
   // --- UI制御 ---
   const [settingsView, setSettingsView] = useState('main'); 
@@ -389,6 +402,16 @@ function App() {
   const themeColor = appSettings.darkMode ? '#ff7a1a' : '#ea580c';
   // 資産推移グラフ用（アーストーン・テラコッタ）
   const assetChartColor = appSettings.darkMode ? '#d4825c' : '#b85c3a';
+
+  // localStorage への自動保存（state変更時）
+  useEffect(() => {
+    try {
+      const data = { banks, cards, investments, prepaids, points, cash, ledger, incomes, fixedCosts, categories, settlements, appSettings };
+      localStorage.setItem(STORAGE_KEY, JSON.stringify(data));
+    } catch (e) {
+      console.error('Save failed', e);
+    }
+  }, [banks, cards, investments, prepaids, points, cash, ledger, incomes, fixedCosts, categories, settlements, appSettings]);
 
   // Tailwindのダークモード戦略を 'class' に切替（claude.ai プレビュー環境向け）
   useEffect(() => {
@@ -436,7 +459,9 @@ function App() {
                      investments.reduce((s, i) => s + (Number(i.balance)||0), 0) + 
                      prepaids.reduce((s, p) => s + (Number(p.balance)||0), 0) + 
                      points.reduce((s, p) => s + ((Number(p.balance)||0) * (Number(p.rate)||1)), 0);
-    return { assets: assetSum, balance: assetSum - unpaidCard, unpaidCard };
+    const cashBankSum = banks.reduce((s, b) => s + (Number(b.balance)||0), 0) + 
+                        cash.reduce((s, c) => s + (Number(c.balance)||0), 0);
+    return { assets: assetSum, balance: assetSum - unpaidCard, unpaidCard, cashBank: cashBankSum };
   }, [banks, cash, investments, prepaids, points, ledger, cards, fixedCosts, settlements]);
 
   const budgetProgress = useMemo(() => {
@@ -760,7 +785,7 @@ function App() {
       [`${y}-${m}-09`, '3280', 'ユニクロ', '美容・衣服'],
     ];
     const csv = sampleRows.map(r => r.join(',')).join('\r\n');
-    const bom = '\uFEFF'; // Excel文字化け対策
+    const bom = '\uFEFF';
     const blob = new Blob([bom + csv], { type: 'text/csv;charset=utf-8;' });
     const url = URL.createObjectURL(blob);
     const a = document.createElement('a');
@@ -771,6 +796,123 @@ function App() {
     document.body.removeChild(a);
     URL.revokeObjectURL(url);
     showToast("テンプレートをダウンロードしました");
+  };
+
+  // 汎用CSVエクスポート関数
+  const exportCsv = (filename, headers, rows, emptyMsg) => {
+    if (rows.length === 0) {
+      showToast(emptyMsg || 'エクスポートするデータがありません', true);
+      return;
+    }
+    const escapeCell = (v) => {
+      const s = String(v ?? '');
+      if (/[,"\n\r]/.test(s)) return '"' + s.replace(/"/g, '""') + '"';
+      return s;
+    };
+    const csv = [headers, ...rows].map(r => r.map(escapeCell).join(',')).join('\r\n');
+    const bom = '\uFEFF';
+    const blob = new Blob([bom + csv], { type: 'text/csv;charset=utf-8;' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = filename;
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    URL.revokeObjectURL(url);
+    showToast(`${rows.length}件をエクスポートしました`);
+  };
+
+  // 各カテゴリのCSVエクスポート
+  const getMethodName = (mid) => {
+    if (mid === 'cash') return '現金';
+    const c = cards.find(x => x.id === mid); if (c) return c.name;
+    const b = banks.find(x => x.id === mid); if (b) return b.name;
+    const p = prepaids.find(x => x.id === mid); if (p) return p.name;
+    const cs = cash.find(x => x.id === mid); if (cs) return cs.name;
+    return mid || '';
+  };
+
+  const exportLedgerCsv = () => {
+    const dateStr = new Date().toISOString().slice(0,10);
+    exportCsv(
+      `finaxis_ledger_${dateStr}.csv`,
+      ['日付', '金額', '内容', 'カテゴリ', '支払方法', '集計除外'],
+      ledger.map(l => [l.date, l.amount, l.name || '', l.category || '', getMethodName(l.methodId), l.exclude ? 'はい' : '']),
+      '取引履歴がありません'
+    );
+  };
+  const exportIncomesCsv = () => {
+    const dateStr = new Date().toISOString().slice(0,10);
+    exportCsv(
+      `finaxis_incomes_${dateStr}.csv`,
+      ['日付', '金額', '内容', 'カテゴリ'],
+      incomes.map(i => [i.date, i.amount, i.name || '', i.category || '']),
+      '収入記録がありません'
+    );
+  };
+  const exportFixedCostsCsv = () => {
+    const dateStr = new Date().toISOString().slice(0,10);
+    exportCsv(
+      `finaxis_fixedcosts_${dateStr}.csv`,
+      ['サービス名', '月額', '支払日', 'カテゴリ', '支払方法'],
+      fixedCosts.map(f => [f.name, f.amount, f.paymentDay, f.category, getMethodName(f.methodId)]),
+      '固定費がありません'
+    );
+  };
+  const exportBanksCsv = () => {
+    const dateStr = new Date().toISOString().slice(0,10);
+    exportCsv(
+      `finaxis_banks_${dateStr}.csv`,
+      ['銀行名', '支店名', '残高', '記入で表示'],
+      banks.map(b => [b.name, b.branch || '', b.balance, b.visibleInEntry !== false ? 'はい' : 'いいえ']),
+      '銀行口座がありません'
+    );
+  };
+  const exportCardsCsv = () => {
+    const dateStr = new Date().toISOString().slice(0,10);
+    exportCsv(
+      `finaxis_cards_${dateStr}.csv`,
+      ['カード名', 'ブランド', '締日', '支払日', '休日処理', '引落銀行', '記入で表示'],
+      cards.map(c => [c.name, c.brand || '', c.closingDate, c.paymentDate, c.holidayAdjustment === 'prev' ? '前営業日' : '翌営業日', banks.find(b=>b.id===c.bankId)?.name || '', c.visibleInEntry !== false ? 'はい' : 'いいえ']),
+      'カードがありません'
+    );
+  };
+  const exportCashCsv = () => {
+    const dateStr = new Date().toISOString().slice(0,10);
+    exportCsv(
+      `finaxis_cash_${dateStr}.csv`,
+      ['名称', '残高'],
+      cash.map(c => [c.name, c.balance]),
+      '現金記録がありません'
+    );
+  };
+  const exportPointsCsv = () => {
+    const dateStr = new Date().toISOString().slice(0,10);
+    exportCsv(
+      `finaxis_points_${dateStr}.csv`,
+      ['ポイント名', '所持数', 'レート', '円換算'],
+      points.map(p => [p.name, p.balance, p.rate || 1, Number(p.balance) * (Number(p.rate)||1)]),
+      'ポイントがありません'
+    );
+  };
+  const exportPrepaidsCsv = () => {
+    const dateStr = new Date().toISOString().slice(0,10);
+    exportCsv(
+      `finaxis_prepaids_${dateStr}.csv`,
+      ['サービス名', '残高'],
+      prepaids.map(p => [p.name, p.balance]),
+      'プリペイドがありません'
+    );
+  };
+  const exportInvestmentsCsv = () => {
+    const dateStr = new Date().toISOString().slice(0,10);
+    exportCsv(
+      `finaxis_investments_${dateStr}.csv`,
+      ['銘柄', '証券口座', '評価額'],
+      investments.map(i => [i.name, i.broker || '', i.balance]),
+      '積立記録がありません'
+    );
   };
 
   const tooltipBg = appSettings.darkMode ? '#1a1a1c' : '#fff';
@@ -791,22 +933,75 @@ function App() {
     ...cash.filter(c => c.visibleInEntry !== false).map(c => ({ label: c.name, value: c.id, emoji: '💵' }))
   ];
 
-  const renderCustomizedLabel = ({ cx, cy, midAngle, outerRadius, percent, name }) => {
+  const renderCustomizedLabel = ({ cx, cy, midAngle, innerRadius, outerRadius, percent, name, index }) => {
+    // 全カテゴリ表示（小さなスライスはフォント縮小して対応）
+    const isSmall = percent < 0.05;
+    const fontSize = isSmall ? 9 : 13;
+    const subFontSize = isSmall ? 8 : 12;
+    const offset = isSmall ? 5 : 7;
+    
     const RADIAN = Math.PI / 180;
-    const radius = outerRadius * 1.25; 
+    const radius = innerRadius + (outerRadius - innerRadius) * 0.55;
     const x = cx + radius * Math.cos(-midAngle * RADIAN);
     const y = cy + radius * Math.sin(-midAngle * RADIAN);
-    const isDark = appSettings.darkMode;
+
     return (
-      <text x={x} y={y} fill={isDark ? "#ffffff" : "#1e293b"} textAnchor={x > cx ? 'start' : 'end'} dominantBaseline="central" fontSize="14" fontWeight="900" stroke={isDark ? "rgba(0,0,0,0.8)" : "rgba(255,255,255,0.9)"} strokeWidth={4} paintOrder="stroke">
-        {String(name)} {(percent * 100).toFixed(0)}%
-      </text>
+      <g key={`label-${index}`}>
+        {/* カテゴリ名 */}
+        <text 
+          x={x} 
+          y={y - offset} 
+          fill="#ffffff"
+          textAnchor="middle"
+          dominantBaseline="central" 
+          fontSize={fontSize}
+          fontWeight="900"
+          stroke="rgba(0,0,0,0.6)"
+          strokeWidth={isSmall ? 2.5 : 3.5}
+          paintOrder="stroke"
+          style={{ letterSpacing: '0.3px' }}
+        >
+          {String(name)}
+        </text>
+        {/* パーセント */}
+        <text 
+          x={x} 
+          y={y + offset + 2} 
+          fill="#ffffff"
+          textAnchor="middle"
+          dominantBaseline="central" 
+          fontSize={subFontSize}
+          fontWeight="800"
+          stroke="rgba(0,0,0,0.6)"
+          strokeWidth={isSmall ? 2.5 : 3.5}
+          paintOrder="stroke"
+          opacity={0.95}
+        >
+          {(percent * 100).toFixed(percent < 0.01 ? 1 : 0)}%
+        </text>
+      </g>
     );
   };
 
   const renderActiveShape = (props) => {
-    const { cx, cy, innerRadius, outerRadius, startAngle, endAngle, fill } = props;
-    return <g><Sector cx={cx} cy={cy} innerRadius={innerRadius} outerRadius={outerRadius + 8} startAngle={startAngle} endAngle={endAngle} fill={fill} /></g>;
+    const { cx, cy, innerRadius, outerRadius, startAngle, endAngle, fill, payload, percent } = props;
+    const isDark = appSettings.darkMode;
+    return (
+      <g>
+        {/* 中央のテキスト（選択中のセグメント情報） */}
+        <text x={cx} y={cy - 14} textAnchor="middle" fill={isDark ? '#ffffff' : '#1e293b'} fontSize="13" fontWeight="700" opacity="0.6">
+          {String(payload.name)}
+        </text>
+        <text x={cx} y={cy + 6} textAnchor="middle" fill={fill} fontSize="18" fontWeight="900">
+          {fmt(payload.value)}
+        </text>
+        <text x={cx} y={cy + 24} textAnchor="middle" fill={isDark ? '#ffffff' : '#1e293b'} fontSize="11" fontWeight="700" opacity="0.5">
+          {(percent * 100).toFixed(1)}%
+        </text>
+        {/* 強調セクター */}
+        <Sector cx={cx} cy={cy} innerRadius={innerRadius} outerRadius={outerRadius + 8} startAngle={startAngle} endAngle={endAngle} fill={fill} />
+      </g>
+    );
   };
 
   // ==========================================
@@ -843,7 +1038,10 @@ function App() {
               <div className="grid grid-cols-2 gap-4">
                 <KpiCard title="総資産" amount={totals.assets} color="text-orange-600 dark:text-[#ff7a1a]" />
                 <KpiCard title="残高" amount={totals.balance} color="text-sky-700 dark:text-sky-400" />
-                <KpiCard title="予算進捗" amount={budgetProgress} suffix="%" color={budgetProgress > 90 ? "text-red-500" : "text-amber-500"} />
+                {appSettings.plan === 'premium' 
+                  ? <KpiCard title="予算進捗" amount={budgetProgress} suffix="%" color={budgetProgress > 90 ? "text-red-500" : "text-amber-500"} />
+                  : <KpiCard title="現金" amount={totals.cashBank} color="text-emerald-600 dark:text-emerald-400" />
+                }
                 <KpiCard title="引落予定" amount={totals.unpaidCard} color="text-rose-500 dark:text-rose-400" />
               </div>
 
@@ -973,19 +1171,30 @@ function App() {
                      <button onClick={() => setShowAssets(!showAssets)} className="text-slate-600 dark:text-white/80 bg-slate-200/70 dark:bg-white/20 p-2 rounded-full"><Eye size={18}/></button>
                    </div>
                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4 relative z-10">
-                      <div className="bg-white/60 dark:bg-black/20 rounded-[24px] p-4 border border-slate-200 dark:border-white/10 relative h-64">
-                         <span className="absolute top-3 left-4 text-[10px] text-slate-500 dark:text-white/60 uppercase font-black tracking-widest">資産構成</span>
-                         <div className="w-full h-full mt-4">
+                      <div className="bg-white/60 dark:bg-black/20 rounded-[24px] p-4 border border-slate-200 dark:border-white/10 relative h-72">
+                         <span className="absolute top-3 left-4 text-[10px] text-slate-500 dark:text-white/60 uppercase font-black tracking-widest z-10">資産構成</span>
+                         <div className="w-full h-full pt-4">
                            <ResponsiveContainer width="100%" height="100%">
-                             <PieChart margin={{ top: 20, right: 20, bottom: 20, left: 20 }}>
-                               <Pie activeIndex={activePieIndexAsset} activeShape={activeAssetData.length > 0 ? renderActiveShape : false} data={displayAssetData} innerRadius="50%" outerRadius="75%" dataKey="value" stroke="none" onClick={(_, index) => setActivePieIndexAsset(index)} labelLine={activeAssetData.length > 0} label={activeAssetData.length > 0 ? renderCustomizedLabel : false}>
+                             <PieChart margin={{ top: 8, right: 8, bottom: 8, left: 8 }}>
+                               <Pie 
+                                 activeIndex={activePieIndexAsset} 
+                                 activeShape={activeAssetData.length > 0 ? renderActiveShape : false} 
+                                 data={displayAssetData} 
+                                 innerRadius="40%" 
+                                 outerRadius="88%" 
+                                 dataKey="value" 
+                                 stroke="none" 
+                                 onClick={(_, index) => setActivePieIndexAsset(index)}
+                                 labelLine={false}
+                                 label={activeAssetData.length > 0 ? renderCustomizedLabel : false}
+                               >
                                  {displayAssetData.map((e, idx) => <Cell key={`cell-${idx}`} fill={e.color} />)}
                                </Pie>
                              </PieChart>
                            </ResponsiveContainer>
                          </div>
                       </div>
-                      <div className="bg-white/60 dark:bg-black/20 rounded-[24px] p-4 border border-slate-200 dark:border-white/10 relative h-64">
+                      <div className="bg-white/60 dark:bg-black/20 rounded-[24px] p-4 border border-slate-200 dark:border-white/10 relative h-72">
                          <span className="absolute top-3 left-4 text-[10px] text-slate-500 dark:text-white/60 uppercase font-black tracking-widest">資産推移</span>
                          <div className="w-full h-full mt-6">
                            <ResponsiveContainer width="100%" height="100%">
@@ -1000,7 +1209,7 @@ function App() {
                                     <stop offset="95%" stopColor={assetChartColor} stopOpacity={0}/>
                                   </linearGradient>
                                 </defs>
-                                <RechartsTooltip formatter={(value) => fmt(value)} labelStyle={{display: 'none'}} contentStyle={{ backgroundColor: tooltipBg, border: tooltipBorder, borderRadius: '12px', fontSize: '14px', padding: '10px 16px' }} itemStyle={{ color: assetChartColor, fontWeight: 'bold' }} />
+                                <RechartsTooltip formatter={(value) => [fmt(value), '']} labelStyle={{display: 'none'}} separator="" contentStyle={{ backgroundColor: tooltipBg, border: tooltipBorder, borderRadius: '12px', fontSize: '14px', padding: '10px 16px' }} itemStyle={{ color: assetChartColor, fontWeight: 'bold' }} />
                               </AreaChart>
                            </ResponsiveContainer>
                          </div>
@@ -1166,10 +1375,21 @@ function App() {
                 {ledgerMode === 'monthly' && (
                   <>
                     <GlassCard title="月間支出構成" icon={<PieChartIcon size={18} className="text-slate-400 dark:text-white/30"/>}>
-                      <div className="h-64 mb-6">
+                      <div className="h-80 mb-6">
                         <ResponsiveContainer width="100%" height="100%">
-                          <PieChart margin={{ top: 20, right: 20, bottom: 20, left: 20 }}>
-                            <Pie activeIndex={activePieIndexLedger} activeShape={sortedCats.length > 0 ? renderActiveShape : false} data={displayCategoryData} innerRadius="50%" outerRadius="75%" dataKey="value" stroke="none" onClick={(_, index) => setActivePieIndexLedger(index)} labelLine={sortedCats.length > 0} label={sortedCats.length > 0 ? renderCustomizedLabel : false}>
+                          <PieChart margin={{ top: 8, right: 8, bottom: 8, left: 8 }}>
+                            <Pie 
+                              activeIndex={activePieIndexLedger} 
+                              activeShape={sortedCats.length > 0 ? renderActiveShape : false} 
+                              data={displayCategoryData} 
+                              innerRadius="40%" 
+                              outerRadius="88%" 
+                              dataKey="value" 
+                              stroke="none" 
+                              onClick={(_, index) => setActivePieIndexLedger(index)}
+                              labelLine={false}
+                              label={sortedCats.length > 0 ? renderCustomizedLabel : false}
+                            >
                               {displayCategoryData.map((d, idx) => <Cell key={`cell-${idx}`} fill={d.color} />)}
                             </Pie>
                           </PieChart>
@@ -1361,7 +1581,7 @@ function App() {
                                <stop offset="95%" stopColor={themeColor} stopOpacity={0}/>
                              </linearGradient>
                            </defs>
-                           <RechartsTooltip formatter={(value) => `-${fmt(value)}`} contentStyle={{ backgroundColor: tooltipBg, border: tooltipBorder, borderRadius: '12px', fontSize: '14px', padding: '10px 16px' }} itemStyle={{ color: '#fb7185', fontWeight: 'bold' }} />
+                           <RechartsTooltip formatter={(value) => [`-${fmt(value)}`, '']} separator="" contentStyle={{ backgroundColor: tooltipBg, border: tooltipBorder, borderRadius: '12px', fontSize: '14px', padding: '10px 16px' }} itemStyle={{ color: '#fb7185', fontWeight: 'bold' }} />
                          </AreaChart>
                        </ResponsiveContainer>
                     </GlassCard>
@@ -1397,6 +1617,8 @@ function App() {
                     <SettingsListItem title="口座・決済手段の管理" icon={<CreditCard size={20}/>} onClick={()=>{ setSettingsSubTab('banks'); setSettingsView('accounts'); }} />
                   </SettingsSection>
                   <SettingsSection title="データ管理">
+                    <SettingsListItem title="CSVエクスポート" icon={<Download size={20}/>} onClick={()=>setSettingsView('dataExport')} borderBottom />
+                    <SettingsListItem title="CSVテンプレートをダウンロード" icon={<FileText size={20}/>} onClick={downloadCsvTemplate} borderBottom />
                     <SettingsListItem title="データの削除" icon={<Trash2 size={20}/>} onClick={()=>setSettingsView('dataDelete')} />
                   </SettingsSection>
                   <SettingsSection title="サポート・規約">
@@ -1559,6 +1781,57 @@ function App() {
                     </GlassCard>
                   )}
 
+                  {/* CSVエクスポート */}
+                  {settingsView === 'dataExport' && (
+                    <div className="space-y-6">
+                      <GlassCard title="CSVエクスポート" icon={<Download size={18} className="text-orange-600 dark:text-[#ff7a1a]"/>}>
+                        <div className="text-[12px] text-slate-500 dark:text-white/50 mb-5 leading-relaxed">
+                          各カテゴリのデータを CSV ファイル（UTF-8、BOM付き）でダウンロードできます。<br/>Excel・Googleスプレッドシートで開けます。
+                        </div>
+                        <div className="space-y-3">
+                          {[
+                            { key: 'ledger', label: '取引履歴（支出）', count: ledger.length, exec: exportLedgerCsv },
+                            { key: 'incomes', label: '収入記録', count: incomes.length, exec: exportIncomesCsv },
+                            { key: 'fixedCosts', label: '固定費・サブスク', count: fixedCosts.length, exec: exportFixedCostsCsv },
+                            { key: 'banks', label: '銀行口座', count: banks.length, exec: exportBanksCsv },
+                            { key: 'cards', label: 'クレジットカード', count: cards.length, exec: exportCardsCsv },
+                            { key: 'cash', label: '現金', count: cash.length, exec: exportCashCsv },
+                            { key: 'investments', label: '積立・証券', count: investments.length, exec: exportInvestmentsCsv },
+                            { key: 'prepaids', label: 'プリペイド', count: prepaids.length, exec: exportPrepaidsCsv },
+                            { key: 'points', label: 'ポイント', count: points.length, exec: exportPointsCsv },
+                          ].map(item => (
+                            <div key={`exp-${item.key}`} className="flex justify-between items-center p-4 bg-slate-50 dark:bg-[#222226] rounded-[20px] border border-slate-200 dark:border-[#2d2d31]">
+                              <div className="flex-1">
+                                <div className="text-[15px] font-bold text-slate-900 dark:text-white">{String(item.label)}</div>
+                                <div className="text-[11px] font-mono font-bold text-slate-400 dark:text-white/40 mt-1">{item.count} 件</div>
+                              </div>
+                              <button 
+                                disabled={item.count === 0}
+                                onClick={item.exec}
+                                className={`px-4 py-2 rounded-full text-[12px] font-black active:scale-95 transition-transform ${
+                                  item.count === 0 
+                                    ? 'bg-slate-100 dark:bg-white/5 text-slate-300 dark:text-white/20 cursor-not-allowed' 
+                                    : 'bg-orange-100 dark:bg-[#ff7a1a]/15 text-orange-600 dark:text-[#ff7a1a] hover:bg-orange-200 dark:hover:bg-[#ff7a1a]/25'
+                                }`}
+                              >
+                                <span className="flex items-center gap-1.5"><Download size={12}/>CSV</span>
+                              </button>
+                            </div>
+                          ))}
+                        </div>
+                      </GlassCard>
+
+                      <GlassCard title="インポート用テンプレート" icon={<FileText size={18} className="text-slate-400"/>}>
+                        <div className="text-[12px] text-slate-500 dark:text-white/50 mb-4 leading-relaxed">
+                          家計簿タブの「CSVから取込」で使えるサンプル形式のテンプレートをダウンロードします。
+                        </div>
+                        <button onClick={downloadCsvTemplate} className="w-full h-14 btn-primary rounded-[20px] font-black flex items-center justify-center gap-2">
+                          <FileText size={18}/>テンプレートをダウンロード
+                        </button>
+                      </GlassCard>
+                    </div>
+                  )}
+
                   {/* データ削除 */}
                   {settingsView === 'dataDelete' && (
                     <div className="space-y-6">
@@ -1643,6 +1916,7 @@ function App() {
                                   noMoneyMode: true, noMoneyEmoji: "✅", noMoneyColor: "#ff7a1a",
                                   monthlyBudget: 200000, budgetAlert: true, weeklyReport: true, comparisonMode: "MoM"
                                 });
+                                try { localStorage.removeItem(STORAGE_KEY); } catch(e) {}
                                 setConfirmDialog(null);
                                 setSettingsView('main');
                                 showToast("全てのデータを削除しました");
