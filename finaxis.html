@@ -404,7 +404,7 @@ function App() {
 
   const [newEntry, setNewEntry] = useState({ amount: '', name: '', category: '食費', methodId: 'cash', exclude: false, date: CURRENT_DATE });
   const [newIncomeEntry, setNewIncomeEntry] = useState({ amount: '', name: '', category: '給与', date: CURRENT_DATE });
-  const [newFixedEntry, setNewFixedEntry] = useState({ name: '', amount: '', category: '住宅', methodId: 'cash', paymentDay: 1 });
+  const [newFixedEntry, setNewFixedEntry] = useState({ name: '', amount: '', category: '住宅', methodId: 'cash', paymentDay: 1, cycle: 'monthly', startMonth: CURRENT_MONTH });
 
   // 登録フォームの「記入に表示する」用 state (true=表示)
   const [newCardVisible, setNewCardVisible] = useState(true);
@@ -464,11 +464,24 @@ function App() {
     setTimeout(() => setToast(null), 3500);
   };
 
+  const cycleMonthsMap = { monthly: 1, quarterly: 3, biannual: 6, annual: 12 };
+
+  const isFixedInMonth = (fc, ymStr) => {
+    if (fc.endDate && ymStr > fc.endDate) return false;
+    const start = fc.startMonth || '2000-01';
+    if (ymStr < start) return false;
+    const [sy, sm] = start.split('-').map(Number);
+    const [ty, tm] = ymStr.split('-').map(Number);
+    const diff = (ty - sy) * 12 + (tm - sm);
+    const cycleMonths = cycleMonthsMap[fc.cycle] || 1;
+    return diff >= 0 && diff % cycleMonths === 0;
+  };
+
   const currentMonthData = useMemo(() => {
-    const ymStr = CURRENT_MONTH; 
+    const ymStr = CURRENT_MONTH;
     const mLedger = ledger.filter(item => item.date && item.date.startsWith(ymStr) && !item.exclude);
     const mIncomes = incomes.filter(item => item.date && item.date.startsWith(ymStr));
-    const mFixedCosts = fixedCosts.filter(item => item.cycle === 'monthly' && (!item.endDate || ymStr <= item.endDate));
+    const mFixedCosts = fixedCosts.filter(item => isFixedInMonth(item, ymStr));
     const totalIncome = mIncomes.reduce((sum, i) => sum + (Number(i.amount)||0), 0);
     const totalExpense = mLedger.reduce((sum, i) => sum + (Number(i.amount)||0), 0) + mFixedCosts.reduce((sum, i) => sum + (Number(i.amount)||0), 0);
     return { totalIncome, totalExpense, surplus: totalIncome - totalExpense };
@@ -574,7 +587,7 @@ function App() {
 
   const ledgerMonthData = useMemo(() => {
     const normalLedger = ledger.filter(item => item.date && item.date.startsWith(ledgerYmStr) && !item.exclude);
-    const monthFixedCosts = fixedCosts.filter(item => item.cycle === 'monthly' && (!item.endDate || ledgerYmStr <= item.endDate));
+    const monthFixedCosts = fixedCosts.filter(item => isFixedInMonth(item, ledgerYmStr));
     const expandedFixed = monthFixedCosts.map(f => {
       const day = f.paymentDay || 1;
       const validDay = Math.min(day, new Date(viewYear, viewMonth, 0).getDate()); 
@@ -614,7 +627,10 @@ function App() {
     const yearStr = `${viewYear}`;
     const yearLedger = ledger.filter(item => item.date && item.date.startsWith(yearStr) && !item.exclude);
     const yearIncomes = incomes.filter(item => item.date && item.date.startsWith(yearStr));
-    const yearFixedTotal = fixedCosts.filter(item => item.cycle === 'monthly').reduce((sum, i) => sum + (Number(i.amount)||0) * 12, 0);
+    const yearFixedTotal = Array.from({length: 12}, (_, mi) => {
+      const yms = `${yearStr}-${pad(mi + 1)}`;
+      return fixedCosts.filter(f => isFixedInMonth(f, yms)).reduce((s, f) => s + (Number(f.amount)||0), 0);
+    }).reduce((a, b) => a + b, 0);
 
     const inc = yearIncomes.reduce((sum, i) => sum + (Number(i.amount)||0), 0);
     const exp = yearLedger.reduce((sum, i) => sum + (Number(i.amount)||0), 0) + yearFixedTotal;
@@ -623,7 +639,7 @@ function App() {
       const m = pad(i + 1);
       const yms = `${yearStr}-${m}`;
       const mExp = ledger.filter(l => l.date?.startsWith(yms) && !l.exclude).reduce((s, l) => s + (Number(l.amount)||0), 0);
-      const mFix = fixedCosts.filter(f => f.cycle === 'monthly' && (!f.endDate || yms <= f.endDate)).reduce((s, f) => s + (Number(f.amount)||0), 0);
+      const mFix = fixedCosts.filter(f => isFixedInMonth(f, yms)).reduce((s, f) => s + (Number(f.amount)||0), 0);
       return { name: `${i + 1}月`, exp: mExp + mFix };
     });
     return { inc, exp, sur: inc - exp, chartData };
@@ -703,7 +719,9 @@ function App() {
 
   // CSVインポート: 家計簿の取引データを一括追加
   const [importPreview, setImportPreview] = useState(null); // { rows: [...], errors: [...] }
+  const [csvImportMethod, setCsvImportMethod] = useState('cash');
   const csvInputRef = useRef(null);
+  const backupInputRef = useRef(null);
 
   const parseCsvText = (text) => {
     // BOM除去
@@ -791,8 +809,13 @@ function App() {
 
   const confirmImport = () => {
     if (!importPreview || importPreview.rows.length === 0) return;
-    setLedger([...importPreview.rows, ...ledger]);
-    showToast(`${importPreview.rows.length}件の取引を追加しました`);
+    const existingKeys = new Set(ledger.map(l => `${l.date}|${l.amount}|${l.name}`));
+    const newRows = importPreview.rows
+      .filter(r => !existingKeys.has(`${r.date}|${r.amount}|${r.name}`))
+      .map(r => ({ ...r, methodId: csvImportMethod }));
+    const skipped = importPreview.rows.length - newRows.length;
+    setLedger([...newRows, ...ledger]);
+    showToast(`${newRows.length}件を追加${skipped > 0 ? `（重複${skipped}件スキップ）` : ''}`);
     setImportPreview(null);
   };
 
@@ -943,6 +966,51 @@ function App() {
     );
   };
 
+  const exportBackupJson = () => {
+    const data = { banks, cards, investments, prepaids, points, cash, ledger, incomes, fixedCosts, categories, settlements, appSettings };
+    const json = JSON.stringify(data, null, 2);
+    const blob = new Blob([json], { type: 'application/json;charset=utf-8;' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `finaxis_backup_${new Date().toISOString().slice(0,10)}.json`;
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    URL.revokeObjectURL(url);
+    showToast("バックアップをダウンロードしました");
+  };
+
+  const handleBackupImport = (e) => {
+    const file = e.target.files[0];
+    if (!file) return;
+    const reader = new FileReader();
+    reader.onload = (ev) => {
+      try {
+        const data = JSON.parse(ev.target.result);
+        if (!data.ledger || !data.banks) { showToast("無効なバックアップファイルです", true); return; }
+        if (data.banks) setBanks(data.banks);
+        if (data.cards) setCards(data.cards);
+        if (data.investments) setInvestments(data.investments);
+        if (data.prepaids) setPrepaids(data.prepaids);
+        if (data.points) setPoints(data.points);
+        if (data.cash) setCash(data.cash);
+        if (data.ledger) setLedger(data.ledger);
+        if (data.incomes) setIncomes(data.incomes);
+        if (data.fixedCosts) setFixedCosts(data.fixedCosts);
+        if (data.categories) setCategories(data.categories);
+        if (data.settlements) setSettlements(data.settlements);
+        if (data.appSettings) setAppSettings(prev => ({ ...prev, ...data.appSettings }));
+        showToast("バックアップを復元しました");
+        setSettingsView('main');
+      } catch {
+        showToast("ファイルの読み込みに失敗しました", true);
+      }
+    };
+    reader.readAsText(file, 'UTF-8');
+    e.target.value = '';
+  };
+
   const tooltipBg = appSettings.darkMode ? '#1a1a1c' : '#fff';
   const tooltipBorder = appSettings.darkMode ? '#3a3a3f' : '#e2e8f0';
 
@@ -957,7 +1025,7 @@ function App() {
     { label: '現金', value: 'cash', emoji: '💴' },
     ...cards.filter(c => c.visibleInEntry !== false).map(c => ({ label: c.name, value: c.id, emoji: '💳', sublabel: c.brand })),
     ...prepaids.filter(p => p.visibleInEntry !== false).map(p => ({ label: p.name, value: p.id, emoji: '📱' })),
-    ...banks.filter(b => b.visibleInEntry !== false).map(b => ({ label: b.name, value: b.id, emoji: '🏦' })),
+    ...banks.filter(b => b.visibleInEntry !== false).map(b => ({ label: b.branch ? `${b.name} ${b.branch}` : b.name, value: b.id, emoji: '🏦' })),
     ...cash.filter(c => c.visibleInEntry !== false).map(c => ({ label: c.name, value: c.id, emoji: '💵' }))
   ];
 
@@ -1073,12 +1141,29 @@ function App() {
               <div className="grid grid-cols-2 gap-4">
                 <KpiCard title="総資産" amount={totals.assets} color="text-orange-600 dark:text-[#ff7a1a]" />
                 <KpiCard title="残高" amount={totals.balance} color="text-sky-700 dark:text-sky-400" />
-                {appSettings.plan === 'premium' 
+                {appSettings.plan === 'premium'
                   ? <KpiCard title="予算進捗" amount={budgetProgress} suffix="%" color={budgetProgress > 90 ? "text-red-500" : "text-amber-500"} />
                   : <KpiCard title="現金" amount={totals.cashBank} color="text-emerald-600 dark:text-emerald-400" />
                 }
                 <KpiCard title="引落予定" amount={totals.unpaidCard} color="text-rose-500 dark:text-rose-400" />
               </div>
+
+              <GlassCard title="今月の収支">
+                <div className="grid grid-cols-3 gap-3 text-center">
+                  <div>
+                    <div className="text-[11px] font-bold text-slate-400 dark:text-white/30 mb-1">収入</div>
+                    <div className="text-[15px] font-black text-emerald-600 dark:text-emerald-400">{fmt(currentMonthData.totalIncome)}</div>
+                  </div>
+                  <div>
+                    <div className="text-[11px] font-bold text-slate-400 dark:text-white/30 mb-1">支出</div>
+                    <div className="text-[15px] font-black text-rose-500 dark:text-rose-400">{fmt(currentMonthData.totalExpense)}</div>
+                  </div>
+                  <div>
+                    <div className="text-[11px] font-bold text-slate-400 dark:text-white/30 mb-1">収支</div>
+                    <div className={`text-[15px] font-black ${currentMonthData.surplus >= 0 ? 'text-sky-600 dark:text-sky-400' : 'text-rose-500 dark:text-rose-400'}`}>{fmt(currentMonthData.surplus)}</div>
+                  </div>
+                </div>
+              </GlassCard>
 
               {appSettings.plan === 'premium' && (
                 <GlassCard title="月間予算分析" icon={<BarChart3 size={18} className="text-orange-600 dark:text-[#ff7a1a]"/>}>
@@ -1341,14 +1426,16 @@ function App() {
                     <div className="space-y-6">
                       <InputField label="サービス名" value={newFixedEntry.name} onChange={e=>setNewFixedEntry({...newFixedEntry, name:e.target.value})} placeholder="例: Netflix, 家賃" />
                       <InputField label="月額 (¥)" type="number" value={newFixedEntry.amount} onChange={e=>setNewFixedEntry({...newFixedEntry, amount:e.target.value})} />
-                      <InputField label="毎月の支払日" type="number" min="1" max="31" value={newFixedEntry.paymentDay} onChange={e=>setNewFixedEntry({...newFixedEntry, paymentDay:e.target.value})} placeholder="1〜31" hint="1〜31の数字を入力" />
+                      <InputField label="支払日" type="number" min="1" max="31" value={newFixedEntry.paymentDay} onChange={e=>setNewFixedEntry({...newFixedEntry, paymentDay:e.target.value})} placeholder="1〜31" hint="1〜31の数字を入力" />
+                      <CheckboxSelect label="支払サイクル" value={newFixedEntry.cycle} options={[{label:'毎月',value:'monthly',emoji:'📅'},{label:'3ヶ月ごと',value:'quarterly',emoji:'📆'},{label:'半年ごと',value:'biannual',emoji:'🗓'},{label:'年1回',value:'annual',emoji:'📌'}]} onChange={(v)=>setNewFixedEntry({...newFixedEntry, cycle:v})} />
+                      <InputField label="開始月" type="month" value={newFixedEntry.startMonth} onChange={e=>setNewFixedEntry({...newFixedEntry, startMonth:e.target.value})} hint="初回の支払月を選択" />
                       <CheckboxSelect label="カテゴリ" value={newFixedEntry.category} options={categoryOptions} onChange={(v) => setNewFixedEntry({...newFixedEntry, category: v})} />
                       <CheckboxSelect label="支払方法" value={newFixedEntry.methodId} options={paymentOptions} onChange={(v) => setNewFixedEntry({...newFixedEntry, methodId: v})} />
                       <button onClick={() => {
                         if(!newFixedEntry.name || !newFixedEntry.amount) { showToast("エラー: 名称と金額を入力してください", true); return; }
-                        setFixedCosts([...fixedCosts, {id: Date.now().toString(), name: newFixedEntry.name, amount: Number(newFixedEntry.amount), paymentDay: Number(newFixedEntry.paymentDay)||1, category: newFixedEntry.category, methodId: newFixedEntry.methodId, cycle: 'monthly'}]);
+                        setFixedCosts([...fixedCosts, {id: Date.now().toString(), name: newFixedEntry.name, amount: Number(newFixedEntry.amount), paymentDay: Number(newFixedEntry.paymentDay)||1, category: newFixedEntry.category, methodId: newFixedEntry.methodId, cycle: newFixedEntry.cycle || 'monthly', startMonth: newFixedEntry.startMonth || CURRENT_MONTH}]);
                         showToast("固定費を追加しました");
-                        setNewFixedEntry({ name: '', amount: '', category: categories[0]?.name || 'その他', methodId: 'cash', paymentDay: 1 });
+                        setNewFixedEntry({ name: '', amount: '', category: categories[0]?.name || 'その他', methodId: 'cash', paymentDay: 1, cycle: 'monthly', startMonth: CURRENT_MONTH });
                       }} className="w-full btn-primary h-16 mt-4 font-black text-lg">固定費を登録</button>
                     </div>
                   </GlassCard>
@@ -1360,7 +1447,7 @@ function App() {
                         <div key={it.id} className="flex justify-between items-center p-5 bg-slate-50 dark:bg-[#222226] border border-slate-200 dark:border-[#2d2d31] rounded-[24px] cursor-pointer active:scale-95" onClick={() => setEditingItem({type:'fixedCost', data:it})}>
                            <div className="flex items-center gap-4 flex-1 overflow-hidden">
                              <GripVertical size={18} className="text-slate-300 dark:text-white/10 shrink-0"/>
-                             <span className="text-[15px] font-bold truncate text-slate-800 dark:text-white/90">{String(it.name)} <span className="text-[10px] text-slate-400 dark:text-white/40 ml-2">毎月{it.paymentDay}日</span></span>
+                             <span className="text-[15px] font-bold truncate text-slate-800 dark:text-white/90">{String(it.name)} <span className="text-[10px] text-slate-400 dark:text-white/40 ml-2">{{monthly:'毎月',quarterly:'3ヶ月',biannual:'半年',annual:'年1回'}[it.cycle]||'毎月'}{it.paymentDay}日</span></span>
                            </div>
                            <div className="font-mono text-[15px] font-bold text-rose-500 dark:text-rose-400">{fmt(it.amount)}</div>
                         </div>
@@ -1541,7 +1628,7 @@ function App() {
                                         </div>
                                       </div>
                                       <div className={`font-mono font-bold text-[15px] ${l._t === 'income' ? 'text-emerald-600 dark:text-emerald-400' : 'text-rose-500 dark:text-rose-400'}`}>
-                                        {l._t === 'income' ? '+' : '-'}{fmt(l.amount)}
+                                        {fmt(l.amount)}
                                       </div>
                                     </div>
                                   );
@@ -1582,7 +1669,7 @@ function App() {
                                         <div className="text-[11px] text-slate-500 dark:text-white/30 font-mono">{String(l.name ? `${l.category} • ` : '')}{String(l.date)}</div>
                                       </div>
                                    </div>
-                                   <div className={`font-mono font-bold text-xl ${l._t === 'income' ? 'text-green-500' : ''}`}>{l._t === 'income' ? `+${fmt(l.amount)}` : `-${fmt(l.amount)}`}</div>
+                                   <div className={`font-mono font-bold text-xl ${l._t === 'income' ? 'text-green-500' : ''}`}>{fmt(l.amount)}</div>
                                 </div>
                               );
                             })}
@@ -1652,6 +1739,7 @@ function App() {
                     <SettingsListItem title="口座・決済手段の管理" icon={<CreditCard size={20}/>} onClick={()=>{ setSettingsSubTab('banks'); setSettingsView('accounts'); }} />
                   </SettingsSection>
                   <SettingsSection title="データ管理">
+                    <SettingsListItem title="バックアップ・復元" icon={<Database size={20}/>} onClick={()=>setSettingsView('backup')} borderBottom />
                     <SettingsListItem title="CSVエクスポート" icon={<Download size={20}/>} onClick={()=>setSettingsView('dataExport')} borderBottom />
                     <SettingsListItem title="CSVテンプレートをダウンロード" icon={<FileText size={20}/>} onClick={downloadCsvTemplate} borderBottom />
                     <SettingsListItem title="データの削除" icon={<Trash2 size={20}/>} onClick={()=>setSettingsView('dataDelete')} />
@@ -1814,6 +1902,21 @@ function App() {
                         <Plus size={18}/>{categoryEditTab === 'expense' ? '支出' : '収入'}カテゴリを追加
                       </button>
                     </GlassCard>
+                  )}
+
+                  {/* バックアップ・復元 */}
+                  {settingsView === 'backup' && (
+                    <div className="space-y-6">
+                      <input ref={backupInputRef} type="file" accept=".json,application/json" onChange={handleBackupImport} className="hidden" />
+                      <GlassCard title="バックアップ" icon={<Database size={18} className="text-orange-600 dark:text-[#ff7a1a]"/>}>
+                        <p className="text-[12px] text-slate-500 dark:text-white/50 mb-5 leading-relaxed">全データをJSONファイルとして書き出します。定期的に保存しておくと安心です。</p>
+                        <button onClick={exportBackupJson} className="w-full btn-primary h-14 font-black">バックアップをダウンロード</button>
+                      </GlassCard>
+                      <GlassCard title="復元" icon={<Upload size={18} className="text-orange-600 dark:text-[#ff7a1a]"/>}>
+                        <p className="text-[12px] text-slate-500 dark:text-white/50 mb-5 leading-relaxed">以前作成したバックアップJSONを読み込むと、全データが上書き復元されます。</p>
+                        <button onClick={() => backupInputRef.current && backupInputRef.current.click()} className="w-full h-14 font-black bg-slate-100 dark:bg-white/5 rounded-2xl text-slate-700 dark:text-white/70">バックアップから復元</button>
+                      </GlassCard>
+                    </div>
                   )}
 
                   {/* CSVエクスポート */}
@@ -2327,11 +2430,16 @@ function App() {
                 )}
               </div>
 
-              <div className="flex gap-3 px-6 pt-4 border-t border-slate-200 dark:border-[#2d2d31] shrink-0" style={{ paddingBottom: 'max(1.5rem, env(safe-area-inset-bottom))' }}>
-                <button onClick={() => setImportPreview(null)} className="flex-1 py-3.5 bg-slate-100 dark:bg-white/5 rounded-2xl font-black text-slate-500 dark:text-white/50">キャンセル</button>
-                <button onClick={confirmImport} disabled={importPreview.rows.length === 0} className={`flex-1 py-3.5 rounded-2xl font-black ${importPreview.rows.length === 0 ? 'bg-slate-100 dark:bg-white/5 text-slate-300 dark:text-white/20 cursor-not-allowed' : 'btn-primary'}`}>
-                  {importPreview.rows.length}件 取り込む
-                </button>
+              <div className="px-6 pt-4 border-t border-slate-200 dark:border-[#2d2d31] shrink-0">
+                <div className="mb-4">
+                  <CheckboxSelect label="取込時の支払方法" value={csvImportMethod} options={paymentOptions} onChange={setCsvImportMethod} />
+                </div>
+                <div className="flex gap-3" style={{ paddingBottom: 'max(1.5rem, env(safe-area-inset-bottom))' }}>
+                  <button onClick={() => setImportPreview(null)} className="flex-1 py-3.5 bg-slate-100 dark:bg-white/5 rounded-2xl font-black text-slate-500 dark:text-white/50">キャンセル</button>
+                  <button onClick={confirmImport} disabled={importPreview.rows.length === 0} className={`flex-1 py-3.5 rounded-2xl font-black ${importPreview.rows.length === 0 ? 'bg-slate-100 dark:bg-white/5 text-slate-300 dark:text-white/20 cursor-not-allowed' : 'btn-primary'}`}>
+                    {importPreview.rows.length}件 取り込む
+                  </button>
+                </div>
               </div>
             </div>
           </div>
