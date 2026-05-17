@@ -737,6 +737,14 @@ function App() {
     const amountIdx = headers.findIndex(h => /金額|amount|price/.test(h));
     const nameIdx = headers.findIndex(h => /内容|名称|memo|name|description|摘要|店舗|店名/.test(h));
     const categoryIdx = headers.findIndex(h => /カテゴリ|category|分類/.test(h));
+    const methodIdx = headers.findIndex(h => /支払方法|支払い方法|method|payment/.test(h));
+
+    // 支払方法名 → methodId の解決テーブル
+    const methodNameToId = { '現金': 'cash', 'cash': 'cash' };
+    cards.forEach(c => { methodNameToId[c.name] = c.id; });
+    banks.forEach(b => { methodNameToId[b.name] = b.id; if (b.branch) methodNameToId[`${b.name} ${b.branch}`] = b.id; });
+    prepaids.forEach(p => { methodNameToId[p.name] = p.id; });
+    cash.forEach(c => { methodNameToId[c.name] = c.id; });
     
     if (dateIdx === -1 || amountIdx === -1) {
       return { rows: [], errors: ['「日付」「金額」のカラムが見つかりません。\nCSVに 日付,金額 列が必要です。'] };
@@ -775,14 +783,21 @@ function App() {
       }
       
       const name = nameIdx !== -1 ? (cells[nameIdx] || '') : '';
-      
+
+      // 支払方法列があれば名前でID解決、なければnull（confirmImportでフォールバック）
+      let methodId = null;
+      if (methodIdx !== -1 && cells[methodIdx]) {
+        const raw = cells[methodIdx].trim();
+        methodId = methodNameToId[raw] || null;
+      }
+
       rows.push({
         id: `imp-${Date.now()}-${i}`,
         date,
         amount: absAmount,
         name,
         category,
-        methodId: 'cash',
+        methodId,
         exclude: false
       });
     }
@@ -812,7 +827,7 @@ function App() {
     const existingKeys = new Set(ledger.map(l => `${l.date}|${l.amount}|${l.name}`));
     const newRows = importPreview.rows
       .filter(r => !existingKeys.has(`${r.date}|${r.amount}|${r.name}`))
-      .map(r => ({ ...r, methodId: csvImportMethod }));
+      .map(r => ({ ...r, methodId: r.methodId ?? csvImportMethod }));
     const skipped = importPreview.rows.length - newRows.length;
     setLedger([...newRows, ...ledger]);
     showToast(`${newRows.length}件を追加${skipped > 0 ? `（重複${skipped}件スキップ）` : ''}`);
@@ -825,15 +840,15 @@ function App() {
     const y = today.getFullYear();
     const m = pad(today.getMonth() + 1);
     const sampleRows = [
-      ['日付', '金額', '内容', 'カテゴリ'],
-      [`${y}-${m}-01`, '1280', 'ランチ', '食費'],
-      [`${y}-${m}-02`, '3500', 'スーパー', '食費'],
-      [`${y}-${m}-03`, '580', '電車', '交通費'],
-      [`${y}-${m}-03`, '980', 'ドラッグストア', '日用品'],
-      [`${y}-${m}-04`, '4500', '飲み会', '交際費'],
-      [`${y}-${m}-06`, '75000', '家賃', '住宅'],
-      [`${y}-${m}-07`, '1490', 'Netflix', 'その他'],
-      [`${y}-${m}-09`, '3280', 'ユニクロ', '美容・衣服'],
+      ['日付', '金額', '内容', 'カテゴリ', '支払方法'],
+      [`${y}-${m}-01`, '1280', 'ランチ', '食費', '現金'],
+      [`${y}-${m}-02`, '3500', 'スーパー', '食費', '現金'],
+      [`${y}-${m}-03`, '580', '電車', '交通費', '現金'],
+      [`${y}-${m}-03`, '980', 'ドラッグストア', '日用品', '現金'],
+      [`${y}-${m}-04`, '4500', '飲み会', '交際費', '現金'],
+      [`${y}-${m}-06`, '75000', '家賃', '住宅', '現金'],
+      [`${y}-${m}-07`, '1490', 'Netflix', 'その他', '現金'],
+      [`${y}-${m}-09`, '3280', 'ユニクロ', '美容・衣服', '現金'],
     ];
     const csv = sampleRows.map(r => r.join(',')).join('\r\n');
     const bom = '\uFEFF';
@@ -1131,7 +1146,7 @@ function App() {
         `}</style>
 
         <header className="sticky top-0 z-20 bg-white/90 dark:bg-[#0f0f10]/90 backdrop-blur-2xl border-b border-slate-200 dark:border-[#26262a] px-6 pb-4 pt-safe flex items-center justify-between transition-colors">
-          <h1 className="text-2xl font-black tracking-tighter">Fin<span className="text-orange-600 dark:text-[#ff7a1a]">axis</span></h1>
+          <h1 className="text-2xl font-black tracking-tighter">Finaxis</h1>
         </header>
 
         <main className="max-w-4xl mx-auto p-4 md:p-6 pb-safe relative z-10">
