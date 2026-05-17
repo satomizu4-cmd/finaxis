@@ -5,6 +5,14 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover" />
 <title>Finaxis - 家計簿</title>
 
+<!-- PWA / Apple Web App 対応 -->
+<meta name="apple-mobile-web-app-capable" content="yes" />
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+<meta name="apple-mobile-web-app-title" content="Finaxis" />
+<meta name="theme-color" content="#ff7a1a" />
+<link rel="apple-touch-icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 180 180'%3E%3Crect fill='%23ff7a1a' width='180' height='180' rx='40'/%3E%3Ctext x='50%25' y='54%25' font-size='96' fill='white' text-anchor='middle' dominant-baseline='middle' font-weight='900' font-family='-apple-system%2Csans-serif'%3EF%3C/text%3E%3C/svg%3E" />
+<link rel="manifest" href="data:application/manifest+json,%7B%22name%22%3A%22Finaxis%20%E5%AE%B6%E8%A8%88%E7%B0%BF%22%2C%22short_name%22%3A%22Finaxis%22%2C%22start_url%22%3A%22.%2Ffinaxis-iphone.html%22%2C%22display%22%3A%22standalone%22%2C%22background_color%22%3A%22%230f0f10%22%2C%22theme_color%22%3A%22%23ff7a1a%22%2C%22orientation%22%3A%22portrait-primary%22%7D" />
+
 <!-- 開発用CDN警告を抑制 -->
 <script>
   (function() {
@@ -39,9 +47,10 @@
 
 <style>
   html, body { margin: 0; padding: 0; font-family: -apple-system, BlinkMacSystemFont, "Hiragino Sans", "Yu Gothic", sans-serif; }
-  body { background-color: #f8fafc; }
+  body { background-color: #f8fafc; overscroll-behavior: none; -webkit-text-size-adjust: 100%; }
   html.dark body { background-color: #0f0f10; }
-  #root { min-height: 100vh; }
+  /* 100dvh: iOS Safari アドレスバー伸縮を考慮した動的ビューポート高さ */
+  #root { min-height: 100vh; min-height: 100dvh; }
   [data-lucide] { width: 1em; height: 1em; stroke-width: 2; stroke-linecap: round; stroke-linejoin: round; fill: none; }
 </style>
 </head>
@@ -232,15 +241,19 @@ function KpiCard({ title, amount, suffix = "", color }) {
 }
 
 function InputField({ label, id, type="text", placeholder, value, onChange, step, min, max, hint }) {
+  // iOSでフォーカス時の自動ズームを防ぐには font-size >= 16px が必須
+  // 数値入力には inputMode="decimal" で数字キーボードを表示
+  const inputMode = type === 'number' ? 'decimal' : undefined;
   return (
     <div className="flex flex-col gap-2 w-full">
       <label className="text-[11px] font-black text-slate-500 dark:text-white/40 uppercase tracking-widest pl-4 flex items-center gap-1.5">
         {String(label)}
         {hint && <span className="text-[10px] font-bold text-slate-400 dark:text-white/30 normal-case tracking-normal">— {hint}</span>}
       </label>
-      <input 
-        id={id} type={type} step={step} min={min} max={max} placeholder={placeholder} value={value} onChange={onChange} 
-        className="h-16 bg-slate-100 dark:bg-[#1a1a1c] border border-slate-200 dark:border-[#2d2d31] rounded-[24px] px-5 text-slate-900 dark:text-white outline-none focus:border-orange-500 dark:focus:border-[#ff7a1a] transition-all font-bold text-[15px]" 
+      <input
+        id={id} type={type} step={step} min={min} max={max} placeholder={placeholder} value={value} onChange={onChange}
+        inputMode={inputMode}
+        className="h-16 bg-slate-100 dark:bg-[#1a1a1c] border border-slate-200 dark:border-[#2d2d31] rounded-[24px] px-5 text-slate-900 dark:text-white outline-none focus:border-orange-500 dark:focus:border-[#ff7a1a] transition-all font-bold text-base"
       />
     </div>
   );
@@ -430,6 +443,21 @@ function App() {
       document.body.classList.remove('dark');
     }
   }, [appSettings.darkMode]);
+
+  // VisualViewport API: ソフトキーボード表示時にBottomSheetを押し上げる
+  useEffect(() => {
+    if (!window.visualViewport) return;
+    const handler = () => {
+      const offset = Math.max(0, window.innerHeight - window.visualViewport.height - window.visualViewport.offsetTop);
+      document.documentElement.style.setProperty('--kb-offset', `${offset}px`);
+    };
+    window.visualViewport.addEventListener('resize', handler);
+    window.visualViewport.addEventListener('scroll', handler);
+    return () => {
+      window.visualViewport.removeEventListener('resize', handler);
+      window.visualViewport.removeEventListener('scroll', handler);
+    };
+  }, []);
 
   const showToast = (msg, isError = false) => {
     setToast({ msg, isError });
@@ -1018,10 +1046,17 @@ function App() {
           html.dark { color-scheme: dark; }
 
           * { -webkit-tap-highlight-color: transparent; }
+          /* タッチ操作: ダブルタップズームを無効化しつつスクロールは許可 */
+          button, [role="button"], input, select, textarea { touch-action: manipulation; }
           .no-scrollbar::-webkit-scrollbar { display: none; }
-          .pt-safe { padding-top: 24px; }
-          .pb-safe { padding-bottom: 120px; }
-          .pb-nav-safe { padding-bottom: 16px; }
+          /* セーフエリア: env() でノッチ・Dynamic Island・ホームバーに対応 */
+          .pt-safe { padding-top: max(1.5rem, env(safe-area-inset-top)); }
+          .pb-safe { padding-bottom: calc(112px + max(0.75rem, env(safe-area-inset-bottom))); }
+          .pb-nav-safe { padding-bottom: max(1rem, env(safe-area-inset-bottom)); }
+          /* スムーズ慣性スクロール (iOS Safari) */
+          .ios-scroll { -webkit-overflow-scrolling: touch; overscroll-behavior: contain; }
+          /* キーボード表示時にBottomSheetを持ち上げる */
+          :root { --kb-offset: 0px; }
           .btn-primary { background: linear-gradient(135deg, #ea580c, #fb923c); color: #fff; font-weight: 900; border-radius: 24px; transition: transform 0.2s; box-shadow: 0 8px 24px rgba(234,88,12,0.3); }
           .dark .btn-primary { background: linear-gradient(135deg, #ff7a1a, #e0651a); color: #0a0a0f; box-shadow: 0 8px 24px rgba(255,122,26,0.25); }
           .btn-primary:active { transform: scale(0.96); }
@@ -1114,7 +1149,7 @@ function App() {
                 {selectedHomeDay && homeCalData[selectedHomeDay] && (
                   <div className="mt-8 pt-6 border-t border-slate-200 dark:border-[#2d2d31]">
                     <div className="font-black text-lg text-slate-800 dark:text-white mb-4">{homeCalMonth}月{selectedHomeDay}日の引落予定</div>
-                    <div className="space-y-4 max-h-80 overflow-y-auto no-scrollbar pr-2">
+                    <div className="space-y-4 max-h-80 overflow-y-auto no-scrollbar ios-scroll pr-2">
                       {Object.entries(homeCalData[selectedHomeDay].banks).map(([bankId, bankData], bIdx) => (
                         <div key={`bank-group-${bIdx}`} className="bg-slate-50 dark:bg-[#222226] rounded-[24px] border border-slate-200 dark:border-[#2d2d31] overflow-hidden">
                           <div className="p-4 border-b border-slate-200 dark:border-[#3a3a3f] flex justify-between items-center bg-slate-100 dark:bg-white/5">
@@ -1532,7 +1567,7 @@ function App() {
                       </div>
                       
                       <GlassCard title={`${ledgerCategoryFilter === 'all' ? '全ての' : ledgerCategoryFilter}取引履歴`}>
-                         <div className="space-y-3 max-h-[500px] overflow-y-auto no-scrollbar pr-2">
+                         <div className="space-y-3 max-h-[500px] overflow-y-auto no-scrollbar ios-scroll pr-2">
                             {[...filteredMonthLedger.map(l=>({...l,_t: l._isFixed ? 'fixedCost' : 'expense'})), ...filteredMonthIncomes.map(i=>({...i,_t:'income'}))].sort((a,b)=>b.date.localeCompare(a.date)).map(l => {
                               const meta = getCatMeta(l.category || l.type);
                               const isNoMoney = appSettings.noMoneyMode && Number(l.amount) === 0;
@@ -1697,7 +1732,7 @@ function App() {
                               <span className="text-[10px] text-slate-400 dark:text-white/30">月の家計集計を開始する日</span>
                             </div>
                           </div>
-                          <input type="number" min="1" max="31" value={appSettings.startDay} onChange={e=>setAppSettings({...appSettings, startDay: Number(e.target.value)})} className="w-16 h-10 bg-slate-100 dark:bg-[#2d2d31] border border-slate-200 dark:border-[#3a3a3f] rounded-lg text-center font-bold" />
+                          <input type="number" min="1" max="31" inputMode="decimal" value={appSettings.startDay} onChange={e=>setAppSettings({...appSettings, startDay: Number(e.target.value)})} className="w-16 h-10 bg-slate-100 dark:bg-[#2d2d31] border border-slate-200 dark:border-[#3a3a3f] rounded-lg text-center font-bold text-base" />
                         </div>
                         <ToggleRow label="ダークモード" active={appSettings.darkMode} icon={appSettings.darkMode ? <Moon size={18}/> : <Sun size={18}/>} onClick={()=>setAppSettings({...appSettings, darkMode: !appSettings.darkMode})} />
                       </SettingsSection>
@@ -1715,7 +1750,7 @@ function App() {
                               <Target size={20} className="text-amber-500"/>
                               <span className="font-bold text-[15px]">月間全体予算</span>
                             </div>
-                            <input type="number" step="1000" value={appSettings.monthlyBudget} onChange={e=>setAppSettings({...appSettings, monthlyBudget: Number(e.target.value)})} className="w-28 h-10 bg-slate-100 dark:bg-[#2d2d31] border border-slate-200 dark:border-[#3a3a3f] rounded-lg text-right px-3 font-bold" />
+                            <input type="number" step="1000" value={appSettings.monthlyBudget} onChange={e=>setAppSettings({...appSettings, monthlyBudget: Number(e.target.value)})} className="w-28 h-10 bg-slate-100 dark:bg-[#2d2d31] border border-slate-200 dark:border-[#3a3a3f] rounded-lg text-right px-3 font-bold text-base" />
                           </div>
                           <div className="p-6 bg-white dark:bg-[#1a1a1c]">
                             <label className="text-[11px] font-black text-slate-500 dark:text-white/30 uppercase mb-3 block">比較モード</label>
@@ -2197,14 +2232,17 @@ function App() {
         </main>
 
         {/* ナビゲーション */}
-        <nav className="fixed bottom-0 left-0 right-0 w-full bg-white/95 dark:bg-[#1a1a1c]/95 backdrop-blur-xl border-t border-slate-200 dark:border-[#2d2d31] rounded-t-[32px] z-50 flex items-center px-2 pt-2 pb-nav-safe">
-           <NavBtn active={activeTab === 'home'} onClick={() => setActiveTab('home')} icon={<Home size={28}/>} label="ホーム" />
-           <NavBtn active={activeTab === 'assets'} onClick={() => setActiveTab('assets')} icon={<Wallet size={28}/>} label="資産" />
+        <nav
+          className="fixed bottom-0 left-0 right-0 w-full bg-white/95 dark:bg-[#1a1a1c]/95 backdrop-blur-xl border-t border-slate-200 dark:border-[#2d2d31] rounded-t-[32px] z-50 flex items-center px-2 pt-2 pb-nav-safe"
+          style={{ WebkitTransform: 'translate3d(0,0,0)', willChange: 'transform' }}
+        >
+           <NavBtn active={activeTab === 'home'} onClick={() => { setActiveTab('home'); window.scrollTo(0,0); }} icon={<Home size={28}/>} label="ホーム" />
+           <NavBtn active={activeTab === 'assets'} onClick={() => { setActiveTab('assets'); window.scrollTo(0,0); }} icon={<Wallet size={28}/>} label="資産" />
            <div className="relative flex-1 flex justify-center">
-              <button onClick={() => setActiveTab('add')} className={`w-[76px] h-[76px] rounded-full flex items-center justify-center -mt-8 shadow-2xl border-[6px] border-slate-50 dark:border-[#050505] bg-gradient-to-br from-orange-500 to-orange-700 dark:from-[#ff7a1a] dark:to-[#e0651a] text-white active:scale-90`}><Plus size={38} strokeWidth={3}/></button>
+              <button onClick={() => { setActiveTab('add'); window.scrollTo(0,0); }} className={`w-[76px] h-[76px] rounded-full flex items-center justify-center -mt-8 shadow-2xl border-[6px] border-slate-50 dark:border-[#050505] bg-gradient-to-br from-orange-500 to-orange-700 dark:from-[#ff7a1a] dark:to-[#e0651a] text-white active:scale-90`}><Plus size={38} strokeWidth={3}/></button>
            </div>
-           <NavBtn active={activeTab === 'ledger'} onClick={() => setActiveTab('ledger')} icon={<BookOpen size={28}/>} label="家計簿" />
-           <NavBtn active={activeTab === 'settings'} onClick={() => { setActiveTab('settings'); setSettingsView('main'); }} icon={<Settings size={28}/>} label="設定" />
+           <NavBtn active={activeTab === 'ledger'} onClick={() => { setActiveTab('ledger'); window.scrollTo(0,0); }} icon={<BookOpen size={28}/>} label="家計簿" />
+           <NavBtn active={activeTab === 'settings'} onClick={() => { setActiveTab('settings'); setSettingsView('main'); window.scrollTo(0,0); }} icon={<Settings size={28}/>} label="設定" />
         </nav>
 
         {/* トースト */}
@@ -2215,12 +2253,17 @@ function App() {
           </div>
         )}
 
-        {/* 確認ダイアログ */}
+        {/* 確認ダイアログ（BottomSheet） */}
         {confirmDialog && (
-          <div className="fixed inset-0 z-[200] flex items-center justify-center p-6 bg-black/60 backdrop-blur-md">
-            <div className="bg-white dark:bg-[#1a1a1c] rounded-[40px] w-full max-w-sm p-8 shadow-2xl border border-slate-200 dark:border-[#2d2d31] text-center">
-              <h3 className="font-bold text-lg mb-8 whitespace-pre-line">{confirmDialog.message}</h3>
-              <div className="flex gap-4">
+          <div className="fixed inset-0 z-[200] flex items-end justify-center bg-black/60 backdrop-blur-md" onClick={() => setConfirmDialog(null)}>
+            <div
+              className="bg-white dark:bg-[#1a1a1c] rounded-t-[40px] w-full max-w-lg shadow-2xl border-t border-slate-200 dark:border-[#2d2d31] text-center"
+              style={{ paddingBottom: 'max(2rem, env(safe-area-inset-bottom))', marginBottom: 'var(--kb-offset, 0px)' }}
+              onClick={e => e.stopPropagation()}
+            >
+              <div className="w-10 h-1.5 bg-slate-300 dark:bg-white/20 rounded-full mx-auto mt-4 mb-6" />
+              <h3 className="font-bold text-lg mb-8 whitespace-pre-line px-8">{confirmDialog.message}</h3>
+              <div className="flex gap-4 px-8 pb-2">
                 <button className="flex-1 py-4 bg-slate-100 dark:bg-white/5 rounded-2xl font-black text-slate-500 dark:text-white/50" onClick={() => setConfirmDialog(null)}>キャンセル</button>
                 <button className="flex-1 py-4 btn-primary rounded-2xl font-black text-white dark:text-black" onClick={confirmDialog.onConfirm}>実行</button>
               </div>
@@ -2228,11 +2271,16 @@ function App() {
           </div>
         )}
 
-        {/* CSVインポートプレビューモーダル */}
+        {/* CSVインポートプレビューモーダル（BottomSheet） */}
         {importPreview && (
-          <div className="fixed inset-0 z-[150] flex items-center justify-center p-4 bg-black/60 backdrop-blur-md">
-            <div className="bg-white dark:bg-[#1a1a1c] rounded-[32px] w-full max-w-md shadow-2xl border border-slate-200 dark:border-[#2d2d31] flex flex-col max-h-[85vh]">
-              <div className="p-6 border-b border-slate-200 dark:border-[#2d2d31]">
+          <div className="fixed inset-0 z-[150] flex items-end justify-center bg-black/60 backdrop-blur-md" onClick={() => setImportPreview(null)}>
+            <div
+              className="bg-white dark:bg-[#1a1a1c] rounded-t-[32px] w-full max-w-lg shadow-2xl border-t border-slate-200 dark:border-[#2d2d31] flex flex-col"
+              style={{ maxHeight: '88vh', marginBottom: 'var(--kb-offset, 0px)' }}
+              onClick={e => e.stopPropagation()}
+            >
+              <div className="w-10 h-1.5 bg-slate-300 dark:bg-white/20 rounded-full mx-auto mt-3 mb-1 shrink-0" />
+              <div className="p-6 border-b border-slate-200 dark:border-[#2d2d31] shrink-0">
                 <div className="flex items-center gap-2 mb-2">
                   <Upload size={20} className="text-orange-600 dark:text-[#ff7a1a]"/>
                   <h3 className="font-black text-lg text-slate-900 dark:text-white">CSV取込プレビュー</h3>
@@ -2243,7 +2291,7 @@ function App() {
                 </div>
               </div>
 
-              <div className="overflow-y-auto flex-1 p-4 no-scrollbar">
+              <div className="overflow-y-auto flex-1 p-4 no-scrollbar ios-scroll">
                 {importPreview.rows.length === 0 && (
                   <div className="text-center py-8 text-slate-400 dark:text-white/30 text-sm font-bold">取込できるデータがありません</div>
                 )}
@@ -2279,7 +2327,7 @@ function App() {
                 )}
               </div>
 
-              <div className="p-6 border-t border-slate-200 dark:border-[#2d2d31] flex gap-3">
+              <div className="flex gap-3 px-6 pt-4 border-t border-slate-200 dark:border-[#2d2d31] shrink-0" style={{ paddingBottom: 'max(1.5rem, env(safe-area-inset-bottom))' }}>
                 <button onClick={() => setImportPreview(null)} className="flex-1 py-3.5 bg-slate-100 dark:bg-white/5 rounded-2xl font-black text-slate-500 dark:text-white/50">キャンセル</button>
                 <button onClick={confirmImport} disabled={importPreview.rows.length === 0} className={`flex-1 py-3.5 rounded-2xl font-black ${importPreview.rows.length === 0 ? 'bg-slate-100 dark:bg-white/5 text-slate-300 dark:text-white/20 cursor-not-allowed' : 'btn-primary'}`}>
                   {importPreview.rows.length}件 取り込む
@@ -2289,11 +2337,16 @@ function App() {
           </div>
         )}
 
-        {/* 編集モーダル */}
+        {/* 編集モーダル（BottomSheet） */}
         {editingItem && (
-          <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-black/60 backdrop-blur-md">
-            <div className="bg-white dark:bg-[#1a1a1c] rounded-[40px] w-full max-w-sm p-8 shadow-2xl border border-slate-200 dark:border-[#2d2d31]">
-              <div className="flex justify-between items-center mb-8">
+          <div className="fixed inset-0 z-[100] flex items-end justify-center bg-black/60 backdrop-blur-md" onClick={() => { setEditingItem(null); setConfirmDelete(false); }}>
+            <div
+              className="bg-white dark:bg-[#1a1a1c] rounded-t-[40px] w-full max-w-lg shadow-2xl border-t border-slate-200 dark:border-[#2d2d31] flex flex-col"
+              style={{ maxHeight: '92vh', marginBottom: 'var(--kb-offset, 0px)' }}
+              onClick={e => e.stopPropagation()}
+            >
+              <div className="w-10 h-1.5 bg-slate-300 dark:bg-white/20 rounded-full mx-auto mt-3 mb-1 shrink-0" />
+              <div className="flex justify-between items-center px-8 pt-4 pb-4 shrink-0">
                 <h3 className="font-black text-lg text-orange-600 dark:text-[#ff7a1a]">詳細編集</h3>
                 {!confirmDelete ? <button onClick={()=>setConfirmDelete(true)} className="text-slate-400"><Trash2 size={22}/></button> : <button onClick={()=>{ 
                   if(editingItem.type==='expense'){ setLedger(ledger.filter(l=>l.id!==editingItem.data.id)); } 
@@ -2310,7 +2363,7 @@ function App() {
                 }} className="bg-red-500 px-4 py-2 rounded-xl text-xs font-black text-white">削除実行</button>}
               </div>
               
-              <div className="space-y-4 max-h-[60vh] overflow-y-auto no-scrollbar pb-4">
+              <div className="space-y-4 overflow-y-auto no-scrollbar ios-scroll px-8 pb-4 flex-1">
                 {(editingItem.type === 'expense' || editingItem.type === 'income') && (
                   <>
                     <InputField label="日付" type="date" value={editingItem.data.date || ''} onChange={e=>setEditingItem({...editingItem, data:{...editingItem.data, date:e.target.value}})} />
@@ -2420,7 +2473,7 @@ function App() {
                 )}
               </div>
 
-              <div className="flex gap-4 mt-8 pt-4 border-t border-slate-200 dark:border-[#2d2d31]">
+              <div className="flex gap-4 px-8 pt-4 border-t border-slate-200 dark:border-[#2d2d31] shrink-0" style={{ paddingBottom: 'max(1.5rem, env(safe-area-inset-bottom))' }}>
                 <button onClick={()=>{setEditingItem(null); setConfirmDelete(false);}} className="flex-1 py-4 bg-slate-100 dark:bg-white/5 rounded-2xl font-black text-slate-500 dark:text-white/50">閉じる</button>
                 <button onClick={saveEditedItem} className="flex-1 py-4 btn-primary rounded-2xl font-black text-white dark:text-black">保存する</button>
               </div>
