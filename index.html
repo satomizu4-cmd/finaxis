@@ -228,7 +228,7 @@ function GlassCard({ title, icon, children, className = "" }) {
     <div className={`bg-white dark:bg-black rounded-[32px] p-6 border border-slate-100 dark:border-white/[0.07] shadow-sm relative overflow-hidden ${className}`}>
       <div className="text-[11px] font-black text-slate-400 dark:text-white/40 uppercase tracking-[0.3em] mb-6 flex items-center justify-between">
         <div className="flex items-center gap-3">
-          <div className="w-1.5 h-4 bg-slate-700 dark:bg-[#818cf8] rounded-full card-accent-bar"></div>
+          <div className="w-1.5 h-4 bg-slate-700 dark:bg-[#00e5ff] rounded-full card-accent-bar"></div>
           <span className="text-slate-800 dark:text-white/90">{String(title)}</span>
         </div>
         {icon}
@@ -262,7 +262,7 @@ function InputField({ label, id, type="text", placeholder, value, onChange, step
       <input
         id={id} type={type} step={step} min={min} max={max} placeholder={placeholder} value={value} onChange={onChange}
         inputMode={inputMode}
-        className="h-16 bg-slate-100 dark:bg-[#0a0a12] border border-slate-200 dark:border-white/[0.07] rounded-[24px] px-5 text-slate-900 dark:text-white outline-none focus:border-slate-600 dark:focus:border-[#818cf8] dark:focus:shadow-[0_0_0_3px_rgba(129,140,248,0.15)] transition-all font-bold text-base"
+        className="h-16 bg-slate-100 dark:bg-[#000d0d] border border-slate-200 dark:border-white/[0.07] rounded-[24px] px-5 text-slate-900 dark:text-white outline-none focus:border-slate-600 dark:focus:border-[#00e5ff] dark:focus:shadow-[0_0_0_3px_rgba(0,229,255,0.12)] transition-all font-bold text-base"
       />
     </div>
   );
@@ -289,8 +289,8 @@ function CheckboxSelect({ label, value, options, onChange, hint }) {
               onClick={() => onChange(opt.value)}
               className={`inline-flex items-center gap-2 px-4 py-2.5 rounded-full transition-all active:scale-95 border-2 ${
                 isSelected 
-                  ? 'bg-slate-800 dark:bg-[#6366f1] border-slate-800 dark:border-[#818cf8] text-white shadow-md shadow-black/20 dark:shadow-[rgba(99,102,241,0.4)]'
-                  : 'bg-white dark:bg-black border-slate-200 dark:border-white/[0.07] text-slate-700 dark:text-white/60 hover:border-slate-300 dark:hover:border-[#818cf8]/40'
+                  ? 'bg-slate-800 dark:bg-[#003a40] border-slate-800 dark:border-[#00e5ff] text-white shadow-md shadow-black/20 dark:shadow-[rgba(0,229,255,0.25)]'
+                  : 'bg-white dark:bg-black border-slate-200 dark:border-white/[0.07] text-slate-700 dark:text-white/60 hover:border-slate-300 dark:hover:border-[#00e5ff]/40'
               }`}
             >
               {opt.emoji && <span className="text-base leading-none">{String(opt.emoji)}</span>}
@@ -344,7 +344,7 @@ function ToggleRow({ label, icon, active, onClick, borderBottom, disabled, badge
           )}
         </div>
       </div>
-      <div className={`w-14 h-[32px] rounded-full relative transition-all flex items-center px-0.5 ${active ? 'bg-slate-700 dark:bg-[#6366f1]' : 'bg-slate-200 dark:bg-[#111111]'}`} style={active ? { boxShadow: '0 0 12px rgba(99,102,241,0.5)' } : {}}>
+      <div className={`w-14 h-[32px] rounded-full relative transition-all flex items-center px-0.5 ${active ? 'bg-slate-700 dark:bg-[#005f6b]' : 'bg-slate-200 dark:bg-[#111111]'}`} style={active ? { boxShadow: '0 0 12px rgba(0,229,255,0.4)' } : {}}>
         <div className={`w-[26px] h-[26px] rounded-full bg-white shadow-sm transform transition-all ${active ? 'translate-x-[24px]' : 'translate-x-0'}`}></div>
       </div>
     </div>
@@ -421,9 +421,9 @@ function App() {
   const [newCashVisible, setNewCashVisible] = useState(true);
   const [newPrepaidVisible, setNewPrepaidVisible] = useState(true);
 
-  const themeColor = appSettings.darkMode ? '#818cf8' : '#6366f1';
+  const themeColor = appSettings.darkMode ? '#00e5ff' : '#0097a7';
   // 資産推移グラフ用
-  const assetChartColor = appSettings.darkMode ? '#a78bfa' : '#7c3aed';
+  const assetChartColor = appSettings.darkMode ? '#00ffcc' : '#00838f';
 
   // localStorage への自動保存（state変更時）
   useEffect(() => {
@@ -1054,8 +1054,8 @@ function App() {
     e.target.value = '';
   };
 
-  const tooltipBg = appSettings.darkMode ? '#0a0a0f' : '#ffffff';
-  const tooltipBorder = appSettings.darkMode ? 'rgba(129,140,248,0.3)' : '#e2e8f0';
+  const tooltipBg = appSettings.darkMode ? '#000d0d' : '#ffffff';
+  const tooltipBorder = appSettings.darkMode ? 'rgba(0,229,255,0.3)' : '#e2e8f0';
 
   // type未定義の旧データは expense とみなす
   const expenseCategories = categories.filter(c => (c.type || 'expense') === 'expense');
@@ -1168,17 +1168,17 @@ function App() {
           .ios-scroll { -webkit-overflow-scrolling: touch; overscroll-behavior: contain; }
           /* キーボード表示時にBottomSheetを持ち上げる */
           :root { --kb-offset: 0px; }
-          :root { --accent: #818cf8; --accent-dark: #6366f1; --accent-glow: rgba(99,102,241,0.35); }
+          :root { --accent: #00e5ff; --accent-dark: #00bcd4; --accent-glow: rgba(0,229,255,0.35); }
           .btn-primary { background: linear-gradient(135deg, #1e293b, #334155); color: #fff; font-weight: 900; border-radius: 24px; transition: transform 0.2s; box-shadow: 0 8px 24px rgba(0,0,0,0.3); }
-          .dark .btn-primary { background: linear-gradient(135deg, #6366f1, #7c3aed); color: #fff; box-shadow: 0 8px 32px rgba(99,102,241,0.45); }
+          .dark .btn-primary { background: linear-gradient(135deg, #001a1a, #00282e); color: #00e5ff; box-shadow: 0 8px 32px rgba(0,229,255,0.2), inset 0 0 0 1px rgba(0,229,255,0.25); }
           .btn-primary:active { transform: scale(0.96); }
           @keyframes plusPulse { 0%,100% { box-shadow: 0 0 0 0 rgba(255,255,255,0.25), 0 12px 40px rgba(0,0,0,0.7); } 50% { box-shadow: 0 0 0 8px rgba(255,255,255,0), 0 12px 40px rgba(0,0,0,0.5); } }
           .plus-btn { animation: plusPulse 3s ease-in-out infinite; }
-          html.dark .card-accent-bar { box-shadow: 0 0 8px rgba(129,140,248,0.7); }
+          html.dark .card-accent-bar { box-shadow: 0 0 10px rgba(0,229,255,0.8); }
         `}</style>
 
-        <header className="sticky top-0 z-20 bg-white/90 dark:bg-black/95 backdrop-blur-2xl border-b border-slate-200 dark:border-[#818cf8]/15 px-6 pb-4 pt-safe flex items-center justify-between transition-colors">
-          <h1 className="text-2xl font-black tracking-tighter text-slate-900 dark:text-white">Fin<span className="text-slate-900 dark:text-[#818cf8]" style={appSettings.darkMode ? { textShadow: '0 0 20px rgba(129,140,248,0.6)' } : {}}>axis</span></h1>
+        <header className="sticky top-0 z-20 bg-white/90 dark:bg-black/95 backdrop-blur-2xl border-b border-slate-200 dark:border-[#00e5ff]/12 px-6 pb-4 pt-safe flex items-center justify-between transition-colors">
+          <h1 className="text-2xl font-black tracking-tighter text-slate-900 dark:text-white">Fin<span className="text-slate-900 dark:text-[#00e5ff]" style={appSettings.darkMode ? { textShadow: '0 0 20px rgba(0,229,255,0.7)' } : {}}>axis</span></h1>
         </header>
 
         <main className="max-w-4xl mx-auto p-4 md:p-6 pb-safe relative z-10">
@@ -1330,8 +1330,8 @@ function App() {
           {/* ==================== 資産 ==================== */}
           {activeTab === 'assets' && (() => {
              const assetPalette = appSettings.darkMode
-               ? { bank: '#818cf8', cash: '#a78bfa', invest: '#6366f1', prepaid: '#c4b5fd', point: '#4f46e5' }
-               : { bank: '#6366f1', cash: '#7c3aed', invest: '#4338ca', prepaid: '#8b5cf6', point: '#a78bfa' };
+               ? { bank: '#00e5ff', cash: '#00ffcc', invest: '#00bcd4', prepaid: '#67e8f9', point: '#00838f' }
+               : { bank: '#0097a7', cash: '#00838f', invest: '#006064', prepaid: '#00acc1', point: '#26c6da' };
              const activeAssetData = [
                { name: '銀行', value: banks.reduce((s, b) => s + (Number(b.balance)||0), 0), color: assetPalette.bank },
                { name: '現金', value: cash.reduce((s, c) => s + (Number(c.balance)||0), 0), color: assetPalette.cash },
@@ -1343,7 +1343,7 @@ function App() {
 
              return (
                <div className="space-y-6">
-                 <div className="bg-gradient-to-br from-white via-slate-50 to-slate-200 dark:from-[#0d0d1a] dark:via-[#0a0a12] dark:to-[#050508] rounded-[36px] p-6 shadow-xl border border-slate-200 dark:border-[#818cf8]/20 relative overflow-hidden" style={appSettings.darkMode ? { boxShadow: '0 0 0 1px rgba(129,140,248,0.15), 0 24px 64px rgba(0,0,0,0.6)' } : {}}>
+                 <div className="bg-gradient-to-br from-white via-slate-50 to-slate-200 dark:from-[#000d0d] dark:via-[#000a0a] dark:to-[#000505] rounded-[36px] p-6 shadow-xl border border-slate-200 dark:border-[#00e5ff]/20 relative overflow-hidden" style={appSettings.darkMode ? { boxShadow: '0 0 0 1px rgba(0,229,255,0.12), 0 24px 64px rgba(0,0,0,0.6)' } : {}}>
                    <div className="absolute top-0 left-0 w-full h-full bg-[radial-gradient(ellipse_at_top_left,rgba(255,255,255,0.6)_0%,transparent_60%)] dark:bg-[radial-gradient(ellipse_at_top_left,rgba(255,255,255,0.08)_0%,transparent_60%)] pointer-events-none"></div>
                    <div className="flex items-center gap-4 mb-6 relative z-10">
                      <div className="text-[38px] font-mono font-black text-slate-900 dark:text-white">{showAssets ? fmt(totals.assets) : '¥***,***'}</div>
@@ -1378,7 +1378,7 @@ function App() {
                          <div className="w-full h-full mt-6">
                            <ResponsiveContainer width="100%" height="100%">
                               <AreaChart data={historyChartData} margin={{ top: 5, right: 10, left: 10, bottom: 0 }}>
-                                <CartesianGrid strokeDasharray="3 3" stroke={appSettings.darkMode ? "rgba(167,139,250,0.12)" : "rgba(100,116,139,0.15)"} vertical={false} />
+                                <CartesianGrid strokeDasharray="3 3" stroke={appSettings.darkMode ? "rgba(0,255,204,0.08)" : "rgba(100,116,139,0.15)"} vertical={false} />
                                 <XAxis dataKey="name" stroke={appSettings.darkMode ? "rgba(255,255,255,0.35)" : "rgba(100,116,139,0.7)"} fontSize={13} tickLine={false} axisLine={false} />
                                 <YAxis stroke={appSettings.darkMode ? "rgba(255,255,255,0.35)" : "rgba(100,116,139,0.7)"} fontSize={13} tickLine={false} axisLine={false} tickFormatter={(val) => `${val/10000}万`} width={50} />
                                 <Area type="monotone" dataKey="assets" stroke={assetChartColor} strokeWidth={2.5} fill="url(#colorAssets)" fillOpacity={1} />
@@ -1752,7 +1752,7 @@ function App() {
                     <GlassCard title="月別推移 (支出)" className="h-72">
                        <ResponsiveContainer width="100%" height="100%">
                          <AreaChart data={yChartData} margin={{ top: 10, right: 10, left: 10, bottom: 0 }}>
-                           <CartesianGrid strokeDasharray="3 3" stroke={appSettings.darkMode ? "rgba(129,140,248,0.1)" : "#e2e8f0"} vertical={false} />
+                           <CartesianGrid strokeDasharray="3 3" stroke={appSettings.darkMode ? "rgba(0,229,255,0.08)" : "#e2e8f0"} vertical={false} />
                            <XAxis dataKey="name" stroke={appSettings.darkMode ? "rgba(255,255,255,0.35)" : "#94a3b8"} fontSize={13} tickLine={false} axisLine={false} />
                            <YAxis stroke={appSettings.darkMode ? "rgba(255,255,255,0.35)" : "#94a3b8"} fontSize={13} tickLine={false} axisLine={false} tickFormatter={(val) => `-${val/10000}万`} width={50} />
                            <Area type="monotone" dataKey="exp" stroke={themeColor} strokeWidth={2.5} fill="url(#colorYExp)" fillOpacity={1} />
@@ -2287,7 +2287,7 @@ function App() {
                                     <button onClick={e=>{e.stopPropagation();moveItem(cards,setCards,it.id,1);}} className="p-2 bg-slate-100 dark:bg-white/10 rounded-xl"><ChevronDown size={14}/></button>
                                   </div>
                                 ) : (
-                                  <div className="font-mono text-[15px] font-bold text-slate-700 dark:text-white shrink-0">{it.closingDate}締</div>
+                                  <div className="font-mono text-[15px] font-bold text-slate-700 dark:text-white shrink-0">{String(it.closingDate) === '99' ? '末日締め' : `${it.closingDate}日締め`}</div>
                                 )}
                               </div>
                             ))}
@@ -2707,7 +2707,7 @@ function NavBtn({ active, onClick, icon, label }) {
     <button onClick={onClick} className={`flex-1 flex flex-col items-center justify-center gap-1 h-16 relative transition-all ${active ? 'text-slate-900 dark:text-white' : 'text-slate-400 dark:text-white/25'}`}>
       <span className={`transition-transform ${active ? 'scale-110' : ''}`}>{icon}</span>
       <span className="text-[10px] font-black uppercase tracking-tighter">{String(label)}</span>
-      {active && <span className="absolute bottom-1 left-1/2 -translate-x-1/2 w-1.5 h-1.5 rounded-full bg-[#6366f1] dark:bg-[#818cf8]" style={{ boxShadow: '0 0 6px rgba(99,102,241,0.8)' }}/>}
+      {active && <span className="absolute bottom-1 left-1/2 -translate-x-1/2 w-1.5 h-1.5 rounded-full bg-[#0097a7] dark:bg-[#00e5ff]" style={{ boxShadow: '0 0 8px rgba(0,229,255,0.9)' }}/>}
     </button>
   );
 }
