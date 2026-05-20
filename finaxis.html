@@ -9,8 +9,8 @@
 <meta name="apple-mobile-web-app-capable" content="yes" />
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
 <meta name="apple-mobile-web-app-title" content="Finaxis" />
-<meta name="theme-color" content="#ff7a1a" />
-<link rel="apple-touch-icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 180 180'%3E%3Crect fill='%23ff7a1a' width='180' height='180' rx='40'/%3E%3Ctext x='50%25' y='54%25' font-size='96' fill='white' text-anchor='middle' dominant-baseline='middle' font-weight='900' font-family='-apple-system%2Csans-serif'%3EF%3C/text%3E%3C/svg%3E" />
+<meta name="theme-color" content="#000000" />
+<link rel="apple-touch-icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 180 180'%3E%3Crect fill='%23000000' width='180' height='180' rx='40'/%3E%3Ctext x='50%25' y='54%25' font-size='96' fill='white' text-anchor='middle' dominant-baseline='middle' font-weight='900' font-family='-apple-system%2Csans-serif'%3EF%3C/text%3E%3C/svg%3E" />
 <link rel="manifest" href="data:application/manifest+json,%7B%22name%22%3A%22Finaxis%20%E5%AE%B6%E8%A8%88%E7%B0%BF%22%2C%22short_name%22%3A%22Finaxis%22%2C%22start_url%22%3A%22.%2Ffinaxis-iphone.html%22%2C%22display%22%3A%22standalone%22%2C%22background_color%22%3A%22%230f0f10%22%2C%22theme_color%22%3A%22%23ff7a1a%22%2C%22orientation%22%3A%22portrait-primary%22%7D" />
 
 <!-- 開発用CDN警告を抑制 -->
@@ -137,6 +137,14 @@ const Clock = makeIcon('clock');
 
 // ===== ここから家計簿アプリ本体 =====
 const fmt = (num) => `¥${Number(num || 0).toLocaleString()}`;
+const fmtCompact = (num) => {
+  const n = Number(num || 0);
+  const abs = Math.abs(n);
+  const sign = n < 0 ? '-' : '';
+  if (abs >= 100000000) return `${sign}¥${(abs / 100000000).toFixed(abs % 100000000 === 0 ? 0 : 1)}億`;
+  if (abs >= 10000) return `${sign}¥${(abs / 10000).toFixed(abs % 10000 === 0 ? 0 : 1)}万`;
+  return `${sign}¥${abs.toLocaleString()}`;
+};
 const pad = (n) => String(n).padStart(2, '0');
 
 const getCalendarDaysArr = (y, m) => {
@@ -154,20 +162,20 @@ const availableEmojis = Array.from(new Set([
 
 const defaultCategories = [
   // 支出カテゴリ
-  { id: 'c1', name: '食費', emoji: '🍔', color: '#0ea5e9', budget: 50000, type: 'expense' },
-  { id: 'c2', name: '日用品', emoji: '🛒', color: '#22c55e', budget: 20000, type: 'expense' },
-  { id: 'c3', name: '交通費', emoji: '🚆', color: '#eab308', budget: 15000, type: 'expense' },
-  { id: 'c4', name: '交際費', emoji: '🍻', color: '#ef4444', budget: 30000, type: 'expense' },
-  { id: 'c5', name: '住宅', emoji: '🏠', color: '#d946ef', budget: 80000, type: 'expense' },
-  { id: 'c6', name: '美容・衣服', emoji: '👗', color: '#64748b', budget: 15000, type: 'expense' },
-  { id: 'c7', name: '医療', emoji: '🏥', color: '#3b82f6', budget: 5000, type: 'expense' },
-  { id: 'c8', name: 'その他', emoji: '📝', color: '#84cc16', budget: 10000, type: 'expense' },
+  { id: 'c1', name: '食費', emoji: '🍔', color: '#e8e8e8', budget: 50000, type: 'expense' },
+  { id: 'c2', name: '日用品', emoji: '🛒', color: '#c0c0c0', budget: 20000, type: 'expense' },
+  { id: 'c3', name: '交通費', emoji: '🚆', color: '#a0a0a0', budget: 15000, type: 'expense' },
+  { id: 'c4', name: '交際費', emoji: '🍻', color: '#808080', budget: 30000, type: 'expense' },
+  { id: 'c5', name: '住宅', emoji: '🏠', color: '#f4f4f4', budget: 80000, type: 'expense' },
+  { id: 'c6', name: '美容・衣服', emoji: '👗', color: '#686868', budget: 15000, type: 'expense' },
+  { id: 'c7', name: '医療', emoji: '🏥', color: '#d0d0d0', budget: 5000, type: 'expense' },
+  { id: 'c8', name: 'その他', emoji: '📝', color: '#505050', budget: 10000, type: 'expense' },
   // 収入カテゴリ
-  { id: 'i1', name: '給与', emoji: '💼', color: '#10b981', budget: 0, type: 'income' },
-  { id: 'i2', name: '副業', emoji: '💻', color: '#3b82f6', budget: 0, type: 'income' },
-  { id: 'i3', name: '賞与', emoji: '🎁', color: '#f59e0b', budget: 0, type: 'income' },
-  { id: 'i4', name: '利子・配当', emoji: '💹', color: '#8b5cf6', budget: 0, type: 'income' },
-  { id: 'i5', name: 'その他収入', emoji: '🪙', color: '#64748b', budget: 0, type: 'income' }
+  { id: 'i1', name: '給与', emoji: '💼', color: '#ffffff', budget: 0, type: 'income' },
+  { id: 'i2', name: '副業', emoji: '💻', color: '#c8c8c8', budget: 0, type: 'income' },
+  { id: 'i3', name: '賞与', emoji: '🎁', color: '#e0e0e0', budget: 0, type: 'income' },
+  { id: 'i4', name: '利子・配当', emoji: '💹', color: '#989898', budget: 0, type: 'income' },
+  { id: 'i5', name: 'その他収入', emoji: '🪙', color: '#606060', budget: 0, type: 'income' }
 ];
 
 const CURRENT_MONTH = new Date().toISOString().slice(0, 7);
@@ -217,10 +225,10 @@ const sampleFixedCosts = [
 // ==========================================
 function GlassCard({ title, icon, children, className = "" }) {
   return (
-    <div className={`bg-white/80 dark:bg-[#0c0c0c]/80 backdrop-blur-xl rounded-[32px] p-6 border border-slate-200/50 dark:border-white/5 shadow-sm relative overflow-hidden ${className}`}>
+    <div className={`bg-white dark:bg-black rounded-[32px] p-6 border border-slate-100 dark:border-white/[0.07] shadow-sm relative overflow-hidden ${className}`}>
       <div className="text-[11px] font-black text-slate-400 dark:text-white/40 uppercase tracking-[0.3em] mb-6 flex items-center justify-between">
         <div className="flex items-center gap-3">
-          <div className="w-1.5 h-4 bg-orange-500 dark:bg-[#ff7a1a] rounded-full"></div>
+          <div className="w-1.5 h-4 bg-slate-700 dark:bg-[#818cf8] rounded-full card-accent-bar"></div>
           <span className="text-slate-800 dark:text-white/90">{String(title)}</span>
         </div>
         {icon}
@@ -232,10 +240,10 @@ function GlassCard({ title, icon, children, className = "" }) {
 
 function KpiCard({ title, amount, suffix = "", color }) {
   return (
-    <div className="bg-white dark:bg-[#141414] border border-slate-200 dark:border-[#1e1e1e] rounded-[28px] p-5 shadow-sm transition-transform active:scale-95">
+    <div className="bg-white dark:bg-black border border-slate-100 dark:border-white/[0.07] rounded-[28px] p-5 shadow-sm transition-transform active:scale-95">
       <div className="text-[10px] font-black text-slate-400 dark:text-white/30 uppercase tracking-widest mb-2">{String(title)}</div>
-      <div className={`text-2xl font-mono font-black tracking-tighter ${color}`}>
-        {suffix ? `${amount}${suffix}` : fmt(amount)}
+      <div className={`text-xl font-mono font-black tracking-tighter ${color}`}>
+        {suffix ? `${amount}${suffix}` : fmtCompact(amount)}
       </div>
     </div>
   );
@@ -254,7 +262,7 @@ function InputField({ label, id, type="text", placeholder, value, onChange, step
       <input
         id={id} type={type} step={step} min={min} max={max} placeholder={placeholder} value={value} onChange={onChange}
         inputMode={inputMode}
-        className="h-16 bg-slate-100 dark:bg-[#0c0c0c] border border-slate-200 dark:border-[#1e1e1e] rounded-[24px] px-5 text-slate-900 dark:text-white outline-none focus:border-orange-500 dark:focus:border-[#ff7a1a] transition-all font-bold text-base"
+        className="h-16 bg-slate-100 dark:bg-[#0a0a12] border border-slate-200 dark:border-white/[0.07] rounded-[24px] px-5 text-slate-900 dark:text-white outline-none focus:border-slate-600 dark:focus:border-[#818cf8] dark:focus:shadow-[0_0_0_3px_rgba(129,140,248,0.15)] transition-all font-bold text-base"
       />
     </div>
   );
@@ -281,8 +289,8 @@ function CheckboxSelect({ label, value, options, onChange, hint }) {
               onClick={() => onChange(opt.value)}
               className={`inline-flex items-center gap-2 px-4 py-2.5 rounded-full transition-all active:scale-95 border-2 ${
                 isSelected 
-                  ? 'bg-orange-600 dark:bg-[#ff7a1a] border-orange-600 dark:border-[#ff7a1a] text-white dark:text-black shadow-md shadow-orange-600/20 dark:shadow-[#ff7a1a]/20' 
-                  : 'bg-white dark:bg-[#0c0c0c] border-slate-200 dark:border-[#1e1e1e] text-slate-700 dark:text-white/70 hover:border-slate-300 dark:hover:border-[#252525]'
+                  ? 'bg-slate-800 dark:bg-[#6366f1] border-slate-800 dark:border-[#818cf8] text-white shadow-md shadow-black/20 dark:shadow-[rgba(99,102,241,0.4)]'
+                  : 'bg-white dark:bg-black border-slate-200 dark:border-white/[0.07] text-slate-700 dark:text-white/60 hover:border-slate-300 dark:hover:border-[#818cf8]/40'
               }`}
             >
               {opt.emoji && <span className="text-base leading-none">{String(opt.emoji)}</span>}
@@ -302,14 +310,14 @@ function SettingsSection({ title, children }) {
   return (
     <div className="space-y-3">
       <div className="text-[11px] font-black text-slate-400 dark:text-white/40 uppercase tracking-[0.2em] pl-4">{String(title)}</div>
-      <div className="bg-white dark:bg-[#0c0c0c] rounded-[28px] border border-slate-200 dark:border-[#1e1e1e] overflow-hidden">{children}</div>
+      <div className="bg-white dark:bg-black rounded-[28px] border border-slate-200 dark:border-white/[0.07] overflow-hidden">{children}</div>
     </div>
   );
 }
 
 function SettingsListItem({ title, value, icon, onClick, borderBottom }) {
   return (
-    <div onClick={onClick} className={`flex justify-between items-center p-6 bg-white dark:bg-[#0c0c0c] hover:bg-slate-50 dark:hover:bg-[#1a1a1a] transition-all cursor-pointer active:bg-slate-100 dark:active:bg-[#222] ${borderBottom ? 'border-b border-slate-200 dark:border-[#1e1e1e]' : ''}`}>
+    <div onClick={onClick} className={`flex justify-between items-center p-6 bg-white dark:bg-black hover:bg-slate-50 dark:hover:bg-[#1a1a1a] transition-all cursor-pointer active:bg-slate-100 dark:active:bg-[#222] ${borderBottom ? 'border-b border-slate-200 dark:border-white/[0.07]' : ''}`}>
       <div className="flex items-center gap-4 text-slate-900 dark:text-white">
         <div className="text-slate-400 dark:text-white/30">{icon}</div>
         <span className="text-[16px] font-bold">{String(title)}</span>
@@ -324,19 +332,19 @@ function SettingsListItem({ title, value, icon, onClick, borderBottom }) {
 
 function ToggleRow({ label, icon, active, onClick, borderBottom, disabled, badge }) {
   return (
-    <div className={`flex justify-between items-center p-6 bg-white dark:bg-[#0c0c0c] transition-all ${disabled ? 'opacity-60' : 'cursor-pointer active:bg-slate-50 dark:active:bg-[#1a1a1a]'} ${borderBottom ? 'border-b border-slate-200 dark:border-[#1e1e1e]' : ''}`} onClick={disabled ? undefined : onClick}>
+    <div className={`flex justify-between items-center p-6 bg-white dark:bg-black transition-all ${disabled ? 'opacity-60' : 'cursor-pointer active:bg-slate-50 dark:active:bg-[#1a1a1a]'} ${borderBottom ? 'border-b border-slate-200 dark:border-white/[0.07]' : ''}`} onClick={disabled ? undefined : onClick}>
       <div className="flex items-center gap-4 text-slate-900 dark:text-white">
         <div className="text-slate-400 dark:text-white/30">{icon}</div>
         <div className="flex flex-col gap-1">
           <span className="text-[16px] font-bold">{String(label)}</span>
           {badge && (
-            <span className="inline-flex items-center gap-1 text-[9px] font-black px-2 py-0.5 rounded-md bg-amber-100 text-amber-700 dark:bg-amber-500/15 dark:text-amber-400 w-fit uppercase tracking-wider">
+            <span className="inline-flex items-center gap-1 text-[9px] font-black px-2 py-0.5 rounded-md bg-slate-100 text-slate-600 dark:bg-white/10 dark:text-white/60 w-fit uppercase tracking-wider">
               <Clock size={10}/>{String(badge)}
             </span>
           )}
         </div>
       </div>
-      <div className={`w-14 h-[32px] rounded-full relative transition-all flex items-center px-0.5 ${active ? 'bg-orange-500 dark:bg-[#ff7a1a]' : 'bg-slate-200 dark:bg-[#1e1e1e]'}`}>
+      <div className={`w-14 h-[32px] rounded-full relative transition-all flex items-center px-0.5 ${active ? 'bg-slate-700 dark:bg-[#6366f1]' : 'bg-slate-200 dark:bg-[#111111]'}`} style={active ? { boxShadow: '0 0 12px rgba(99,102,241,0.5)' } : {}}>
         <div className={`w-[26px] h-[26px] rounded-full bg-white shadow-sm transform transition-all ${active ? 'translate-x-[24px]' : 'translate-x-0'}`}></div>
       </div>
     </div>
@@ -377,7 +385,7 @@ function App() {
   const [appSettings, setAppSettings] = useState(() => loadFromStorage('appSettings', {
     startDay: 1, notifyRemind: false, notifyPayment: false, notifyClosing: false, darkMode: true,
     userName: "未設定", plan: "free",
-    noMoneyMode: true, noMoneyEmoji: "✅", noMoneyColor: "#ff7a1a",
+    noMoneyMode: true, noMoneyEmoji: "✅", noMoneyColor: "#e8e8e8",
     monthlyBudget: 200000, budgetAlert: true, weeklyReport: true, comparisonMode: "MoM"
   }));
 
@@ -413,9 +421,9 @@ function App() {
   const [newCashVisible, setNewCashVisible] = useState(true);
   const [newPrepaidVisible, setNewPrepaidVisible] = useState(true);
 
-  const themeColor = appSettings.darkMode ? '#ff7a1a' : '#ea580c';
-  // 資産推移グラフ用（アーストーン・テラコッタ）
-  const assetChartColor = appSettings.darkMode ? '#d4825c' : '#b85c3a';
+  const themeColor = appSettings.darkMode ? '#818cf8' : '#6366f1';
+  // 資産推移グラフ用
+  const assetChartColor = appSettings.darkMode ? '#a78bfa' : '#7c3aed';
 
   // localStorage への自動保存（state変更時）
   useEffect(() => {
@@ -518,10 +526,17 @@ function App() {
     return { assets: assetSum, balance: assetSum - unpaidCard, unpaidCard, cashBank: cashBankSum };
   }, [banks, cash, investments, prepaids, points, ledger, cards, fixedCosts, settlements]);
 
+  const totalCategoryBudget = useMemo(() =>
+    categories.filter(c => (c.type || 'expense') === 'expense' && Number(c.budget) > 0)
+              .reduce((s, c) => s + Number(c.budget), 0)
+  , [categories]);
+
+  const effectiveBudget = totalCategoryBudget > 0 ? totalCategoryBudget : appSettings.monthlyBudget;
+
   const budgetProgress = useMemo(() => {
-    if (!appSettings.monthlyBudget) return 0;
-    return Math.min(Math.round((currentMonthData.totalExpense / appSettings.monthlyBudget) * 100), 100);
-  }, [currentMonthData.totalExpense, appSettings.monthlyBudget]);
+    if (!effectiveBudget) return 0;
+    return Math.min(Math.round((currentMonthData.totalExpense / effectiveBudget) * 100), 100);
+  }, [currentMonthData.totalExpense, effectiveBudget]);
 
   const historyChartData = useMemo(() => {
     const data = [];
@@ -1039,8 +1054,8 @@ function App() {
     e.target.value = '';
   };
 
-  const tooltipBg = appSettings.darkMode ? '#0c0c0c' : '#fff';
-  const tooltipBorder = appSettings.darkMode ? '#252525' : '#e2e8f0';
+  const tooltipBg = appSettings.darkMode ? '#0a0a0f' : '#ffffff';
+  const tooltipBorder = appSettings.darkMode ? 'rgba(129,140,248,0.3)' : '#e2e8f0';
 
   // type未定義の旧データは expense とみなす
   const expenseCategories = categories.filter(c => (c.type || 'expense') === 'expense');
@@ -1133,7 +1148,7 @@ function App() {
   // ==========================================
   return (
     <div className={`${appSettings.darkMode ? 'dark' : ''} h-full`} data-theme={appSettings.darkMode ? 'dark' : 'light'}>
-      <div className="min-h-screen bg-slate-50 dark:bg-[#000000] text-slate-900 dark:text-white font-sans selection:bg-[#ff7a1a]/30 relative overflow-hidden transition-colors duration-500">
+      <div className="min-h-screen bg-slate-50 dark:bg-black text-slate-900 dark:text-white font-sans selection:bg-white/30 relative overflow-hidden transition-colors duration-500">
         <style>{`
           /* Tailwind の darkMode: 'class' 戦略を JS なしで強制適用するためのフォールバック */
           @media (prefers-color-scheme: light) {
@@ -1153,13 +1168,17 @@ function App() {
           .ios-scroll { -webkit-overflow-scrolling: touch; overscroll-behavior: contain; }
           /* キーボード表示時にBottomSheetを持ち上げる */
           :root { --kb-offset: 0px; }
-          .btn-primary { background: linear-gradient(135deg, #ea580c, #fb923c); color: #fff; font-weight: 900; border-radius: 24px; transition: transform 0.2s; box-shadow: 0 8px 24px rgba(234,88,12,0.3); }
-          .dark .btn-primary { background: linear-gradient(135deg, #ff7a1a, #e0651a); color: #0a0a0f; box-shadow: 0 8px 24px rgba(255,122,26,0.25); }
+          :root { --accent: #818cf8; --accent-dark: #6366f1; --accent-glow: rgba(99,102,241,0.35); }
+          .btn-primary { background: linear-gradient(135deg, #1e293b, #334155); color: #fff; font-weight: 900; border-radius: 24px; transition: transform 0.2s; box-shadow: 0 8px 24px rgba(0,0,0,0.3); }
+          .dark .btn-primary { background: linear-gradient(135deg, #6366f1, #7c3aed); color: #fff; box-shadow: 0 8px 32px rgba(99,102,241,0.45); }
           .btn-primary:active { transform: scale(0.96); }
+          @keyframes plusPulse { 0%,100% { box-shadow: 0 0 0 0 rgba(255,255,255,0.25), 0 12px 40px rgba(0,0,0,0.7); } 50% { box-shadow: 0 0 0 8px rgba(255,255,255,0), 0 12px 40px rgba(0,0,0,0.5); } }
+          .plus-btn { animation: plusPulse 3s ease-in-out infinite; }
+          html.dark .card-accent-bar { box-shadow: 0 0 8px rgba(129,140,248,0.7); }
         `}</style>
 
-        <header className="sticky top-0 z-20 bg-white/90 dark:bg-[#000000]/90 backdrop-blur-2xl border-b border-slate-200 dark:border-[#111111] px-6 pb-4 pt-safe flex items-center justify-between transition-colors">
-          <h1 className="text-2xl font-black tracking-tighter">Finaxis</h1>
+        <header className="sticky top-0 z-20 bg-white/90 dark:bg-black/95 backdrop-blur-2xl border-b border-slate-200 dark:border-[#818cf8]/15 px-6 pb-4 pt-safe flex items-center justify-between transition-colors">
+          <h1 className="text-2xl font-black tracking-tighter text-slate-900 dark:text-white">Fin<span className="text-slate-900 dark:text-[#818cf8]" style={appSettings.darkMode ? { textShadow: '0 0 20px rgba(129,140,248,0.6)' } : {}}>axis</span></h1>
         </header>
 
         <main className="max-w-4xl mx-auto p-4 md:p-6 pb-safe relative z-10">
@@ -1167,10 +1186,10 @@ function App() {
           {activeTab === 'home' && (
             <div className="space-y-6">
               <div className="grid grid-cols-2 gap-4">
-                <KpiCard title="総資産" amount={totals.assets} color="text-orange-600 dark:text-[#ff7a1a]" />
-                <KpiCard title="残高" amount={totals.balance} color="text-sky-700 dark:text-sky-400" />
-                {appSettings.plan === 'premium'
-                  ? <KpiCard title="予算進捗" amount={budgetProgress} suffix="%" color={budgetProgress > 90 ? "text-red-500" : "text-amber-500"} />
+                <KpiCard title="総資産" amount={totals.assets} color="text-slate-800 dark:text-white" />
+                <KpiCard title="残高" amount={totals.balance} color="text-slate-700 dark:text-white" />
+                {effectiveBudget > 0
+                  ? <KpiCard title="予算進捗" amount={budgetProgress} suffix="%" color={budgetProgress > 90 ? "text-red-500" : "text-slate-700 dark:text-white"} />
                   : <KpiCard title="現金" amount={totals.cashBank} color="text-emerald-600 dark:text-emerald-400" />
                 }
                 <KpiCard title="引落予定" amount={totals.unpaidCard} color="text-rose-500 dark:text-rose-400" />
@@ -1188,19 +1207,28 @@ function App() {
                   </div>
                   <div>
                     <div className="text-[11px] font-bold text-slate-400 dark:text-white/30 mb-1">収支</div>
-                    <div className={`text-[15px] font-black ${currentMonthData.surplus >= 0 ? 'text-sky-600 dark:text-sky-400' : 'text-rose-500 dark:text-rose-400'}`}>{fmt(currentMonthData.surplus)}</div>
+                    <div className={`text-[15px] font-black ${currentMonthData.surplus >= 0 ? 'text-slate-700 dark:text-white' : 'text-rose-500 dark:text-rose-400'}`}>{fmt(currentMonthData.surplus)}</div>
                   </div>
                 </div>
               </GlassCard>
 
-              {appSettings.plan === 'premium' && (
-                <GlassCard title="月間予算分析" icon={<BarChart3 size={18} className="text-orange-600 dark:text-[#ff7a1a]"/>}>
+              {effectiveBudget > 0 && (
+                <GlassCard title="月間予算分析" icon={<BarChart3 size={18} className="text-slate-800 dark:text-white"/>}>
                   <div className="flex justify-between items-end mb-3 px-1">
-                    <div className="text-[14px] font-bold text-slate-800 dark:text-white">支出: {fmt(currentMonthData.totalExpense)}</div>
-                    <div className="text-[12px] text-slate-500 dark:text-white/40">予算: {fmt(appSettings.monthlyBudget)}</div>
+                    <div className="text-[14px] font-bold text-slate-800 dark:text-white">
+                      支出: {fmt(currentMonthData.totalExpense)}
+                    </div>
+                    <div className="text-right">
+                      <div className="text-[12px] text-slate-500 dark:text-white/40">予算合計: {fmt(effectiveBudget)}</div>
+                      {totalCategoryBudget > 0 && <div className="text-[10px] text-slate-400 dark:text-white/25">カテゴリ予算の合計</div>}
+                    </div>
                   </div>
-                  <div className="h-4 w-full bg-slate-200 dark:bg-white/5 rounded-full overflow-hidden">
-                    <div className={`h-full transition-all duration-1000 ${budgetProgress > 90 ? 'bg-red-500' : 'bg-orange-600 dark:bg-[#ff7a1a]'}`} style={{ width: `${budgetProgress}%` }}></div>
+                  <div className="h-4 w-full bg-slate-200 dark:bg-white/5 rounded-full overflow-hidden mb-2">
+                    <div className={`h-full transition-all duration-1000 ${budgetProgress > 90 ? 'bg-red-500' : 'bg-slate-800 dark:bg-white'}`} style={{ width: `${budgetProgress}%` }}></div>
+                  </div>
+                  <div className="flex justify-between text-[11px] font-bold">
+                    <span className={budgetProgress > 90 ? 'text-red-500' : 'text-slate-500 dark:text-white/40'}>{budgetProgress}% 消化</span>
+                    <span className="text-slate-500 dark:text-white/40">残り {fmt(Math.max(0, effectiveBudget - currentMonthData.totalExpense))}</span>
                   </div>
                 </GlassCard>
               )}
@@ -1216,7 +1244,7 @@ function App() {
                 {/* 曜日ヘッダー */}
                 <div className="grid grid-cols-7 gap-1 sm:gap-1.5 mb-2">
                   {['月','火','水','木','金','土','日'].map((w, i) => (
-                    <div key={`wkh-home-${i}`} className={`text-center text-[11px] font-black uppercase tracking-widest pb-2 ${i === 5 ? 'text-sky-500' : i === 6 ? 'text-rose-500' : 'text-slate-400 dark:text-white/30'}`}>
+                    <div key={`wkh-home-${i}`} className={`text-center text-[11px] font-black uppercase tracking-widest pb-2 ${i === 5 ? 'text-slate-400 dark:text-white/40' : i === 6 ? 'text-slate-400 dark:text-white/25' : 'text-slate-400 dark:text-white/30'}`}>
                       {w}
                     </div>
                   ))}
@@ -1239,19 +1267,19 @@ function App() {
                         className={`aspect-square rounded-[14px] p-1.5 flex flex-col items-center justify-center cursor-pointer transition-all ${
                           d ? (
                             isSelected
-                              ? 'bg-orange-100 dark:bg-[#ff7a1a]/20 border-2 border-orange-500 dark:border-[#ff7a1a] shadow-md'
-                              : 'bg-slate-50 dark:bg-[#141414] border border-slate-200 dark:border-[#1e1e1e] hover:bg-slate-100 dark:hover:bg-[#1e1e1e]'
+                              ? 'bg-slate-200 dark:bg-white/20 border-2 border-slate-600 dark:border-white shadow-md'
+                              : 'bg-slate-50 dark:bg-black border border-slate-200 dark:border-white/[0.07] hover:bg-slate-100 dark:hover:bg-[#1e1e1e]'
                           ) : 'opacity-0 pointer-events-none'
                         }`}
                       >
-                        <span className={`text-[14px] sm:text-[16px] font-black ${isToday ? 'text-orange-600 dark:text-[#ff7a1a]' : 'text-slate-700 dark:text-white/80'}`}>{d}</span>
+                        <span className={`text-[14px] sm:text-[16px] font-black ${isToday ? 'text-slate-800 dark:text-white' : 'text-slate-700 dark:text-white/80'}`}>{d}</span>
                         {/* 引落ドット（精算済=緑 / 未精算=オレンジ） */}
                         <div className="flex gap-1 mt-1 h-2.5 items-center">
                           {hasSettled && (
                             <span className="w-2.5 h-2.5 rounded-full bg-emerald-500 dark:bg-emerald-400 shadow-sm"></span>
                           )}
                           {hasUnsettled && (
-                            <span className="w-2.5 h-2.5 rounded-full bg-orange-500 dark:bg-[#ff7a1a] shadow-sm"></span>
+                            <span className="w-2.5 h-2.5 rounded-full bg-slate-700 dark:bg-white shadow-sm"></span>
                           )}
                         </div>
                       </div>
@@ -1260,13 +1288,13 @@ function App() {
                 </div>
                 
                 {selectedHomeDay && homeCalData[selectedHomeDay] && (
-                  <div className="mt-8 pt-6 border-t border-slate-200 dark:border-[#1e1e1e]">
+                  <div className="mt-8 pt-6 border-t border-slate-200 dark:border-white/[0.07]">
                     <div className="font-black text-lg text-slate-800 dark:text-white mb-4">{homeCalMonth}月{selectedHomeDay}日の引落予定</div>
                     <div className="space-y-4 max-h-80 overflow-y-auto no-scrollbar ios-scroll pr-2">
                       {Object.entries(homeCalData[selectedHomeDay].banks).map(([bankId, bankData], bIdx) => (
-                        <div key={`bank-group-${bIdx}`} className="bg-slate-50 dark:bg-[#141414] rounded-[24px] border border-slate-200 dark:border-[#1e1e1e] overflow-hidden">
-                          <div className="p-4 border-b border-slate-200 dark:border-[#252525] flex justify-between items-center bg-slate-100 dark:bg-white/5">
-                            <div className="font-bold text-slate-900 dark:text-white flex items-center gap-2"><Building size={16} className="text-orange-500 dark:text-[#ff7a1a]"/>{String(bankData.name)} からの引落</div>
+                        <div key={`bank-group-${bIdx}`} className="bg-slate-50 dark:bg-black rounded-[24px] border border-slate-200 dark:border-white/[0.07] overflow-hidden">
+                          <div className="p-4 border-b border-slate-200 dark:border-white/[0.07] flex justify-between items-center bg-slate-100 dark:bg-white/5">
+                            <div className="font-bold text-slate-900 dark:text-white flex items-center gap-2"><Building size={16} className="text-slate-700 dark:text-white"/>{String(bankData.name)} からの引落</div>
                             <div className="font-mono font-black text-lg text-rose-500 dark:text-rose-400">{fmt(bankData.amount)}</div>
                           </div>
                           <div className="divide-y divide-slate-100 dark:divide-[#222]">
@@ -1276,14 +1304,14 @@ function App() {
                               return (
                                 <div key={`card-${cIdx}`} className="flex justify-between items-center p-4">
                                   <div className="flex items-center gap-3">
-                                    <div className="w-8 h-8 rounded-full bg-slate-200 dark:bg-[#1e1e1e] flex items-center justify-center text-sky-700 dark:text-sky-400"><CreditCard size={14}/></div>
+                                    <div className="w-8 h-8 rounded-full bg-slate-200 dark:bg-[#111111] flex items-center justify-center text-slate-600 dark:text-white/60"><CreditCard size={14}/></div>
                                     <div className="text-[14px] font-bold text-slate-800 dark:text-white">{String(c.name)} <span className="text-[10px] text-slate-400 font-normal ml-1">{String(c.brand || '')}</span></div>
                                   </div>
                                   <div className="text-right flex items-center gap-3">
                                     <div className="font-mono font-bold text-[15px] text-slate-900 dark:text-white">{fmt(c.amount)}</div>
                                     {isSettled ? 
                                       <button onClick={() => handleSettlePayment(c, c.amount)} className="px-3 py-1.5 bg-emerald-100 text-emerald-700 dark:bg-emerald-400/15 dark:text-emerald-300 rounded-full text-[10px] font-black flex items-center gap-1 active:scale-95 transition-transform" title="タップで取り消し"><CheckCircle size={12}/> 精算済</button> : 
-                                      <button onClick={() => handleSettlePayment(c, c.amount)} className="bg-orange-600 dark:bg-[#ff7a1a] text-white dark:text-black text-[10px] font-black px-3 py-1.5 rounded-full active:scale-95 transition-transform">精算</button>
+                                      <button onClick={() => handleSettlePayment(c, c.amount)} className="bg-slate-800 dark:bg-white text-white dark:text-black text-[10px] font-black px-3 py-1.5 rounded-full active:scale-95 transition-transform">精算</button>
                                     }
                                   </div>
                                 </div>
@@ -1301,18 +1329,21 @@ function App() {
 
           {/* ==================== 資産 ==================== */}
           {activeTab === 'assets' && (() => {
+             const assetPalette = appSettings.darkMode
+               ? { bank: '#818cf8', cash: '#a78bfa', invest: '#6366f1', prepaid: '#c4b5fd', point: '#4f46e5' }
+               : { bank: '#6366f1', cash: '#7c3aed', invest: '#4338ca', prepaid: '#8b5cf6', point: '#a78bfa' };
              const activeAssetData = [
-               { name: '銀行', value: banks.reduce((s, b) => s + (Number(b.balance)||0), 0), color: '#c8775a' },
-               { name: '現金', value: cash.reduce((s, c) => s + (Number(c.balance)||0), 0), color: '#8a9a5b' },
-               { name: '証券', value: investments.reduce((s, i) => s + (Number(i.balance)||0), 0), color: '#6b4423' },
-               { name: 'プリペイド', value: prepaids.reduce((s, p) => s + (Number(p.balance)||0), 0), color: '#d4b896' },
-               { name: 'ポイント', value: points.reduce((s, p) => s + ((Number(p.balance)||0) * (Number(p.rate)||1)), 0), color: '#c9962b' },
+               { name: '銀行', value: banks.reduce((s, b) => s + (Number(b.balance)||0), 0), color: assetPalette.bank },
+               { name: '現金', value: cash.reduce((s, c) => s + (Number(c.balance)||0), 0), color: assetPalette.cash },
+               { name: '証券', value: investments.reduce((s, i) => s + (Number(i.balance)||0), 0), color: assetPalette.invest },
+               { name: 'プリペイド', value: prepaids.reduce((s, p) => s + (Number(p.balance)||0), 0), color: assetPalette.prepaid },
+               { name: 'ポイント', value: points.reduce((s, p) => s + ((Number(p.balance)||0) * (Number(p.rate)||1)), 0), color: assetPalette.point },
              ].filter(d => d.value > 0);
              const displayAssetData = activeAssetData.length > 0 ? activeAssetData : [{ name: 'データなし', value: 1, color: '#222' }];
 
              return (
                <div className="space-y-6">
-                 <div className="bg-gradient-to-br from-white via-slate-50 to-slate-200 dark:from-[#2a2a2d] dark:via-[#141414] dark:to-[#0c0c0c] rounded-[36px] p-6 shadow-xl border border-slate-200 dark:border-white/5 relative overflow-hidden">
+                 <div className="bg-gradient-to-br from-white via-slate-50 to-slate-200 dark:from-[#0d0d1a] dark:via-[#0a0a12] dark:to-[#050508] rounded-[36px] p-6 shadow-xl border border-slate-200 dark:border-[#818cf8]/20 relative overflow-hidden" style={appSettings.darkMode ? { boxShadow: '0 0 0 1px rgba(129,140,248,0.15), 0 24px 64px rgba(0,0,0,0.6)' } : {}}>
                    <div className="absolute top-0 left-0 w-full h-full bg-[radial-gradient(ellipse_at_top_left,rgba(255,255,255,0.6)_0%,transparent_60%)] dark:bg-[radial-gradient(ellipse_at_top_left,rgba(255,255,255,0.08)_0%,transparent_60%)] pointer-events-none"></div>
                    <div className="flex items-center gap-4 mb-6 relative z-10">
                      <div className="text-[38px] font-mono font-black text-slate-900 dark:text-white">{showAssets ? fmt(totals.assets) : '¥***,***'}</div>
@@ -1347,17 +1378,17 @@ function App() {
                          <div className="w-full h-full mt-6">
                            <ResponsiveContainer width="100%" height="100%">
                               <AreaChart data={historyChartData} margin={{ top: 5, right: 10, left: 10, bottom: 0 }}>
-                                <CartesianGrid strokeDasharray="3 3" stroke="rgba(100,116,139,0.2)" className="dark:!stroke-white/10" vertical={false} />
-                                <XAxis dataKey="name" stroke="rgba(100,116,139,0.7)" fontSize={13} tickLine={false} axisLine={false} />
-                                <YAxis stroke="rgba(100,116,139,0.7)" fontSize={13} tickLine={false} axisLine={false} tickFormatter={(val) => `${val/10000}万`} width={50} />
-                                <Area type="monotone" dataKey="assets" stroke={assetChartColor} strokeWidth={3} fill="url(#colorAssets)" fillOpacity={1} />
+                                <CartesianGrid strokeDasharray="3 3" stroke={appSettings.darkMode ? "rgba(167,139,250,0.12)" : "rgba(100,116,139,0.15)"} vertical={false} />
+                                <XAxis dataKey="name" stroke={appSettings.darkMode ? "rgba(255,255,255,0.35)" : "rgba(100,116,139,0.7)"} fontSize={13} tickLine={false} axisLine={false} />
+                                <YAxis stroke={appSettings.darkMode ? "rgba(255,255,255,0.35)" : "rgba(100,116,139,0.7)"} fontSize={13} tickLine={false} axisLine={false} tickFormatter={(val) => `${val/10000}万`} width={50} />
+                                <Area type="monotone" dataKey="assets" stroke={assetChartColor} strokeWidth={2.5} fill="url(#colorAssets)" fillOpacity={1} />
                                 <defs>
                                   <linearGradient id="colorAssets" x1="0" y1="0" x2="0" y2="1">
-                                    <stop offset="5%" stopColor={assetChartColor} stopOpacity={0.5}/>
-                                    <stop offset="95%" stopColor={assetChartColor} stopOpacity={0}/>
+                                    <stop offset="5%" stopColor={assetChartColor} stopOpacity={0.45}/>
+                                    <stop offset="95%" stopColor={assetChartColor} stopOpacity={0.02}/>
                                   </linearGradient>
                                 </defs>
-                                <RechartsTooltip formatter={(value) => [fmt(value), '']} labelStyle={{display: 'none'}} separator="" contentStyle={{ backgroundColor: tooltipBg, border: tooltipBorder, borderRadius: '12px', fontSize: '14px', padding: '10px 16px' }} itemStyle={{ color: assetChartColor, fontWeight: 'bold' }} />
+                                <RechartsTooltip formatter={(value) => [fmt(value), '']} labelStyle={{display: 'none'}} separator="" contentStyle={{ backgroundColor: tooltipBg, border: `1px solid ${tooltipBorder}`, borderRadius: '12px', fontSize: '14px', padding: '10px 16px' }} itemStyle={{ color: assetChartColor, fontWeight: 'bold' }} />
                               </AreaChart>
                            </ResponsiveContainer>
                          </div>
@@ -1367,7 +1398,7 @@ function App() {
 
                  <div className="flex overflow-x-auto gap-3 no-scrollbar px-1">
                     {[{id: 'all', label: '全て'}, {id: 'bank', label: '銀行'}, {id: 'cash', label: '現金'}, {id: 'invest', label: '証券'}, {id: 'prepaid', label: 'プリペイド'}, {id: 'point', label: 'ポイント'}].map(f => (
-                      <button key={`filter-${f.id}`} onClick={() => setAssetFilter(f.id)} className={`px-6 py-3 rounded-[20px] text-[13px] font-black whitespace-nowrap active:scale-95 ${assetFilter === f.id ? 'bg-orange-600 dark:bg-[#ff7a1a] text-white shadow-lg' : 'bg-white dark:bg-[#0c0c0c] text-slate-500 dark:text-white/50 border border-slate-200 dark:border-[#1e1e1e]'}`}>{String(f.label)}</button>
+                      <button key={`filter-${f.id}`} onClick={() => setAssetFilter(f.id)} className={`px-6 py-3 rounded-[20px] text-[13px] font-black whitespace-nowrap active:scale-95 ${assetFilter === f.id ? 'bg-white text-black dark:bg-white dark:text-black' : 'bg-transparent text-slate-500 dark:text-white/50 border border-slate-300 dark:border-white/[0.12]'}`} style={assetFilter === f.id ? { boxShadow: '0 4px 16px rgba(255,255,255,0.15)' } : {}}>{String(f.label)}</button>
                     ))}
                  </div>
 
@@ -1379,7 +1410,7 @@ function App() {
                      ...prepaids.map(p => ({ ...p, _type: 'prepaid', _color: '#d4b896', _displayBalance: p.balance, icon: <CreditCard size={20}/>, subtitle: 'プリペイド' })),
                      ...points.map(p => ({ ...p, _type: 'point', _color: '#c9962b', _displayBalance: Number(p.balance) * (Number(p.rate)||1), icon: <Coins size={20}/>, subtitle: 'ポイント' }))
                    ].filter(a => assetFilter === 'all' || a._type === assetFilter).map(item => (
-                     <div key={`asset-${item._type}-${item.id}`} className="bg-white dark:bg-[#0c0c0c] border border-slate-200 dark:border-[#1e1e1e] rounded-[28px] p-5 flex justify-between items-center shadow-sm cursor-pointer relative overflow-hidden active:scale-95" onClick={() => setEditingItem({type: item._type, data: item})}>
+                     <div key={`asset-${item._type}-${item.id}`} className="bg-white dark:bg-black border border-slate-200 dark:border-white/[0.07] rounded-[28px] p-5 flex justify-between items-center shadow-sm cursor-pointer relative overflow-hidden active:scale-95" onClick={() => setEditingItem({type: item._type, data: item})}>
                        <div className="absolute top-0 left-0 w-2 h-full" style={{ backgroundColor: item._color }}></div>
                        <div className="flex items-center gap-4 pl-4">
                          <div className="w-10 h-10 bg-slate-100 dark:bg-white/5 rounded-xl flex items-center justify-center" style={{color: item._color}}>{item.icon}</div>
@@ -1403,10 +1434,10 @@ function App() {
           {activeTab === 'add' && (
             <div className="space-y-6">
               {/* モード切替タブ */}
-              <div className="flex bg-white dark:bg-[#0c0c0c] border border-slate-200 dark:border-[#1e1e1e] rounded-[20px] p-1.5 shadow-sm">
-                <button onClick={() => setEntryMode('expense')} className={`flex-1 py-3 text-xs font-black rounded-[14px] transition-all ${entryMode === 'expense' ? 'bg-rose-500 text-white shadow' : 'text-slate-500 dark:text-white/40'}`}>支出</button>
-                <button onClick={() => setEntryMode('income')} className={`flex-1 py-3 text-xs font-black rounded-[14px] transition-all ${entryMode === 'income' ? 'bg-green-500 text-white shadow' : 'text-slate-500 dark:text-white/40'}`}>収入</button>
-                <button onClick={() => setEntryMode('fixed')} className={`flex-1 py-3 text-xs font-black rounded-[14px] transition-all ${entryMode === 'fixed' ? 'bg-orange-600 dark:bg-[#ff7a1a] dark:text-black text-white shadow' : 'text-slate-500 dark:text-white/40'}`}>固定費</button>
+              <div className="flex bg-white dark:bg-black border border-slate-200 dark:border-white/[0.07] rounded-[20px] p-1.5 shadow-sm">
+                <button onClick={() => setEntryMode('expense')} className={`flex-1 py-3 text-xs font-black rounded-[14px] transition-all ${entryMode === 'expense' ? 'bg-white text-black dark:bg-white dark:text-black' : 'text-slate-500 dark:text-white/40'}`} style={entryMode === 'expense' ? { boxShadow: '0 2px 10px rgba(255,255,255,0.15)' } : {}}>支出</button>
+                <button onClick={() => setEntryMode('income')} className={`flex-1 py-3 text-xs font-black rounded-[14px] transition-all ${entryMode === 'income' ? 'bg-white text-black dark:bg-white dark:text-black' : 'text-slate-500 dark:text-white/40'}`} style={entryMode === 'income' ? { boxShadow: '0 2px 10px rgba(255,255,255,0.15)' } : {}}>収入</button>
+                <button onClick={() => setEntryMode('fixed')} className={`flex-1 py-3 text-xs font-black rounded-[14px] transition-all ${entryMode === 'fixed' ? 'bg-white text-black dark:bg-white dark:text-black' : 'text-slate-500 dark:text-white/40'}`} style={entryMode === 'fixed' ? { boxShadow: '0 2px 10px rgba(255,255,255,0.15)' } : {}}>固定費</button>
               </div>
 
               {/* 支出 */}
@@ -1472,7 +1503,7 @@ function App() {
                   <GlassCard title="登録済みの固定費">
                     <div className="space-y-3">
                       {fixedCosts.map((it) => (
-                        <div key={it.id} className="flex justify-between items-center p-5 bg-slate-50 dark:bg-[#141414] border border-slate-200 dark:border-[#1e1e1e] rounded-[24px] cursor-pointer active:scale-95" onClick={() => setEditingItem({type:'fixedCost', data:it})}>
+                        <div key={it.id} className="flex justify-between items-center p-5 bg-slate-50 dark:bg-black border border-slate-200 dark:border-white/[0.07] rounded-[24px] cursor-pointer active:scale-95" onClick={() => setEditingItem({type:'fixedCost', data:it})}>
                            <div className="flex items-center gap-4 flex-1 overflow-hidden">
                              <GripVertical size={18} className="text-slate-300 dark:text-white/10 shrink-0"/>
                              <span className="text-[15px] font-bold truncate text-slate-800 dark:text-white/90">{String(it.name)} <span className="text-[10px] text-slate-400 dark:text-white/40 ml-2">{{monthly:'毎月',quarterly:'3ヶ月',biannual:'半年',annual:'年1回'}[it.cycle]||'毎月'}{it.paymentDay}日</span></span>
@@ -1500,26 +1531,26 @@ function App() {
 
             return (
               <div className="space-y-6">
-                <div className="flex bg-white dark:bg-[#0c0c0c] border border-slate-200 dark:border-[#1e1e1e] rounded-[20px] p-1.5 mx-auto w-full max-w-[320px] shadow-sm">
-                  <button onClick={() => setLedgerMode('monthly')} className={`flex-1 py-2.5 text-xs font-black rounded-[14px] ${ledgerMode === 'monthly' ? 'bg-slate-100 dark:bg-[#1e1e1e] text-orange-600 dark:text-[#ff7a1a]' : 'text-slate-500 dark:text-white/40'}`}>月間</button>
-                  <button onClick={() => setLedgerMode('yearly')} className={`flex-1 py-2.5 text-xs font-black rounded-[14px] ${ledgerMode === 'yearly' ? 'bg-slate-100 dark:bg-[#1e1e1e] text-orange-600 dark:text-[#ff7a1a]' : 'text-slate-500 dark:text-white/40'}`}>年間</button>
+                <div className="flex bg-white dark:bg-black border border-slate-200 dark:border-white/[0.07] rounded-[20px] p-1.5 mx-auto w-full max-w-[320px] shadow-sm">
+                  <button onClick={() => setLedgerMode('monthly')} className={`flex-1 py-2.5 text-xs font-black rounded-[14px] transition-all ${ledgerMode === 'monthly' ? 'bg-white text-black dark:bg-white dark:text-black' : 'text-slate-500 dark:text-white/40'}`} style={ledgerMode === 'monthly' ? { boxShadow: '0 2px 10px rgba(255,255,255,0.15)' } : {}}>月間</button>
+                  <button onClick={() => setLedgerMode('yearly')} className={`flex-1 py-2.5 text-xs font-black rounded-[14px] transition-all ${ledgerMode === 'yearly' ? 'bg-white text-black dark:bg-white dark:text-black' : 'text-slate-500 dark:text-white/40'}`} style={ledgerMode === 'yearly' ? { boxShadow: '0 2px 10px rgba(255,255,255,0.15)' } : {}}>年間</button>
                 </div>
 
                 {/* CSV取込・テンプレート */}
                 <div className="flex justify-center gap-2 flex-wrap">
                   <input ref={csvInputRef} type="file" accept=".csv,text/csv" onChange={handleCsvFile} className="hidden"/>
-                  <button onClick={() => csvInputRef.current && csvInputRef.current.click()} className="flex items-center gap-2 px-5 py-2.5 bg-white dark:bg-[#0c0c0c] border border-slate-200 dark:border-[#1e1e1e] rounded-full text-[12px] font-black text-slate-700 dark:text-white/80 hover:bg-slate-50 dark:hover:bg-[#141414] active:scale-95 transition-all shadow-sm">
+                  <button onClick={() => csvInputRef.current && csvInputRef.current.click()} className="flex items-center gap-2 px-5 py-2.5 bg-white dark:bg-black border border-slate-200 dark:border-white/[0.07] rounded-full text-[12px] font-black text-slate-700 dark:text-white/80 hover:bg-slate-50 dark:hover:bg-[#141414] active:scale-95 transition-all shadow-sm">
                     <Upload size={14}/>CSVから取込
                   </button>
-                  <button onClick={downloadCsvTemplate} className="flex items-center gap-2 px-5 py-2.5 bg-white dark:bg-[#0c0c0c] border border-slate-200 dark:border-[#1e1e1e] rounded-full text-[12px] font-black text-slate-700 dark:text-white/80 hover:bg-slate-50 dark:hover:bg-[#141414] active:scale-95 transition-all shadow-sm">
+                  <button onClick={downloadCsvTemplate} className="flex items-center gap-2 px-5 py-2.5 bg-white dark:bg-black border border-slate-200 dark:border-white/[0.07] rounded-full text-[12px] font-black text-slate-700 dark:text-white/80 hover:bg-slate-50 dark:hover:bg-[#141414] active:scale-95 transition-all shadow-sm">
                     <Download size={14}/>テンプレートDL
                   </button>
                 </div>
 
                 <div className="flex items-center justify-between px-6 py-2">
-                  <button onClick={() => setViewDate(new Date(viewYear, ledgerMode==='monthly'?viewMonth-2:0, 1))} className="p-3 bg-white dark:bg-[#0c0c0c] rounded-full shadow-sm active:scale-90"><ChevronLeft size={22}/></button>
+                  <button onClick={() => setViewDate(new Date(viewYear, ledgerMode==='monthly'?viewMonth-2:0, 1))} className="p-3 bg-white dark:bg-black rounded-full shadow-sm active:scale-90"><ChevronLeft size={22}/></button>
                   <span className="text-xl font-black tracking-[0.2em]">{viewYear}年{ledgerMode==='monthly' ? `${viewMonth}月` : ''}</span>
-                  <button onClick={() => setViewDate(new Date(viewYear, ledgerMode==='monthly'?viewMonth:0, 1))} className="p-3 bg-white dark:bg-[#0c0c0c] rounded-full shadow-sm active:scale-90"><ChevronRight size={22}/></button>
+                  <button onClick={() => setViewDate(new Date(viewYear, ledgerMode==='monthly'?viewMonth:0, 1))} className="p-3 bg-white dark:bg-black rounded-full shadow-sm active:scale-90"><ChevronRight size={22}/></button>
                 </div>
 
                 {ledgerMode === 'monthly' && (
@@ -1546,7 +1577,7 @@ function App() {
                         </ResponsiveContainer>
                       </div>
                       
-                      <div className="flex flex-col justify-center space-y-4 mb-6 border-b border-slate-200 dark:border-[#252525] pb-6">
+                      <div className="flex flex-col justify-center space-y-4 mb-6 border-b border-slate-200 dark:border-white/[0.07] pb-6">
                         <div className="flex justify-between">
                           <span className="text-[12px] text-slate-500 dark:text-white/40 font-black uppercase">総収入</span>
                           <span className="text-lg font-mono font-bold text-green-500">+{fmt(inc)}</span>
@@ -1555,7 +1586,7 @@ function App() {
                           <span className="text-[12px] text-slate-500 dark:text-white/40 font-black uppercase">総支出</span>
                           <span className="text-lg font-mono font-bold text-rose-500">-{fmt(exp)}</span>
                         </div>
-                        <div className="flex justify-between pt-3 border-t border-slate-200 dark:border-[#252525]">
+                        <div className="flex justify-between pt-3 border-t border-slate-200 dark:border-white/[0.07]">
                           <span className="text-[12px] text-slate-500 dark:text-white/40 font-black uppercase">今月の収支</span>
                           <span className={`text-2xl font-mono font-bold ${sur < 0 ? 'text-red-500' : 'text-slate-900 dark:text-white'}`}>{sur < 0 ? '' : '+'}{fmt(sur)}</span>
                         </div>
@@ -1577,7 +1608,7 @@ function App() {
                                    {budget > 0 && <span className="text-[10px] font-mono text-slate-400 ml-1">/ {fmt(budget)}</span>}
                                 </div>
                               </div>
-                              <div className="h-2 w-full bg-slate-200 dark:bg-[#141414] rounded-full overflow-hidden">
+                              <div className="h-2 w-full bg-slate-200 dark:bg-[#0a0a0a] rounded-full overflow-hidden">
                                  <div className={`h-full rounded-full ${isOver ? 'bg-rose-500' : ''}`} style={{ width: `${percent}%`, backgroundColor: isOver ? '' : meta.color }}></div>
                               </div>
                             </div>
@@ -1590,7 +1621,7 @@ function App() {
                     <GlassCard title="家計簿カレンダー" icon={<CalendarIcon size={18} className="text-slate-400 dark:text-white/30"/>}>
                       <div className="grid grid-cols-7 gap-1 sm:gap-1.5 mb-2">
                         {['月','火','水','木','金','土','日'].map((w, i) => (
-                          <div key={`wkh-${i}`} className={`text-center text-[11px] font-black uppercase tracking-widest pb-2 ${i === 5 ? 'text-sky-500' : i === 6 ? 'text-rose-500' : 'text-slate-400 dark:text-white/30'}`}>
+                          <div key={`wkh-${i}`} className={`text-center text-[11px] font-black uppercase tracking-widest pb-2 ${i === 5 ? 'text-slate-400 dark:text-white/40' : i === 6 ? 'text-slate-400 dark:text-white/25' : 'text-slate-400 dark:text-white/30'}`}>
                             {w}
                           </div>
                         ))}
@@ -1609,12 +1640,12 @@ function App() {
                               className={`aspect-square rounded-[14px] p-1.5 flex flex-col items-center justify-center cursor-pointer transition-all ${
                                 d ? (
                                   isSelected
-                                    ? 'bg-orange-100 dark:bg-[#ff7a1a]/20 border-2 border-orange-500 dark:border-[#ff7a1a] shadow-md'
-                                    : 'bg-slate-50 dark:bg-[#141414] border border-slate-200 dark:border-[#1e1e1e] hover:bg-slate-100 dark:hover:bg-[#1e1e1e]'
+                                    ? 'bg-slate-200 dark:bg-white/20 border-2 border-slate-600 dark:border-white shadow-md'
+                                    : 'bg-slate-50 dark:bg-black border border-slate-200 dark:border-white/[0.07] hover:bg-slate-100 dark:hover:bg-[#1e1e1e]'
                                 ) : 'opacity-0 pointer-events-none'
                               }`}
                             >
-                              <span className={`text-[14px] sm:text-[16px] font-black ${isToday ? 'text-orange-600 dark:text-[#ff7a1a]' : 'text-slate-700 dark:text-white/80'}`}>{d}</span>
+                              <span className={`text-[14px] sm:text-[16px] font-black ${isToday ? 'text-slate-800 dark:text-white' : 'text-slate-700 dark:text-white/80'}`}>{d}</span>
                               {/* 収支ドット */}
                               <div className="flex gap-1 mt-1 h-2.5 items-center">
                                 {hasInc && (
@@ -1631,7 +1662,7 @@ function App() {
 
                       {/* 選択日の詳細 */}
                       {selectedLedgerDay && (
-                        <div className="mt-6 pt-6 border-t border-slate-200 dark:border-[#1e1e1e]">
+                        <div className="mt-6 pt-6 border-t border-slate-200 dark:border-white/[0.07]">
                           <div className="flex items-center justify-between mb-4">
                             <div className="font-black text-lg text-slate-800 dark:text-white">{viewMonth}月{selectedLedgerDay}日の取引</div>
                             <button onClick={() => setSelectedLedgerDay(null)} className="text-xs font-black text-slate-400 dark:text-white/40 px-3 py-1 rounded-full bg-slate-100 dark:bg-white/5">閉じる</button>
@@ -1647,7 +1678,7 @@ function App() {
                                 {records.map(l => {
                                   const meta = getCatMeta(l.category);
                                   return (
-                                    <div key={`day-${l.id}`} className="flex justify-between items-center p-3 bg-slate-50 dark:bg-[#141414] rounded-[16px] border border-slate-200 dark:border-[#1e1e1e] cursor-pointer active:scale-95" onClick={() => setEditingItem({type: l._t, data: l})}>
+                                    <div key={`day-${l.id}`} className="flex justify-between items-center p-3 bg-slate-50 dark:bg-black rounded-[16px] border border-slate-200 dark:border-white/[0.07] cursor-pointer active:scale-95" onClick={() => setEditingItem({type: l._t, data: l})}>
                                       <div className="flex items-center gap-3">
                                         <div className="w-9 h-9 rounded-[12px] flex items-center justify-center text-base" style={{backgroundColor: `${meta.color}22`, border: `1px solid ${meta.color}44`}}>{String(meta.emoji)}</div>
                                         <div>
@@ -1670,11 +1701,11 @@ function App() {
 
                     <div>
                       <div className="flex overflow-x-auto gap-2 no-scrollbar px-1 mb-4">
-                        <button onClick={() => setLedgerCategoryFilter('all')} className={`px-5 py-2.5 rounded-[16px] text-[12px] font-black whitespace-nowrap active:scale-95 ${ledgerCategoryFilter === 'all' ? 'bg-orange-600 dark:bg-[#ff7a1a] text-white dark:text-black' : 'bg-white dark:bg-[#0c0c0c] text-slate-500 dark:text-white/50 border border-slate-200 dark:border-[#1e1e1e]'}`}>全て</button>
+                        <button onClick={() => setLedgerCategoryFilter('all')} className={`px-5 py-2.5 rounded-[16px] text-[12px] font-black whitespace-nowrap active:scale-95 ${ledgerCategoryFilter === 'all' ? 'bg-slate-800 dark:bg-white text-white dark:text-black' : 'bg-white dark:bg-black text-slate-500 dark:text-white/50 border border-slate-200 dark:border-white/[0.07]'}`}>全て</button>
                         {sortedCats.map(([cat]) => {
                           const meta = getCatMeta(cat);
                           return (
-                            <button key={`filter-${cat}`} onClick={() => setLedgerCategoryFilter(cat)} className={`px-5 py-2.5 rounded-[16px] text-[12px] font-black whitespace-nowrap active:scale-95 flex items-center gap-1.5 ${ledgerCategoryFilter === cat ? 'text-white' : 'bg-white dark:bg-[#0c0c0c] text-slate-600 dark:text-white/70 border border-slate-200 dark:border-[#1e1e1e]'}`} style={ledgerCategoryFilter === cat ? { backgroundColor: meta.color } : {}}>
+                            <button key={`filter-${cat}`} onClick={() => setLedgerCategoryFilter(cat)} className={`px-5 py-2.5 rounded-[16px] text-[12px] font-black whitespace-nowrap active:scale-95 flex items-center gap-1.5 ${ledgerCategoryFilter === cat ? 'text-white' : 'bg-white dark:bg-black text-slate-600 dark:text-white/70 border border-slate-200 dark:border-white/[0.07]'}`} style={ledgerCategoryFilter === cat ? { backgroundColor: meta.color } : {}}>
                               <span>{String(meta.emoji)}</span>{String(cat)}
                             </button>
                           )
@@ -1687,7 +1718,7 @@ function App() {
                               const meta = getCatMeta(l.category || l.type);
                               const isNoMoney = appSettings.noMoneyMode && Number(l.amount) === 0;
                               return (
-                                <div key={`ledger-item-${l.id}`} className={`flex justify-between items-center p-4 rounded-[24px] border cursor-pointer active:scale-95 ${isNoMoney ? 'bg-slate-50 dark:bg-[#141414]' : 'bg-white dark:bg-[#0c0c0c] border-slate-200 dark:border-[#1e1e1e]'}`} onClick={()=>setEditingItem({type:l._t, data:l})}>
+                                <div key={`ledger-item-${l.id}`} className={`flex justify-between items-center p-4 rounded-[24px] border cursor-pointer active:scale-95 ${isNoMoney ? 'bg-slate-50 dark:bg-black' : 'bg-white dark:bg-black border-slate-200 dark:border-white/[0.07]'}`} onClick={()=>setEditingItem({type:l._t, data:l})}>
                                    <div className="flex items-center gap-4">
                                       <div className="w-12 h-12 rounded-[16px] flex items-center justify-center text-2xl" style={{backgroundColor: isNoMoney ? `${appSettings.noMoneyColor}33` : `${meta.color}22`, border: `1px solid ${isNoMoney ? appSettings.noMoneyColor : meta.color}44`}}>
                                         {String(isNoMoney ? appSettings.noMoneyEmoji : meta.emoji)}
@@ -1710,7 +1741,7 @@ function App() {
 
                 {ledgerMode === 'yearly' && (
                   <>
-                    <div className="bg-white dark:bg-[#0c0c0c] rounded-[32px] p-6 border border-slate-200 dark:border-[#1e1e1e] text-center shadow-sm">
+                    <div className="bg-white dark:bg-black rounded-[32px] p-6 border border-slate-200 dark:border-white/[0.07] text-center shadow-sm">
                       <div className="text-[11px] font-black text-slate-500 uppercase tracking-[0.3em] mb-4">年間収支</div>
                       <div className={`text-5xl font-mono font-bold tracking-tighter ${ySur < 0 ? 'text-red-500' : 'text-green-500'}`}>{ySur < 0 ? '-' : '+'}{fmt(Math.abs(ySur))}</div>
                     </div>
@@ -1721,17 +1752,17 @@ function App() {
                     <GlassCard title="月別推移 (支出)" className="h-72">
                        <ResponsiveContainer width="100%" height="100%">
                          <AreaChart data={yChartData} margin={{ top: 10, right: 10, left: 10, bottom: 0 }}>
-                           <CartesianGrid strokeDasharray="3 3" stroke={appSettings.darkMode ? "#333" : "#e2e8f0"} vertical={false} />
-                           <XAxis dataKey="name" stroke={appSettings.darkMode ? "#666" : "#94a3b8"} fontSize={13} tickLine={false} axisLine={false} />
-                           <YAxis stroke={appSettings.darkMode ? "#666" : "#94a3b8"} fontSize={13} tickLine={false} axisLine={false} tickFormatter={(val) => `-${val/10000}万`} width={50} />
-                           <Area type="monotone" dataKey="exp" stroke={themeColor} strokeWidth={3} fill="url(#colorYExp)" fillOpacity={1} />
+                           <CartesianGrid strokeDasharray="3 3" stroke={appSettings.darkMode ? "rgba(129,140,248,0.1)" : "#e2e8f0"} vertical={false} />
+                           <XAxis dataKey="name" stroke={appSettings.darkMode ? "rgba(255,255,255,0.35)" : "#94a3b8"} fontSize={13} tickLine={false} axisLine={false} />
+                           <YAxis stroke={appSettings.darkMode ? "rgba(255,255,255,0.35)" : "#94a3b8"} fontSize={13} tickLine={false} axisLine={false} tickFormatter={(val) => `-${val/10000}万`} width={50} />
+                           <Area type="monotone" dataKey="exp" stroke={themeColor} strokeWidth={2.5} fill="url(#colorYExp)" fillOpacity={1} />
                            <defs>
                              <linearGradient id="colorYExp" x1="0" y1="0" x2="0" y2="1">
-                               <stop offset="5%" stopColor={themeColor} stopOpacity={0.4}/>
-                               <stop offset="95%" stopColor={themeColor} stopOpacity={0}/>
+                               <stop offset="5%" stopColor={themeColor} stopOpacity={0.45}/>
+                               <stop offset="95%" stopColor={themeColor} stopOpacity={0.02}/>
                              </linearGradient>
                            </defs>
-                           <RechartsTooltip formatter={(value) => [`-${fmt(value)}`, '']} separator="" contentStyle={{ backgroundColor: tooltipBg, border: tooltipBorder, borderRadius: '12px', fontSize: '14px', padding: '10px 16px' }} itemStyle={{ color: '#fb7185', fontWeight: 'bold' }} />
+                           <RechartsTooltip formatter={(value) => [`-${fmt(value)}`, '']} separator="" contentStyle={{ backgroundColor: tooltipBg, border: `1px solid ${tooltipBorder}`, borderRadius: '12px', fontSize: '14px', padding: '10px 16px' }} itemStyle={{ color: themeColor, fontWeight: 'bold' }} />
                          </AreaChart>
                        </ResponsiveContainer>
                     </GlassCard>
@@ -1746,8 +1777,8 @@ function App() {
             <div className="space-y-8">
               {settingsView === 'main' ? (
                 <>
-                  <div onClick={() => setSettingsView('profile')} className="bg-white dark:bg-[#0c0c0c] rounded-[32px] p-6 border border-slate-200 dark:border-[#1e1e1e] flex items-center gap-5 shadow-sm cursor-pointer active:scale-95 transition-transform hover:bg-slate-50 dark:hover:bg-[#141414]">
-                     <div className={`w-16 h-16 rounded-full bg-slate-100 dark:bg-[#141414] border-2 ${appSettings.userName === '未設定' ? 'border-dashed border-slate-300 dark:border-white/20' : 'border-orange-600 dark:border-[#ff7a1a]'} flex items-center justify-center relative`}>
+                  <div onClick={() => setSettingsView('profile')} className="bg-white dark:bg-black rounded-[32px] p-6 border border-slate-200 dark:border-white/[0.07] flex items-center gap-5 shadow-sm cursor-pointer active:scale-95 transition-transform hover:bg-slate-50 dark:hover:bg-[#141414]">
+                     <div className={`w-16 h-16 rounded-full bg-slate-100 dark:bg-[#0a0a0a] border-2 ${appSettings.userName === '未設定' ? 'border-dashed border-slate-300 dark:border-white/20' : 'border-slate-400 dark:border-white'} flex items-center justify-center relative`}>
                        <User size={32} className="text-slate-400 dark:text-white/20" />
                        {appSettings.plan === 'premium' && <div className="absolute -bottom-1 -right-1 bg-amber-400 p-1 rounded-full text-black"><Crown size={12} fill="currentColor"/></div>}
                      </div>
@@ -1779,16 +1810,16 @@ function App() {
               ) : (
                 <div>
                   <button className="flex items-center gap-4 mb-8 group" onClick={() => setSettingsView('main')}>
-                    <div className="p-2 bg-slate-100 dark:bg-[#141414] rounded-full"><ChevronLeft size={22} className="text-orange-600 dark:text-[#ff7a1a]"/></div>
+                    <div className="p-2 bg-slate-100 dark:bg-[#0a0a0a] rounded-full"><ChevronLeft size={22} className="text-slate-800 dark:text-white"/></div>
                     <span className="font-black tracking-widest text-slate-500 dark:text-white/50">設定メニューへ戻る</span>
                   </button>
 
                   {/* プロフィール編集 */}
                   {settingsView === 'profile' && (
                     <div className="space-y-6">
-                      <GlassCard title="プロフィール編集" icon={<User size={18} className="text-orange-600 dark:text-[#ff7a1a]"/>}>
+                      <GlassCard title="プロフィール編集" icon={<User size={18} className="text-slate-800 dark:text-white"/>}>
                         <div className="flex flex-col items-center mb-8">
-                          <div className={`w-24 h-24 rounded-full bg-slate-100 dark:bg-[#141414] border-4 ${appSettings.userName === '未設定' ? 'border-dashed border-slate-300 dark:border-white/20' : 'border-orange-600 dark:border-[#ff7a1a]'} flex items-center justify-center relative mb-4`}>
+                          <div className={`w-24 h-24 rounded-full bg-slate-100 dark:bg-[#0a0a0a] border-4 ${appSettings.userName === '未設定' ? 'border-dashed border-slate-300 dark:border-white/20' : 'border-slate-400 dark:border-white'} flex items-center justify-center relative mb-4`}>
                             <User size={48} className="text-slate-400 dark:text-white/20" />
                             {appSettings.plan === 'premium' && <div className="absolute -bottom-1 -right-1 bg-amber-400 p-1.5 rounded-full text-black shadow-md"><Crown size={16} fill="currentColor"/></div>}
                           </div>
@@ -1810,18 +1841,18 @@ function App() {
                         <div className="space-y-3">
                           <div 
                             onClick={() => setAppSettings({...appSettings, plan: 'free'})}
-                            className={`p-5 rounded-[24px] border-2 cursor-pointer transition-all active:scale-95 ${appSettings.plan === 'free' ? 'bg-slate-50 dark:bg-[#141414] border-orange-500 dark:border-[#ff7a1a]' : 'bg-white dark:bg-[#0c0c0c] border-slate-200 dark:border-[#1e1e1e]'}`}
+                            className={`p-5 rounded-[24px] border-2 cursor-pointer transition-all active:scale-95 ${appSettings.plan === 'free' ? 'bg-slate-50 dark:bg-black border-slate-600 dark:border-white' : 'bg-white dark:bg-black border-slate-200 dark:border-white/[0.07]'}`}
                           >
                             <div className="flex items-center justify-between mb-2">
                               <div className="font-black text-[16px] text-slate-900 dark:text-white">スタンダード</div>
-                              {appSettings.plan === 'free' && <CheckCircle size={20} className="text-orange-600 dark:text-[#ff7a1a]"/>}
+                              {appSettings.plan === 'free' && <CheckCircle size={20} className="text-slate-800 dark:text-white"/>}
                             </div>
                             <div className="text-[12px] text-slate-500 dark:text-white/50 leading-relaxed">基本的な家計簿機能<br/>無料</div>
                           </div>
 
                           <div 
                             onClick={() => setAppSettings({...appSettings, plan: 'premium'})}
-                            className={`p-5 rounded-[24px] border-2 cursor-pointer transition-all active:scale-95 relative overflow-hidden ${appSettings.plan === 'premium' ? 'bg-amber-50 dark:bg-amber-500/10 border-amber-500' : 'bg-white dark:bg-[#0c0c0c] border-slate-200 dark:border-[#1e1e1e]'}`}
+                            className={`p-5 rounded-[24px] border-2 cursor-pointer transition-all active:scale-95 relative overflow-hidden ${appSettings.plan === 'premium' ? 'bg-amber-50 dark:bg-amber-500/10 border-amber-500' : 'bg-white dark:bg-black border-slate-200 dark:border-white/[0.07]'}`}
                           >
                             <div className="flex items-center justify-between mb-2">
                               <div className="font-black text-[16px] text-slate-900 dark:text-white flex items-center gap-2">
@@ -1840,7 +1871,7 @@ function App() {
                   {settingsView === 'basic' && (
                     <div className="space-y-6">
                       <SettingsSection title="基本情報設定">
-                        <div className="p-5 flex justify-between items-center bg-white dark:bg-[#0c0c0c] border-b border-slate-200 dark:border-[#1e1e1e]">
+                        <div className="p-5 flex justify-between items-center bg-white dark:bg-black border-b border-slate-200 dark:border-white/[0.07]">
                           <div className="flex items-center gap-4">
                             <CalendarIcon size={20} className="text-slate-400 dark:text-white/40"/>
                             <div className="flex flex-col gap-1">
@@ -1848,7 +1879,7 @@ function App() {
                               <span className="text-[10px] text-slate-400 dark:text-white/30">月の家計集計を開始する日</span>
                             </div>
                           </div>
-                          <input type="number" min="1" max="31" inputMode="decimal" value={appSettings.startDay} onChange={e=>setAppSettings({...appSettings, startDay: Number(e.target.value)})} className="w-16 h-10 bg-slate-100 dark:bg-[#1e1e1e] border border-slate-200 dark:border-[#252525] rounded-lg text-center font-bold text-base" />
+                          <input type="number" min="1" max="31" inputMode="decimal" value={appSettings.startDay} onChange={e=>setAppSettings({...appSettings, startDay: Number(e.target.value)})} className="w-16 h-10 bg-slate-100 dark:bg-[#111111] border border-slate-200 dark:border-white/[0.07] rounded-lg text-center font-bold text-base" />
                         </div>
                         <ToggleRow label="ダークモード" active={appSettings.darkMode} icon={appSettings.darkMode ? <Moon size={18}/> : <Sun size={18}/>} onClick={()=>setAppSettings({...appSettings, darkMode: !appSettings.darkMode})} />
                       </SettingsSection>
@@ -1861,18 +1892,18 @@ function App() {
 
                       {appSettings.plan === 'premium' && (
                         <SettingsSection title="予算・比較分析">
-                          <div className="p-5 flex justify-between items-center bg-white dark:bg-[#0c0c0c] border-b border-slate-200 dark:border-[#1e1e1e]">
+                          <div className="p-5 flex justify-between items-center bg-white dark:bg-black border-b border-slate-200 dark:border-white/[0.07]">
                             <div className="flex items-center gap-4">
-                              <Target size={20} className="text-amber-500"/>
+                              <Target size={20} className="text-slate-400 dark:text-white/50"/>
                               <span className="font-bold text-[15px]">月間全体予算</span>
                             </div>
-                            <input type="number" step="1000" value={appSettings.monthlyBudget} onChange={e=>setAppSettings({...appSettings, monthlyBudget: Number(e.target.value)})} className="w-28 h-10 bg-slate-100 dark:bg-[#1e1e1e] border border-slate-200 dark:border-[#252525] rounded-lg text-right px-3 font-bold text-base" />
+                            <input type="number" step="1000" value={appSettings.monthlyBudget} onChange={e=>setAppSettings({...appSettings, monthlyBudget: Number(e.target.value)})} className="w-28 h-10 bg-slate-100 dark:bg-[#111111] border border-slate-200 dark:border-white/[0.07] rounded-lg text-right px-3 font-bold text-base" />
                           </div>
-                          <div className="p-6 bg-white dark:bg-[#0c0c0c]">
+                          <div className="p-6 bg-white dark:bg-black">
                             <label className="text-[11px] font-black text-slate-500 dark:text-white/30 uppercase mb-3 block">比較モード</label>
                             <div className="grid grid-cols-3 gap-2">
                               {['MoM', 'YoY', 'Avg3'].map(mode => (
-                                <button key={`comp-mode-${mode}`} onClick={()=>setAppSettings({...appSettings, comparisonMode: mode})} className={`py-2 text-[10px] font-black rounded-xl border ${appSettings.comparisonMode === mode ? 'bg-orange-600 dark:bg-[#ff7a1a] border-orange-600 dark:border-[#ff7a1a] text-white dark:text-black' : 'bg-slate-50 dark:bg-white/5 border-slate-200 dark:border-white/10 text-slate-500 dark:text-white/40'}`}>
+                                <button key={`comp-mode-${mode}`} onClick={()=>setAppSettings({...appSettings, comparisonMode: mode})} className={`py-2 text-[10px] font-black rounded-xl border ${appSettings.comparisonMode === mode ? 'bg-slate-800 dark:bg-white border-slate-400 dark:border-white text-white dark:text-black' : 'bg-slate-50 dark:bg-white/5 border-slate-200 dark:border-white/10 text-slate-500 dark:text-white/40'}`}>
                                   {mode === 'MoM' ? '前月比' : mode === 'YoY' ? '前年比' : '平均'}
                                 </button>
                               ))}
@@ -1888,19 +1919,19 @@ function App() {
                     <GlassCard title="カテゴリー・予算の編集">
                       {/* 支出/収入タブ */}
                       <div className="flex bg-slate-100 dark:bg-[#0a0a0a] rounded-[18px] p-1.5 mb-6">
-                        <button onClick={() => setCategoryEditTab('expense')} className={`flex-1 py-2.5 text-xs font-black rounded-[12px] transition-all ${categoryEditTab === 'expense' ? 'bg-rose-500 text-white shadow' : 'text-slate-500 dark:text-white/40'}`}>支出カテゴリ ({expenseCategories.length})</button>
-                        <button onClick={() => setCategoryEditTab('income')} className={`flex-1 py-2.5 text-xs font-black rounded-[12px] transition-all ${categoryEditTab === 'income' ? 'bg-emerald-500 text-white shadow' : 'text-slate-500 dark:text-white/40'}`}>収入カテゴリ ({incomeCategories.length})</button>
+                        <button onClick={() => setCategoryEditTab('expense')} className={`flex-1 py-2.5 text-xs font-black rounded-[12px] transition-all ${categoryEditTab === 'expense' ? 'bg-white text-black dark:bg-white dark:text-black' : 'text-slate-500 dark:text-white/40'}`} style={categoryEditTab === 'expense' ? { boxShadow: '0 2px 10px rgba(255,255,255,0.15)' } : {}}>支出カテゴリ ({expenseCategories.length})</button>
+                        <button onClick={() => setCategoryEditTab('income')} className={`flex-1 py-2.5 text-xs font-black rounded-[12px] transition-all ${categoryEditTab === 'income' ? 'bg-white text-black dark:bg-white dark:text-black' : 'text-slate-500 dark:text-white/40'}`} style={categoryEditTab === 'income' ? { boxShadow: '0 2px 10px rgba(255,255,255,0.15)' } : {}}>収入カテゴリ ({incomeCategories.length})</button>
                       </div>
 
                       <div className="flex justify-between items-center mb-3">
                         <span className="text-[11px] font-black text-slate-400 dark:text-white/30 uppercase tracking-widest">カテゴリ一覧</span>
-                        <button onClick={() => setReorderMode(reorderMode === 'categories' ? null : 'categories')} className={`text-[11px] font-black px-3 py-1.5 rounded-full transition-all ${reorderMode === 'categories' ? 'bg-[#ff7a1a] text-black' : 'bg-slate-100 dark:bg-white/5 text-slate-500 dark:text-white/40'}`}>
+                        <button onClick={() => setReorderMode(reorderMode === 'categories' ? null : 'categories')} className={`text-[11px] font-black px-3 py-1.5 rounded-full transition-all ${reorderMode === 'categories' ? 'bg-white text-black' : 'bg-slate-100 dark:bg-white/5 text-slate-500 dark:text-white/40'}`}>
                           {reorderMode === 'categories' ? '✓ 完了' : '並び替え'}
                         </button>
                       </div>
                       <div className="space-y-3 mb-4">
                         {(categoryEditTab === 'expense' ? expenseCategories : incomeCategories).map(c => (
-                          <div key={`cat-list-${c.id}`} className="flex justify-between p-4 bg-slate-50 dark:bg-[#141414] border border-slate-200 dark:border-[#1e1e1e] rounded-2xl active:scale-95 cursor-pointer" onClick={() => reorderMode !== 'categories' && setEditingItem({type: 'category', data: c})}>
+                          <div key={`cat-list-${c.id}`} className="flex justify-between p-4 bg-slate-50 dark:bg-black border border-slate-200 dark:border-white/[0.07] rounded-2xl active:scale-95 cursor-pointer" onClick={() => reorderMode !== 'categories' && setEditingItem({type: 'category', data: c})}>
                             <div className="flex items-center gap-3 flex-1 min-w-0">
                               <div className="w-10 h-10 rounded-xl flex items-center justify-center text-xl shrink-0" style={{backgroundColor:`${c.color}22`}}>{String(c.emoji)}</div>
                               <span className="font-bold truncate">{String(c.name)}</span>
@@ -1938,9 +1969,9 @@ function App() {
                           setEditingItem({type: 'category', data: newCat});
                         }}
                         className={`w-full h-14 rounded-[20px] font-black text-[14px] border-2 border-dashed flex items-center justify-center gap-2 active:scale-95 transition-all ${
-                          categoryEditTab === 'expense' 
-                            ? 'border-rose-300 dark:border-rose-500/30 text-rose-600 dark:text-rose-400 hover:bg-rose-50 dark:hover:bg-rose-500/5' 
-                            : 'border-emerald-300 dark:border-emerald-500/30 text-emerald-600 dark:text-emerald-400 hover:bg-emerald-50 dark:hover:bg-emerald-500/5'
+                          categoryEditTab === 'expense'
+                            ? 'border-slate-300 dark:border-white/20 text-slate-500 dark:text-white/40 hover:bg-slate-50 dark:hover:bg-white/5'
+                            : 'border-slate-300 dark:border-white/20 text-slate-500 dark:text-white/40 hover:bg-slate-50 dark:hover:bg-white/5'
                         }`}
                       >
                         <Plus size={18}/>{categoryEditTab === 'expense' ? '支出' : '収入'}カテゴリを追加
@@ -1952,11 +1983,11 @@ function App() {
                   {settingsView === 'backup' && (
                     <div className="space-y-6">
                       <input ref={backupInputRef} type="file" accept=".json,application/json" onChange={handleBackupImport} className="hidden" />
-                      <GlassCard title="バックアップ" icon={<Database size={18} className="text-orange-600 dark:text-[#ff7a1a]"/>}>
+                      <GlassCard title="バックアップ" icon={<Database size={18} className="text-slate-800 dark:text-white"/>}>
                         <p className="text-[12px] text-slate-500 dark:text-white/50 mb-5 leading-relaxed">全データをJSONファイルとして書き出します。定期的に保存しておくと安心です。</p>
                         <button onClick={exportBackupJson} className="w-full btn-primary h-14 font-black">バックアップをダウンロード</button>
                       </GlassCard>
-                      <GlassCard title="復元" icon={<Upload size={18} className="text-orange-600 dark:text-[#ff7a1a]"/>}>
+                      <GlassCard title="復元" icon={<Upload size={18} className="text-slate-800 dark:text-white"/>}>
                         <p className="text-[12px] text-slate-500 dark:text-white/50 mb-5 leading-relaxed">以前作成したバックアップJSONを読み込むと、全データが上書き復元されます。</p>
                         <button onClick={() => backupInputRef.current && backupInputRef.current.click()} className="w-full h-14 font-black bg-slate-100 dark:bg-white/5 rounded-2xl text-slate-700 dark:text-white/70">バックアップから復元</button>
                       </GlassCard>
@@ -1966,7 +1997,7 @@ function App() {
                   {/* CSVエクスポート */}
                   {settingsView === 'dataExport' && (
                     <div className="space-y-6">
-                      <GlassCard title="CSVエクスポート" icon={<Download size={18} className="text-orange-600 dark:text-[#ff7a1a]"/>}>
+                      <GlassCard title="CSVエクスポート" icon={<Download size={18} className="text-slate-800 dark:text-white"/>}>
                         <div className="text-[12px] text-slate-500 dark:text-white/50 mb-5 leading-relaxed">
                           各カテゴリのデータを CSV ファイル（UTF-8、BOM付き）でダウンロードできます。<br/>Excel・Googleスプレッドシートで開けます。
                         </div>
@@ -1982,7 +2013,7 @@ function App() {
                             { key: 'prepaids', label: 'プリペイド', count: prepaids.length, exec: exportPrepaidsCsv },
                             { key: 'points', label: 'ポイント', count: points.length, exec: exportPointsCsv },
                           ].map(item => (
-                            <div key={`exp-${item.key}`} className="flex justify-between items-center p-4 bg-slate-50 dark:bg-[#141414] rounded-[20px] border border-slate-200 dark:border-[#1e1e1e]">
+                            <div key={`exp-${item.key}`} className="flex justify-between items-center p-4 bg-slate-50 dark:bg-black rounded-[20px] border border-slate-200 dark:border-white/[0.07]">
                               <div className="flex-1">
                                 <div className="text-[15px] font-bold text-slate-900 dark:text-white">{String(item.label)}</div>
                                 <div className="text-[11px] font-mono font-bold text-slate-400 dark:text-white/40 mt-1">{item.count} 件</div>
@@ -1993,7 +2024,7 @@ function App() {
                                 className={`px-4 py-2 rounded-full text-[12px] font-black active:scale-95 transition-transform ${
                                   item.count === 0 
                                     ? 'bg-slate-100 dark:bg-white/5 text-slate-300 dark:text-white/20 cursor-not-allowed' 
-                                    : 'bg-orange-100 dark:bg-[#ff7a1a]/15 text-orange-600 dark:text-[#ff7a1a] hover:bg-orange-200 dark:hover:bg-[#ff7a1a]/25'
+                                    : 'bg-slate-200 dark:bg-white/15 text-slate-800 dark:text-white hover:bg-slate-300 dark:hover:bg-white/25'
                                 }`}
                               >
                                 <span className="flex items-center gap-1.5"><Download size={12}/>CSV</span>
@@ -2034,7 +2065,7 @@ function App() {
                             { key: 'points', label: 'ポイント', count: points.length, color: 'slate', exec: () => setPoints([]) },
                             { key: 'settlements', label: '精算履歴', count: settlements.length, color: 'slate', exec: () => setSettlements([]) },
                           ].map(item => (
-                            <div key={`del-${item.key}`} className="flex justify-between items-center p-4 bg-slate-50 dark:bg-[#141414] rounded-[20px] border border-slate-200 dark:border-[#1e1e1e]">
+                            <div key={`del-${item.key}`} className="flex justify-between items-center p-4 bg-slate-50 dark:bg-black rounded-[20px] border border-slate-200 dark:border-white/[0.07]">
                               <div className="flex-1">
                                 <div className="text-[15px] font-bold text-slate-900 dark:text-white">{String(item.label)}</div>
                                 <div className="text-[11px] font-mono font-bold text-slate-400 dark:text-white/40 mt-1">{item.count} 件</div>
@@ -2095,7 +2126,7 @@ function App() {
                                 setAppSettings({
                                   startDay: 1, notifyRemind: false, notifyPayment: false, notifyClosing: false, darkMode: true,
                                   userName: "ゲストユーザー", plan: "free",
-                                  noMoneyMode: true, noMoneyEmoji: "✅", noMoneyColor: "#ff7a1a",
+                                  noMoneyMode: true, noMoneyEmoji: "✅", noMoneyColor: "#e8e8e8",
                                   monthlyBudget: 200000, budgetAlert: true, weeklyReport: true, comparisonMode: "MoM"
                                 });
                                 try { localStorage.removeItem(STORAGE_KEY); } catch(e) {}
@@ -2105,7 +2136,7 @@ function App() {
                               }
                             });
                           }}
-                          className="w-full h-14 bg-rose-500 hover:bg-rose-600 dark:bg-rose-500 text-white font-black rounded-[24px] shadow-lg shadow-rose-500/30 active:scale-95 transition-transform flex items-center justify-center gap-2"
+                          className="w-full h-14 bg-rose-500 hover:bg-rose-600 dark:bg-rose-500 text-white font-black rounded-[24px] shadow-lg shadow-rose-500/20 active:scale-95 transition-transform flex items-center justify-center gap-2"
                         >
                           <Trash2 size={18}/>全てのデータを削除する
                         </button>
@@ -2127,11 +2158,11 @@ function App() {
                       {/* 銀行 */}
                       {settingsSubTab === 'banks' && (
                         <>
-                          <div className="grid grid-cols-2 gap-4 mb-6 bg-slate-50 dark:bg-[#141414] p-4 rounded-[20px] border border-slate-200 dark:border-[#1e1e1e]">
+                          <div className="grid grid-cols-2 gap-4 mb-6 bg-slate-50 dark:bg-black p-4 rounded-[20px] border border-slate-200 dark:border-white/[0.07]">
                             <InputField label="銀行名" id="set_b_name" placeholder="あおぞら銀行" />
                             <InputField label="支店名" id="set_b_branch" placeholder="本店" />
                             <div className="col-span-2"><InputField label="初期残高" id="set_b_bal" type="number" placeholder="0" /></div>
-                            <div className="col-span-2 bg-white dark:bg-[#0c0c0c] rounded-[16px] border border-slate-200 dark:border-[#1e1e1e] overflow-hidden">
+                            <div className="col-span-2 bg-white dark:bg-black rounded-[16px] border border-slate-200 dark:border-white/[0.07] overflow-hidden">
                               <ToggleRow label="家計簿の記入に表示する" icon={<Eye size={18}/>} active={newBankVisible} onClick={() => setNewBankVisible(!newBankVisible)} />
                             </div>
                             <button className="col-span-2 btn-primary h-14 mt-2 text-[15px]" onClick={() => {
@@ -2147,15 +2178,15 @@ function App() {
                           </div>
                           <div className="space-y-3">
                             {banks.map((it) => (
-                              <div key={it.id} className="flex justify-between items-center p-5 bg-slate-50 dark:bg-[#141414] border border-slate-200 dark:border-[#1e1e1e] rounded-[24px] cursor-pointer active:scale-95" onClick={() => setEditingItem({type:'bank', data:it})}>
+                              <div key={it.id} className="flex justify-between items-center p-5 bg-slate-50 dark:bg-black border border-slate-200 dark:border-white/[0.07] rounded-[24px] cursor-pointer active:scale-95" onClick={() => setEditingItem({type:'bank', data:it})}>
                                 <div className="flex items-center gap-4 flex-1 overflow-hidden">
                                   <GripVertical size={18} className="text-slate-300 dark:text-white/10 shrink-0"/>
                                   <div className="flex-1 overflow-hidden">
                                     <div className="text-[15px] font-bold truncate text-slate-800 dark:text-white/90">{String(it.name)} <span className="text-[10px] text-slate-400 ml-2">{String(it.branch || '')}</span></div>
-                                    {it.visibleInEntry === false && <div className="text-[10px] font-black text-amber-500 mt-0.5 flex items-center gap-1"><EyeOff size={10}/>記入で非表示</div>}
+                                    {it.visibleInEntry === false && <div className="text-[10px] font-black text-white/50 mt-0.5 flex items-center gap-1"><EyeOff size={10}/>記入で非表示</div>}
                                   </div>
                                 </div>
-                                <div className="font-mono text-[15px] font-bold text-orange-500 dark:text-[#ff7a1a]">{fmt(it.balance)}</div>
+                                <div className="font-mono text-[15px] font-bold text-slate-700 dark:text-white">{fmt(it.balance)}</div>
                               </div>
                             ))}
                           </div>
@@ -2165,25 +2196,25 @@ function App() {
                       {/* カード */}
                       {settingsSubTab === 'cards' && (
                         <>
-                          <div className="grid grid-cols-2 gap-5 mb-6 bg-slate-50 dark:bg-[#141414] p-5 rounded-[24px] border border-slate-200 dark:border-[#1e1e1e]">
+                          <div className="grid grid-cols-2 gap-5 mb-6 bg-slate-50 dark:bg-black p-5 rounded-[24px] border border-slate-200 dark:border-white/[0.07]">
                             <div className="col-span-2"><InputField label="カード名" id="set_c_name" placeholder="例: 楽天カード" /></div>
                             <InputField label="年会費 (¥)" id="set_c_fee" type="number" placeholder="0" hint="無料の場合は0" />
                             <InputField label="発行日" id="set_c_issue" type="date" />
                             <div className="col-span-2 flex flex-col gap-2">
                               <label className="text-[11px] font-black text-slate-500 dark:text-white/40 uppercase tracking-widest pl-3">ブランド</label>
-                              <select id="set_c_brand" className="h-14 bg-white dark:bg-[#0c0c0c] border border-slate-200 dark:border-[#1e1e1e] rounded-[20px] px-5 outline-none font-bold appearance-none">
+                              <select id="set_c_brand" className="h-14 bg-white dark:bg-black border border-slate-200 dark:border-white/[0.07] rounded-[20px] px-5 outline-none font-bold appearance-none">
                                 <option value="JCB">JCB</option><option value="VISA">VISA</option><option value="MASTERCARD">MASTERCARD</option><option value="AMEX">AMEX</option><option value="OTHER">その他</option>
                               </select>
                             </div>
                             <div className="flex flex-col gap-2">
                               <label className="text-[11px] font-black text-slate-500 dark:text-white/40 uppercase tracking-widest pl-3">締日</label>
-                              <select id="set_c_close" className="h-14 bg-white dark:bg-[#0c0c0c] border border-slate-200 dark:border-[#1e1e1e] rounded-[20px] px-5 outline-none font-bold appearance-none">
+                              <select id="set_c_close" className="h-14 bg-white dark:bg-black border border-slate-200 dark:border-white/[0.07] rounded-[20px] px-5 outline-none font-bold appearance-none">
                                 {[...Array(31)].map((_,i)=><option key={i+1} value={i+1}>{i+1}日</option>)}<option value="99">末日</option>
                               </select>
                             </div>
                             <div className="flex flex-col gap-2">
                               <label className="text-[11px] font-black text-slate-500 dark:text-white/40 uppercase tracking-widest pl-3">支払日</label>
-                              <select id="set_c_pay" className="h-14 bg-white dark:bg-[#0c0c0c] border border-slate-200 dark:border-[#1e1e1e] rounded-[20px] px-5 outline-none font-bold appearance-none">
+                              <select id="set_c_pay" className="h-14 bg-white dark:bg-black border border-slate-200 dark:border-white/[0.07] rounded-[20px] px-5 outline-none font-bold appearance-none">
                                 {[...Array(31)].map((_,i)=><option key={i+1} value={i+1}>{i+1}日</option>)}<option value="99">末日</option>
                               </select>
                             </div>
@@ -2192,19 +2223,19 @@ function App() {
                                 休日の場合
                                 <span className="text-[10px] font-bold text-slate-400 dark:text-white/30 normal-case tracking-normal">— 土日祝が支払日なら、翌営業日 or 前営業日に引落</span>
                               </label>
-                              <select id="set_c_hol" className="h-14 bg-white dark:bg-[#0c0c0c] border border-slate-200 dark:border-[#1e1e1e] rounded-[20px] px-5 outline-none font-bold appearance-none">
-                                <option value="next">翌営業日（一般的）</option><option value="prev">前営業日</option>
+                              <select id="set_c_hol" className="h-14 bg-white dark:bg-black border border-slate-200 dark:border-white/[0.07] rounded-[20px] px-5 outline-none font-bold appearance-none">
+                                <option value="next">翌営業日</option><option value="prev">前営業日</option>
                               </select>
                             </div>
                             <div className="col-span-2 flex flex-col gap-2">
                               <label className="text-[11px] font-black text-slate-500 dark:text-white/40 uppercase tracking-widest pl-3">引落銀行</label>
-                              <select id="set_c_bank" className="h-14 bg-white dark:bg-[#0c0c0c] border border-slate-200 dark:border-[#1e1e1e] rounded-[20px] px-5 outline-none font-bold appearance-none">
+                              <select id="set_c_bank" className="h-14 bg-white dark:bg-black border border-slate-200 dark:border-white/[0.07] rounded-[20px] px-5 outline-none font-bold appearance-none">
                                 <option value="">未設定</option>
-                                {banks.map(b => <option key={b.id} value={b.id}>{String(b.name)}</option>)}
+                                {banks.map(b => <option key={b.id} value={b.id}>{String(b.name)}{b.branch ? ` ${b.branch}` : ''}</option>)}
                               </select>
                             </div>
                             {/* 記入で表示するか */}
-                            <div className="col-span-2 bg-white dark:bg-[#0c0c0c] rounded-[16px] border border-slate-200 dark:border-[#1e1e1e] overflow-hidden">
+                            <div className="col-span-2 bg-white dark:bg-black rounded-[16px] border border-slate-200 dark:border-white/[0.07] overflow-hidden">
                               <ToggleRow 
                                 label="家計簿の記入に表示する" 
                                 icon={<Eye size={18}/>} 
@@ -2234,20 +2265,20 @@ function App() {
                           </div>
                           <div className="flex justify-between items-center mb-3">
                             <span className="text-[11px] font-black text-slate-400 dark:text-white/30 uppercase tracking-widest">登録済みカード</span>
-                            <button onClick={() => setReorderMode(reorderMode === 'cards' ? null : 'cards')} className={`text-[11px] font-black px-3 py-1.5 rounded-full transition-all ${reorderMode === 'cards' ? 'bg-[#ff7a1a] text-black' : 'bg-slate-100 dark:bg-white/5 text-slate-500 dark:text-white/40'}`}>
+                            <button onClick={() => setReorderMode(reorderMode === 'cards' ? null : 'cards')} className={`text-[11px] font-black px-3 py-1.5 rounded-full transition-all ${reorderMode === 'cards' ? 'bg-white text-black' : 'bg-slate-100 dark:bg-white/5 text-slate-500 dark:text-white/40'}`}>
                               {reorderMode === 'cards' ? '✓ 完了' : '並び替え'}
                             </button>
                           </div>
                           <div className="space-y-3">
                             {cards.map((it) => (
-                              <div key={it.id} className="flex justify-between items-center p-5 bg-slate-50 dark:bg-[#141414] border border-slate-200 dark:border-[#1e1e1e] rounded-[24px] active:scale-95 cursor-pointer" onClick={() => reorderMode !== 'cards' && setEditingItem({type:'card', data:it})}>
+                              <div key={it.id} className="flex justify-between items-center p-5 bg-slate-50 dark:bg-black border border-slate-200 dark:border-white/[0.07] rounded-[24px] active:scale-95 cursor-pointer" onClick={() => reorderMode !== 'cards' && setEditingItem({type:'card', data:it})}>
                                 <div className="flex items-center gap-4 flex-1 overflow-hidden min-w-0">
                                   <GripVertical size={18} className="text-slate-300 dark:text-white/10 shrink-0"/>
                                   <div className="flex-1 overflow-hidden">
                                     <div className="text-[15px] font-bold truncate">{String(it.name)} <span className="text-[10px] text-slate-400 ml-1">{String(it.brand || '')}</span></div>
-                                    {it.annualFee > 0 && <div className="text-[10px] font-bold text-amber-500">年会費 {fmt(it.annualFee)}</div>}
+                                    {it.annualFee > 0 && <div className="text-[10px] font-bold text-slate-400 dark:text-white/40">年会費 {fmt(it.annualFee)}</div>}
                                     {it.issueDate && <div className="text-[10px] text-slate-400 dark:text-white/30">発行: {it.issueDate}</div>}
-                                    {it.visibleInEntry === false && <div className="text-[10px] font-black text-amber-500 flex items-center gap-1"><EyeOff size={10}/>記入で非表示</div>}
+                                    {it.visibleInEntry === false && <div className="text-[10px] font-black text-white/50 flex items-center gap-1"><EyeOff size={10}/>記入で非表示</div>}
                                   </div>
                                 </div>
                                 {reorderMode === 'cards' ? (
@@ -2256,7 +2287,7 @@ function App() {
                                     <button onClick={e=>{e.stopPropagation();moveItem(cards,setCards,it.id,1);}} className="p-2 bg-slate-100 dark:bg-white/10 rounded-xl"><ChevronDown size={14}/></button>
                                   </div>
                                 ) : (
-                                  <div className="font-mono text-[15px] font-bold text-orange-500 dark:text-[#ff7a1a] shrink-0">{it.closingDate}締</div>
+                                  <div className="font-mono text-[15px] font-bold text-slate-700 dark:text-white shrink-0">{it.closingDate}締</div>
                                 )}
                               </div>
                             ))}
@@ -2267,10 +2298,10 @@ function App() {
                       {/* 現金 */}
                       {settingsSubTab === 'cash' && (
                         <>
-                          <div className="grid grid-cols-2 gap-4 mb-6 bg-slate-50 dark:bg-[#141414] p-4 rounded-[20px] border border-slate-200 dark:border-[#1e1e1e]">
+                          <div className="grid grid-cols-2 gap-4 mb-6 bg-slate-50 dark:bg-black p-4 rounded-[20px] border border-slate-200 dark:border-white/[0.07]">
                             <div className="col-span-2"><InputField label="名称" id="set_cash_name" placeholder="例: メイン財布、金庫" /></div>
                             <div className="col-span-2"><InputField label="現在の残高" id="set_cash_bal" type="number" placeholder="0" /></div>
-                            <div className="col-span-2 bg-white dark:bg-[#0c0c0c] rounded-[16px] border border-slate-200 dark:border-[#1e1e1e] overflow-hidden">
+                            <div className="col-span-2 bg-white dark:bg-black rounded-[16px] border border-slate-200 dark:border-white/[0.07] overflow-hidden">
                               <ToggleRow label="家計簿の記入に表示する" icon={<Eye size={18}/>} active={newCashVisible} onClick={() => setNewCashVisible(!newCashVisible)} />
                             </div>
                             <button className="col-span-2 btn-primary h-14 mt-2 text-[15px]" onClick={() => {
@@ -2285,15 +2316,15 @@ function App() {
                           </div>
                           <div className="space-y-3">
                             {cash.map((it) => (
-                              <div key={it.id} className="flex justify-between items-center p-5 bg-slate-50 dark:bg-[#141414] border border-slate-200 dark:border-[#1e1e1e] rounded-[24px] cursor-pointer active:scale-95" onClick={() => setEditingItem({type:'cash', data:it})}>
+                              <div key={it.id} className="flex justify-between items-center p-5 bg-slate-50 dark:bg-black border border-slate-200 dark:border-white/[0.07] rounded-[24px] cursor-pointer active:scale-95" onClick={() => setEditingItem({type:'cash', data:it})}>
                                 <div className="flex items-center gap-4 flex-1 overflow-hidden">
                                   <GripVertical size={18} className="text-slate-300 dark:text-white/10 shrink-0"/>
                                   <div className="flex-1 overflow-hidden">
                                     <div className="text-[15px] font-bold truncate">{String(it.name)}</div>
-                                    {it.visibleInEntry === false && <div className="text-[10px] font-black text-amber-500 mt-0.5 flex items-center gap-1"><EyeOff size={10}/>記入で非表示</div>}
+                                    {it.visibleInEntry === false && <div className="text-[10px] font-black text-white/50 mt-0.5 flex items-center gap-1"><EyeOff size={10}/>記入で非表示</div>}
                                   </div>
                                 </div>
-                                <div className="font-mono text-[15px] font-bold text-orange-500 dark:text-[#ff7a1a]">{fmt(it.balance)}</div>
+                                <div className="font-mono text-[15px] font-bold text-slate-700 dark:text-white">{fmt(it.balance)}</div>
                               </div>
                             ))}
                           </div>
@@ -2303,7 +2334,7 @@ function App() {
                       {/* ポイント */}
                       {settingsSubTab === 'points' && (
                         <>
-                          <div className="grid grid-cols-2 gap-5 mb-6 bg-slate-50 dark:bg-[#141414] p-5 rounded-[24px] border border-slate-200 dark:border-[#1e1e1e]">
+                          <div className="grid grid-cols-2 gap-5 mb-6 bg-slate-50 dark:bg-black p-5 rounded-[24px] border border-slate-200 dark:border-white/[0.07]">
                             <InputField label="ポイント名" id="set_p_name" placeholder="例: 楽天ポイント" />
                             <InputField label="所持数" id="set_p_bal" type="number" placeholder="0" />
                             <div className="col-span-2"><InputField label="レート (1pt = ?円)" id="set_p_rate" type="number" step="0.1" placeholder="1" /></div>
@@ -2317,10 +2348,10 @@ function App() {
                           </div>
                           <div className="space-y-3">
                             {points.map((it) => (
-                              <div key={it.id} className="flex justify-between items-center p-5 bg-slate-50 dark:bg-[#141414] border border-slate-200 dark:border-[#1e1e1e] rounded-[24px] cursor-pointer active:scale-95" onClick={() => setEditingItem({type:'point', data:it})}>
+                              <div key={it.id} className="flex justify-between items-center p-5 bg-slate-50 dark:bg-black border border-slate-200 dark:border-white/[0.07] rounded-[24px] cursor-pointer active:scale-95" onClick={() => setEditingItem({type:'point', data:it})}>
                                 <div className="flex items-center gap-4 flex-1 overflow-hidden"><GripVertical size={18} className="text-slate-300 dark:text-white/10 shrink-0"/><span className="text-[15px] font-bold truncate">{String(it.name)}</span></div>
                                 <div className="text-right">
-                                  <div className="font-mono text-[15px] font-bold text-orange-500 dark:text-[#ff7a1a]">{fmt(it.balance * (it.rate||1))}</div>
+                                  <div className="font-mono text-[15px] font-bold text-slate-700 dark:text-white">{fmt(it.balance * (it.rate||1))}</div>
                                   <div className="text-[10px] text-slate-400 mt-1">{Number(it.balance).toLocaleString()} pt (Rate: {it.rate||1})</div>
                                 </div>
                               </div>
@@ -2332,10 +2363,10 @@ function App() {
                       {/* プリペイド */}
                       {settingsSubTab === 'prepaids' && (
                         <>
-                          <div className="grid grid-cols-2 gap-5 mb-6 bg-slate-50 dark:bg-[#141414] p-5 rounded-[24px] border border-slate-200 dark:border-[#1e1e1e]">
+                          <div className="grid grid-cols-2 gap-5 mb-6 bg-slate-50 dark:bg-black p-5 rounded-[24px] border border-slate-200 dark:border-white/[0.07]">
                             <InputField label="サービス名" id="set_pr_name" placeholder="例: PayPay" />
                             <InputField label="残高" id="set_pr_bal" type="number" placeholder="0" />
-                            <div className="col-span-2 bg-white dark:bg-[#0c0c0c] rounded-[16px] border border-slate-200 dark:border-[#1e1e1e] overflow-hidden">
+                            <div className="col-span-2 bg-white dark:bg-black rounded-[16px] border border-slate-200 dark:border-white/[0.07] overflow-hidden">
                               <ToggleRow label="家計簿の記入に表示する" icon={<Eye size={18}/>} active={newPrepaidVisible} onClick={() => setNewPrepaidVisible(!newPrepaidVisible)} />
                             </div>
                             <button className="col-span-2 btn-primary h-14 mt-2 text-[15px]" onClick={() => {
@@ -2349,18 +2380,18 @@ function App() {
                           </div>
                           <div className="flex justify-between items-center mb-3">
                             <span className="text-[11px] font-black text-slate-400 dark:text-white/30 uppercase tracking-widest">登録済みプリペイド</span>
-                            <button onClick={() => setReorderMode(reorderMode === 'prepaids' ? null : 'prepaids')} className={`text-[11px] font-black px-3 py-1.5 rounded-full transition-all ${reorderMode === 'prepaids' ? 'bg-[#ff7a1a] text-black' : 'bg-slate-100 dark:bg-white/5 text-slate-500 dark:text-white/40'}`}>
+                            <button onClick={() => setReorderMode(reorderMode === 'prepaids' ? null : 'prepaids')} className={`text-[11px] font-black px-3 py-1.5 rounded-full transition-all ${reorderMode === 'prepaids' ? 'bg-white text-black' : 'bg-slate-100 dark:bg-white/5 text-slate-500 dark:text-white/40'}`}>
                               {reorderMode === 'prepaids' ? '✓ 完了' : '並び替え'}
                             </button>
                           </div>
                           <div className="space-y-3">
                             {prepaids.map((it) => (
-                              <div key={it.id} className="flex justify-between items-center p-5 bg-slate-50 dark:bg-[#141414] border border-slate-200 dark:border-[#1e1e1e] rounded-[24px] active:scale-95 cursor-pointer" onClick={() => reorderMode !== 'prepaids' && setEditingItem({type:'prepaid', data:it})}>
+                              <div key={it.id} className="flex justify-between items-center p-5 bg-slate-50 dark:bg-black border border-slate-200 dark:border-white/[0.07] rounded-[24px] active:scale-95 cursor-pointer" onClick={() => reorderMode !== 'prepaids' && setEditingItem({type:'prepaid', data:it})}>
                                 <div className="flex items-center gap-4 flex-1 overflow-hidden">
                                   <GripVertical size={18} className="text-slate-300 dark:text-white/10 shrink-0"/>
                                   <div className="flex-1 overflow-hidden">
                                     <div className="text-[15px] font-bold truncate">{String(it.name)}</div>
-                                    {it.visibleInEntry === false && <div className="text-[10px] font-black text-amber-500 mt-0.5 flex items-center gap-1"><EyeOff size={10}/>記入で非表示</div>}
+                                    {it.visibleInEntry === false && <div className="text-[10px] font-black text-white/50 mt-0.5 flex items-center gap-1"><EyeOff size={10}/>記入で非表示</div>}
                                   </div>
                                 </div>
                                 {reorderMode === 'prepaids' ? (
@@ -2369,7 +2400,7 @@ function App() {
                                     <button onClick={e=>{e.stopPropagation();moveItem(prepaids,setPrepaids,it.id,1);}} className="p-2 bg-slate-100 dark:bg-white/10 rounded-xl"><ChevronDown size={14}/></button>
                                   </div>
                                 ) : (
-                                  <div className="font-mono text-[15px] font-bold text-orange-500 dark:text-[#ff7a1a]">{fmt(it.balance)}</div>
+                                  <div className="font-mono text-[15px] font-bold text-slate-700 dark:text-white">{fmt(it.balance)}</div>
                                 )}
                               </div>
                             ))}
@@ -2380,7 +2411,7 @@ function App() {
                       {/* 積立 */}
                       {settingsSubTab === 'invests' && (
                         <>
-                          <div className="grid grid-cols-2 gap-5 mb-6 bg-slate-50 dark:bg-[#141414] p-5 rounded-[24px] border border-slate-200 dark:border-[#1e1e1e]">
+                          <div className="grid grid-cols-2 gap-5 mb-6 bg-slate-50 dark:bg-black p-5 rounded-[24px] border border-slate-200 dark:border-white/[0.07]">
                             <InputField label="積立名/銘柄" id="set_i_name" placeholder="例: eMAXIS Slim" />
                             <InputField label="証券口座" id="set_i_broker" placeholder="例: 楽天証券" />
                             <div className="col-span-2"><InputField label="現在の評価額" id="set_i_bal" type="number" placeholder="0" /></div>
@@ -2394,9 +2425,9 @@ function App() {
                           </div>
                           <div className="space-y-3">
                             {investments.map((it) => (
-                              <div key={it.id} className="flex justify-between items-center p-5 bg-slate-50 dark:bg-[#141414] border border-slate-200 dark:border-[#1e1e1e] rounded-[24px] cursor-pointer active:scale-95" onClick={() => setEditingItem({type:'invest', data:it})}>
+                              <div key={it.id} className="flex justify-between items-center p-5 bg-slate-50 dark:bg-black border border-slate-200 dark:border-white/[0.07] rounded-[24px] cursor-pointer active:scale-95" onClick={() => setEditingItem({type:'invest', data:it})}>
                                 <div className="flex items-center gap-4 flex-1 overflow-hidden"><GripVertical size={18} className="text-slate-300 dark:text-white/10 shrink-0"/><span className="text-[15px] font-bold truncate">{String(it.name)} <span className="text-[10px] text-slate-400 ml-2">{String(it.broker || '')}</span></span></div>
-                                <div className="font-mono text-[15px] font-bold text-orange-500 dark:text-[#ff7a1a]">{fmt(it.balance)}</div>
+                                <div className="font-mono text-[15px] font-bold text-slate-700 dark:text-white">{fmt(it.balance)}</div>
                               </div>
                             ))}
                           </div>
@@ -2412,13 +2443,13 @@ function App() {
 
         {/* ナビゲーション */}
         <nav
-          className="fixed bottom-0 left-0 right-0 w-full bg-white/95 dark:bg-[#0c0c0c]/95 backdrop-blur-xl border-t border-slate-200 dark:border-[#1e1e1e] rounded-t-[32px] z-50 flex items-center px-2 pt-2 pb-nav-safe"
+          className="fixed bottom-0 left-0 right-0 w-full bg-white/95 dark:bg-black/95 backdrop-blur-xl border-t border-slate-200 dark:border-white/[0.07] rounded-t-[32px] z-50 flex items-center px-2 pt-2 pb-nav-safe"
           style={{ WebkitTransform: 'translate3d(0,0,0)', willChange: 'transform' }}
         >
            <NavBtn active={activeTab === 'home'} onClick={() => { setActiveTab('home'); window.scrollTo(0,0); }} icon={<Home size={28}/>} label="ホーム" />
            <NavBtn active={activeTab === 'assets'} onClick={() => { setActiveTab('assets'); window.scrollTo(0,0); }} icon={<Wallet size={28}/>} label="資産" />
            <div className="relative flex-1 flex justify-center">
-              <button onClick={() => { setActiveTab('add'); window.scrollTo(0,0); }} className={`w-[76px] h-[76px] rounded-full flex items-center justify-center -mt-8 shadow-2xl border-[6px] border-slate-50 dark:border-[#050505] bg-gradient-to-br from-orange-500 to-orange-700 dark:from-[#ff7a1a] dark:to-[#e0651a] text-white active:scale-90`}><Plus size={38} strokeWidth={3}/></button>
+              <button onClick={() => { setActiveTab('add'); window.scrollTo(0,0); }} className={`w-[72px] h-[72px] rounded-full flex items-center justify-center -mt-7 bg-[#111111] dark:bg-black text-white active:scale-90 plus-btn`} style={{ border: '2.5px solid rgba(255,255,255,0.85)', boxShadow: '0 0 0 0 rgba(255,255,255,0.25), 0 12px 40px rgba(0,0,0,0.7)' }}><Plus size={36} strokeWidth={2.5}/></button>
            </div>
            <NavBtn active={activeTab === 'ledger'} onClick={() => { setActiveTab('ledger'); window.scrollTo(0,0); }} icon={<BookOpen size={28}/>} label="家計簿" />
            <NavBtn active={activeTab === 'settings'} onClick={() => { setActiveTab('settings'); setSettingsView('main'); window.scrollTo(0,0); }} icon={<Settings size={28}/>} label="設定" />
@@ -2436,7 +2467,7 @@ function App() {
         {confirmDialog && (
           <div className="fixed inset-0 z-[200] flex items-end justify-center bg-black/60 backdrop-blur-md" onClick={() => setConfirmDialog(null)}>
             <div
-              className="bg-white dark:bg-[#0c0c0c] rounded-t-[40px] w-full max-w-lg shadow-2xl border-t border-slate-200 dark:border-[#1e1e1e] text-center"
+              className="bg-white dark:bg-black rounded-t-[40px] w-full max-w-lg shadow-2xl border-t border-slate-200 dark:border-white/[0.07] text-center"
               style={{ paddingBottom: 'max(2rem, env(safe-area-inset-bottom))', marginBottom: 'var(--kb-offset, 0px)' }}
               onClick={e => e.stopPropagation()}
             >
@@ -2454,14 +2485,14 @@ function App() {
         {importPreview && (
           <div className="fixed inset-0 z-[150] flex items-end justify-center bg-black/60 backdrop-blur-md" onClick={() => setImportPreview(null)}>
             <div
-              className="bg-white dark:bg-[#0c0c0c] rounded-t-[32px] w-full max-w-lg shadow-2xl border-t border-slate-200 dark:border-[#1e1e1e] flex flex-col"
+              className="bg-white dark:bg-black rounded-t-[32px] w-full max-w-lg shadow-2xl border-t border-slate-200 dark:border-white/[0.07] flex flex-col"
               style={{ maxHeight: '88vh', marginBottom: 'var(--kb-offset, 0px)' }}
               onClick={e => e.stopPropagation()}
             >
               <div className="w-10 h-1.5 bg-slate-300 dark:bg-white/20 rounded-full mx-auto mt-3 mb-1 shrink-0" />
-              <div className="p-6 border-b border-slate-200 dark:border-[#1e1e1e] shrink-0">
+              <div className="p-6 border-b border-slate-200 dark:border-white/[0.07] shrink-0">
                 <div className="flex items-center gap-2 mb-2">
-                  <Upload size={20} className="text-orange-600 dark:text-[#ff7a1a]"/>
+                  <Upload size={20} className="text-slate-800 dark:text-white"/>
                   <h3 className="font-black text-lg text-slate-900 dark:text-white">CSV取込プレビュー</h3>
                 </div>
                 <div className="text-[12px] text-slate-500 dark:text-white/50">
@@ -2478,7 +2509,7 @@ function App() {
                   {importPreview.rows.slice(0, 50).map((r, i) => {
                     const meta = getCatMeta(r.category);
                     return (
-                      <div key={`prev-${i}`} className="flex justify-between items-center p-3 bg-slate-50 dark:bg-[#141414] rounded-[16px] border border-slate-200 dark:border-[#1e1e1e]">
+                      <div key={`prev-${i}`} className="flex justify-between items-center p-3 bg-slate-50 dark:bg-black rounded-[16px] border border-slate-200 dark:border-white/[0.07]">
                         <div className="flex items-center gap-3 flex-1 min-w-0">
                           <div className="w-9 h-9 rounded-[12px] flex items-center justify-center text-base shrink-0" style={{backgroundColor: `${meta.color}22`, border: `1px solid ${meta.color}44`}}>{String(meta.emoji)}</div>
                           <div className="min-w-0 flex-1">
@@ -2506,7 +2537,7 @@ function App() {
                 )}
               </div>
 
-              <div className="px-6 pt-4 border-t border-slate-200 dark:border-[#1e1e1e] shrink-0">
+              <div className="px-6 pt-4 border-t border-slate-200 dark:border-white/[0.07] shrink-0">
                 <div className="mb-4">
                   <CheckboxSelect label="取込時の支払方法" value={csvImportMethod} options={paymentOptions} onChange={setCsvImportMethod} />
                 </div>
@@ -2525,13 +2556,13 @@ function App() {
         {editingItem && (
           <div className="fixed inset-0 z-[100] flex items-end justify-center bg-black/60 backdrop-blur-md" onClick={() => { setEditingItem(null); setConfirmDelete(false); }}>
             <div
-              className="bg-white dark:bg-[#0c0c0c] rounded-t-[40px] w-full max-w-lg shadow-2xl border-t border-slate-200 dark:border-[#1e1e1e] flex flex-col"
+              className="bg-white dark:bg-black rounded-t-[40px] w-full max-w-lg shadow-2xl border-t border-slate-200 dark:border-white/[0.07] flex flex-col"
               style={{ maxHeight: '92vh', marginBottom: 'var(--kb-offset, 0px)' }}
               onClick={e => e.stopPropagation()}
             >
               <div className="w-10 h-1.5 bg-slate-300 dark:bg-white/20 rounded-full mx-auto mt-3 mb-1 shrink-0" />
               <div className="flex justify-between items-center px-8 pt-4 pb-4 shrink-0">
-                <h3 className="font-black text-lg text-orange-600 dark:text-[#ff7a1a]">詳細編集</h3>
+                <h3 className="font-black text-lg text-slate-800 dark:text-white">詳細編集</h3>
                 {!confirmDelete ? <button onClick={()=>setConfirmDelete(true)} className="text-slate-400"><Trash2 size={22}/></button> : <button onClick={()=>{ 
                   if(editingItem.type==='expense'){ setLedger(ledger.filter(l=>l.id!==editingItem.data.id)); } 
                   else if(editingItem.type==='bank'){ setBanks(banks.filter(b=>b.id!==editingItem.data.id)); } 
@@ -2592,19 +2623,19 @@ function App() {
                     <InputField label="カード名" value={editingItem.data.name || ''} onChange={e=>setEditingItem({...editingItem, data:{...editingItem.data, name:e.target.value}})} />
                     <div className="flex flex-col gap-2">
                       <label className="text-[11px] font-black text-slate-500 dark:text-white/40 uppercase tracking-widest pl-4">ブランド</label>
-                      <select className="h-16 bg-slate-100 dark:bg-[#0c0c0c] border border-slate-200 dark:border-[#1e1e1e] rounded-[24px] px-5 outline-none font-bold appearance-none" value={editingItem.data.brand || 'JCB'} onChange={e=>setEditingItem({...editingItem, data:{...editingItem.data, brand:e.target.value}})}>
+                      <select className="h-16 bg-slate-100 dark:bg-black border border-slate-200 dark:border-white/[0.07] rounded-[24px] px-5 outline-none font-bold appearance-none" value={editingItem.data.brand || 'JCB'} onChange={e=>setEditingItem({...editingItem, data:{...editingItem.data, brand:e.target.value}})}>
                         <option value="JCB">JCB</option><option value="VISA">VISA</option><option value="MASTERCARD">MASTERCARD</option><option value="AMEX">AMEX</option><option value="OTHER">その他</option>
                       </select>
                     </div>
                     <div className="flex flex-col gap-2">
                       <label className="text-[11px] font-black text-slate-500 dark:text-white/40 uppercase tracking-widest pl-4">締日</label>
-                      <select className="h-16 bg-slate-100 dark:bg-[#0c0c0c] border border-slate-200 dark:border-[#1e1e1e] rounded-[24px] px-5 outline-none font-bold appearance-none" value={editingItem.data.closingDate || '99'} onChange={e=>setEditingItem({...editingItem, data:{...editingItem.data, closingDate:e.target.value}})}>
+                      <select className="h-16 bg-slate-100 dark:bg-black border border-slate-200 dark:border-white/[0.07] rounded-[24px] px-5 outline-none font-bold appearance-none" value={editingItem.data.closingDate || '99'} onChange={e=>setEditingItem({...editingItem, data:{...editingItem.data, closingDate:e.target.value}})}>
                         {[...Array(31)].map((_,i)=><option key={i+1} value={i+1}>{i+1}日</option>)}<option value="99">末日</option>
                       </select>
                     </div>
                     <div className="flex flex-col gap-2">
                       <label className="text-[11px] font-black text-slate-500 dark:text-white/40 uppercase tracking-widest pl-4">支払日</label>
-                      <select className="h-16 bg-slate-100 dark:bg-[#0c0c0c] border border-slate-200 dark:border-[#1e1e1e] rounded-[24px] px-5 outline-none font-bold appearance-none" value={editingItem.data.paymentDate || '99'} onChange={e=>setEditingItem({...editingItem, data:{...editingItem.data, paymentDate:e.target.value}})}>
+                      <select className="h-16 bg-slate-100 dark:bg-black border border-slate-200 dark:border-white/[0.07] rounded-[24px] px-5 outline-none font-bold appearance-none" value={editingItem.data.paymentDate || '99'} onChange={e=>setEditingItem({...editingItem, data:{...editingItem.data, paymentDate:e.target.value}})}>
                         {[...Array(31)].map((_,i)=><option key={i+1} value={i+1}>{i+1}日</option>)}<option value="99">末日</option>
                       </select>
                     </div>
@@ -2613,15 +2644,15 @@ function App() {
                         休日の場合
                         <span className="text-[10px] font-bold text-slate-400 normal-case tracking-normal">— 土日祝が支払日なら、翌 or 前営業日に</span>
                       </label>
-                      <select className="h-16 bg-slate-100 dark:bg-[#0c0c0c] border border-slate-200 dark:border-[#1e1e1e] rounded-[24px] px-5 outline-none font-bold appearance-none" value={editingItem.data.holidayAdjustment || 'next'} onChange={e=>setEditingItem({...editingItem, data:{...editingItem.data, holidayAdjustment:e.target.value}})}>
-                        <option value="next">翌営業日（一般的）</option><option value="prev">前営業日</option>
+                      <select className="h-16 bg-slate-100 dark:bg-black border border-slate-200 dark:border-white/[0.07] rounded-[24px] px-5 outline-none font-bold appearance-none" value={editingItem.data.holidayAdjustment || 'next'} onChange={e=>setEditingItem({...editingItem, data:{...editingItem.data, holidayAdjustment:e.target.value}})}>
+                        <option value="next">翌営業日</option><option value="prev">前営業日</option>
                       </select>
                     </div>
                     <div className="flex flex-col gap-2">
                       <label className="text-[11px] font-black text-slate-500 dark:text-white/40 uppercase tracking-widest pl-4">引落銀行</label>
-                      <select className="h-16 bg-slate-100 dark:bg-[#0c0c0c] border border-slate-200 dark:border-[#1e1e1e] rounded-[24px] px-5 outline-none font-bold appearance-none" value={editingItem.data.bankId || ''} onChange={e=>setEditingItem({...editingItem, data:{...editingItem.data, bankId:e.target.value}})}>
+                      <select className="h-16 bg-slate-100 dark:bg-black border border-slate-200 dark:border-white/[0.07] rounded-[24px] px-5 outline-none font-bold appearance-none" value={editingItem.data.bankId || ''} onChange={e=>setEditingItem({...editingItem, data:{...editingItem.data, bankId:e.target.value}})}>
                         <option value="">未設定</option>
-                        {banks.map(b => <option key={b.id} value={b.id}>{String(b.name)}</option>)}
+                        {banks.map(b => <option key={b.id} value={b.id}>{String(b.name)}{b.branch ? ` ${b.branch}` : ''}</option>)}
                       </select>
                     </div>
                     <InputField label="年会費 (¥)" type="number" value={editingItem.data.annualFee ?? ''} onChange={e=>setEditingItem({...editingItem, data:{...editingItem.data, annualFee:Number(e.target.value)}})} hint="無料の場合は0" />
@@ -2637,7 +2668,7 @@ function App() {
 
                 {editingItem.type === 'category' && (
                   <>
-                    <div className={`text-[11px] font-black uppercase tracking-widest pl-4 mb-2 ${editingItem.data.type === 'income' ? 'text-emerald-600 dark:text-emerald-400' : 'text-rose-500 dark:text-rose-400'}`}>
+                    <div className="text-[11px] font-black uppercase tracking-widest pl-4 mb-2 text-slate-500 dark:text-white/40">
                       {editingItem.data.type === 'income' ? '💰 収入カテゴリ' : '💸 支出カテゴリ'}
                     </div>
                     <InputField label="カテゴリ名" value={editingItem.data.name || ''} onChange={e=>setEditingItem({...editingItem, data:{...editingItem.data, name:e.target.value}})} placeholder={editingItem.data.type === 'income' ? '例: 還付金、お小遣い' : '例: サブスク、ペット'} />
@@ -2659,7 +2690,7 @@ function App() {
                 )}
               </div>
 
-              <div className="flex gap-4 px-8 pt-4 border-t border-slate-200 dark:border-[#1e1e1e] shrink-0" style={{ paddingBottom: 'max(1.5rem, env(safe-area-inset-bottom))' }}>
+              <div className="flex gap-4 px-8 pt-4 border-t border-slate-200 dark:border-white/[0.07] shrink-0" style={{ paddingBottom: 'max(1.5rem, env(safe-area-inset-bottom))' }}>
                 <button onClick={()=>{setEditingItem(null); setConfirmDelete(false);}} className="flex-1 py-4 bg-slate-100 dark:bg-white/5 rounded-2xl font-black text-slate-500 dark:text-white/50">閉じる</button>
                 <button onClick={saveEditedItem} className="flex-1 py-4 btn-primary rounded-2xl font-black text-white dark:text-black">保存する</button>
               </div>
@@ -2673,9 +2704,10 @@ function App() {
 
 function NavBtn({ active, onClick, icon, label }) {
   return (
-    <button onClick={onClick} className={`flex-1 flex flex-col items-center justify-center gap-1.5 h-16 ${active ? 'text-orange-600 dark:text-[#ff7a1a] scale-110' : 'text-slate-400 dark:text-white/30'}`}>
-      {icon}
-      <span className="text-[11px] font-black uppercase tracking-tighter">{String(label)}</span>
+    <button onClick={onClick} className={`flex-1 flex flex-col items-center justify-center gap-1 h-16 relative transition-all ${active ? 'text-slate-900 dark:text-white' : 'text-slate-400 dark:text-white/25'}`}>
+      <span className={`transition-transform ${active ? 'scale-110' : ''}`}>{icon}</span>
+      <span className="text-[10px] font-black uppercase tracking-tighter">{String(label)}</span>
+      {active && <span className="absolute bottom-1 left-1/2 -translate-x-1/2 w-1.5 h-1.5 rounded-full bg-[#6366f1] dark:bg-[#818cf8]" style={{ boxShadow: '0 0 6px rgba(99,102,241,0.8)' }}/>}
     </button>
   );
 }
