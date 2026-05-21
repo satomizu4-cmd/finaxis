@@ -425,11 +425,11 @@ function App() {
 
   // --- Firebase 同期 ---
   // デバイスID（このデバイス固有の識別子）
-  const deviceIdRef = useRef(() => {
+  const deviceIdRef = useRef((() => {
     let id = localStorage.getItem('finaxis_device_id');
     if (!id) { id = 'dev_' + Math.random().toString(36).substring(2, 10); localStorage.setItem('finaxis_device_id', id); }
     return id;
-  })();
+  })());
   // 同期コード（他デバイスと共有する6文字コード）
   const [syncId, setSyncId] = useState(() => {
     let id = localStorage.getItem('finaxis_sync_id');
