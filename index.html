@@ -45,6 +45,35 @@
 
 <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
 
+<!-- Firebase SDK (compat) -->
+<script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore-compat.js"></script>
+<script>
+// ===== Firebase 設定 =====
+// Firebase Console (https://console.firebase.google.com) でプロジェクトを作成し、
+// 「プロジェクトの設定 > アプリを追加 > ウェブ」から取得した値を入力してください。
+const FIREBASE_CONFIG = {
+  apiKey:            "YOUR_API_KEY",
+  authDomain:        "YOUR_PROJECT_ID.firebaseapp.com",
+  projectId:         "YOUR_PROJECT_ID",
+  storageBucket:     "YOUR_PROJECT_ID.appspot.com",
+  messagingSenderId: "YOUR_SENDER_ID",
+  appId:             "YOUR_APP_ID"
+};
+// ==========================
+
+let firebaseDb = null;
+try {
+  if (FIREBASE_CONFIG.apiKey && FIREBASE_CONFIG.apiKey !== "YOUR_API_KEY") {
+    if (!firebase.apps.length) firebase.initializeApp(FIREBASE_CONFIG);
+    firebaseDb = firebase.firestore();
+    console.log('[Finaxis] Firebase 接続済み');
+  } else {
+    console.info('[Finaxis] Firebase未設定 - ローカルモードで動作中');
+  }
+} catch(e) { console.warn('[Finaxis] Firebase初期化エラー:', e); }
+</script>
+
 <style>
   html, body { margin: 0; padding: 0; font-family: -apple-system, BlinkMacSystemFont, "Hiragino Sans", "Yu Gothic", sans-serif; }
   body { background-color: #f8fafc; overscroll-behavior: none; -webkit-text-size-adjust: 100%; }
@@ -127,6 +156,11 @@ const BarChart3 = makeIcon('bar-chart-3');
 const Crown = makeIcon('crown');
 const AlertTriangle = makeIcon('alert-triangle');
 const PieChartIcon = makeIcon('pie-chart');
+const CloudIcon = makeIcon('cloud');
+const WifiIcon = makeIcon('wifi');
+const WifiOffIcon = makeIcon('wifi-off');
+const Copy = makeIcon('copy');
+const Link2 = makeIcon('link-2');
 const ChevronDown = makeIcon('chevron-down');
 const ChevronUp = makeIcon('chevron-up');
 const CircleHelp = makeIcon('help-circle');
@@ -228,7 +262,7 @@ function GlassCard({ title, icon, children, className = "" }) {
     <div className={`bg-white dark:bg-black rounded-[32px] p-6 border border-slate-100 dark:border-white/[0.07] shadow-sm relative overflow-hidden ${className}`}>
       <div className="text-[11px] font-black text-slate-400 dark:text-white/40 uppercase tracking-[0.3em] mb-6 flex items-center justify-between">
         <div className="flex items-center gap-3">
-          <div className="w-1.5 h-4 bg-slate-700 dark:bg-[#d4ff00] rounded-full card-accent-bar"></div>
+          <div className="w-1.5 h-4 bg-slate-700 dark:bg-[#00c896] rounded-full card-accent-bar"></div>
           <span className="text-slate-800 dark:text-white/90">{String(title)}</span>
         </div>
         {icon}
@@ -262,7 +296,7 @@ function InputField({ label, id, type="text", placeholder, value, onChange, step
       <input
         id={id} type={type} step={step} min={min} max={max} placeholder={placeholder} value={value} onChange={onChange}
         inputMode={inputMode}
-        className="h-16 bg-slate-100 dark:bg-[#0a0a00] border border-slate-200 dark:border-white/[0.07] rounded-[24px] px-5 text-slate-900 dark:text-white outline-none focus:border-slate-600 dark:focus:border-[#d4ff00] dark:focus:shadow-[0_0_0_3px_rgba(212,255,0,0.12)] transition-all font-bold text-base"
+        className="h-16 bg-slate-100 dark:bg-[#030d08] border border-slate-200 dark:border-white/[0.07] rounded-[24px] px-5 text-slate-900 dark:text-white outline-none focus:border-slate-600 dark:focus:border-[#00c896] dark:focus:shadow-[0_0_0_3px_rgba(0,200,150,0.12)] transition-all font-bold text-base"
       />
     </div>
   );
@@ -289,8 +323,8 @@ function CheckboxSelect({ label, value, options, onChange, hint }) {
               onClick={() => onChange(opt.value)}
               className={`inline-flex items-center gap-2 px-4 py-2.5 rounded-full transition-all active:scale-95 border-2 ${
                 isSelected 
-                  ? 'bg-slate-800 dark:bg-[#1e2600] border-slate-800 dark:border-[#d4ff00] text-white shadow-md shadow-black/20 dark:shadow-[rgba(212,255,0,0.25)]'
-                  : 'bg-white dark:bg-black border-slate-200 dark:border-white/[0.07] text-slate-700 dark:text-white/60 hover:border-slate-300 dark:hover:border-[#d4ff00]/40'
+                  ? 'bg-slate-800 dark:bg-[#0a1a0f] border-slate-800 dark:border-[#00c896] text-white shadow-md shadow-black/20 dark:shadow-[rgba(0,200,150,0.25)]'
+                  : 'bg-white dark:bg-black border-slate-200 dark:border-white/[0.07] text-slate-700 dark:text-white/60 hover:border-slate-300 dark:hover:border-[#00c896]/40'
               }`}
             >
               {opt.emoji && <span className="text-base leading-none">{String(opt.emoji)}</span>}
@@ -344,7 +378,7 @@ function ToggleRow({ label, icon, active, onClick, borderBottom, disabled, badge
           )}
         </div>
       </div>
-      <div className={`w-14 h-[32px] rounded-full relative transition-all flex items-center px-0.5 ${active ? 'bg-slate-700 dark:bg-[#3d4a00]' : 'bg-slate-200 dark:bg-[#111111]'}`} style={active ? { boxShadow: '0 0 12px rgba(212,255,0,0.4)' } : {}}>
+      <div className={`w-14 h-[32px] rounded-full relative transition-all flex items-center px-0.5 ${active ? 'bg-slate-700 dark:bg-[#0a2a1e]' : 'bg-slate-200 dark:bg-[#111111]'}`} style={active ? { boxShadow: '0 0 12px rgba(0,200,150,0.4)' } : {}}>
         <div className={`w-[26px] h-[26px] rounded-full bg-white shadow-sm transform transition-all ${active ? 'translate-x-[24px]' : 'translate-x-0'}`}></div>
       </div>
     </div>
@@ -389,8 +423,26 @@ function App() {
     monthlyBudget: 200000, budgetAlert: true, weeklyReport: true, comparisonMode: "MoM"
   }));
 
+  // --- Firebase 同期 ---
+  // デバイスID（このデバイス固有の識別子）
+  const deviceIdRef = useRef(() => {
+    let id = localStorage.getItem('finaxis_device_id');
+    if (!id) { id = 'dev_' + Math.random().toString(36).substring(2, 10); localStorage.setItem('finaxis_device_id', id); }
+    return id;
+  })();
+  // 同期コード（他デバイスと共有する6文字コード）
+  const [syncId, setSyncId] = useState(() => {
+    let id = localStorage.getItem('finaxis_sync_id');
+    if (!id) { id = Math.random().toString(36).substring(2, 8).toUpperCase(); localStorage.setItem('finaxis_sync_id', id); }
+    return id;
+  });
+  const [syncStatus, setSyncStatus] = useState(firebaseDb ? 'connecting' : 'disabled'); // disabled|connecting|synced|syncing|error
+  const [syncInputId, setSyncInputId] = useState('');
+  const lastRemoteStr = useRef(''); // エコー防止用
+  const saveTimerRef = useRef(null);
+
   // --- UI制御 ---
-  const [settingsView, setSettingsView] = useState('main'); 
+  const [settingsView, setSettingsView] = useState('main');
   const [settingsSubTab, setSettingsSubTab] = useState('banks');
   const [categoryEditTab, setCategoryEditTab] = useState('expense'); // expense | income
   const [entryMode, setEntryMode] = useState('expense'); // expense / income / fixed
@@ -421,18 +473,29 @@ function App() {
   const [newCashVisible, setNewCashVisible] = useState(true);
   const [newPrepaidVisible, setNewPrepaidVisible] = useState(true);
 
-  const themeColor = appSettings.darkMode ? '#d4ff00' : '#7a9900';
+  const themeColor = appSettings.darkMode ? '#00c896' : '#007a5e';
   // 資産推移グラフ用
-  const assetChartColor = appSettings.darkMode ? '#e8ff00' : '#7a9900';
+  const assetChartColor = appSettings.darkMode ? '#00e8b0' : '#007a5e';
 
-  // localStorage への自動保存（state変更時）
+  // localStorage + Firestore への自動保存（state変更時）
   useEffect(() => {
-    try {
-      const data = { banks, cards, investments, prepaids, points, cash, ledger, incomes, fixedCosts, categories, settlements, appSettings };
-      localStorage.setItem(STORAGE_KEY, JSON.stringify(data));
-    } catch (e) {
-      console.error('Save failed', e);
-    }
+    const data = { banks, cards, investments, prepaids, points, cash, ledger, incomes, fixedCosts, categories, settlements, appSettings };
+    // localStorage には常に保存
+    try { localStorage.setItem(STORAGE_KEY, JSON.stringify(data)); } catch(e) { console.error('LocalStorage save failed', e); }
+
+    // Firestore 保存（2秒デバウンス、リモート受信データのエコーはスキップ）
+    if (!firebaseDb || !syncId) return;
+    const dataStr = JSON.stringify(data);
+    if (dataStr === lastRemoteStr.current) return; // リモートから受信したデータと同じなら保存しない
+    clearTimeout(saveTimerRef.current);
+    setSyncStatus('syncing');
+    saveTimerRef.current = setTimeout(() => {
+      firebaseDb.collection('finaxis_sync').doc(syncId).set({
+        data,
+        updatedAt: firebase.firestore.FieldValue.serverTimestamp(),
+        updatedBy: deviceIdRef.current
+      }).then(() => setSyncStatus('synced')).catch(e => { console.error('Firestore save error:', e); setSyncStatus('error'); });
+    }, 2000);
   }, [banks, cards, investments, prepaids, points, cash, ledger, incomes, fixedCosts, categories, settlements, appSettings]);
 
   // Tailwindのダークモード戦略を 'class' に切替（claude.ai プレビュー環境向け）
@@ -452,6 +515,35 @@ function App() {
       document.body.classList.remove('dark');
     }
   }, [appSettings.darkMode]);
+
+  // Firestore リアルタイムリスナー（他デバイスからの変更を受信）
+  useEffect(() => {
+    if (!firebaseDb || !syncId) return;
+    setSyncStatus('connecting');
+    const unsubscribe = firebaseDb.collection('finaxis_sync').doc(syncId).onSnapshot(snapshot => {
+      if (!snapshot.exists) { setSyncStatus('ready'); return; }
+      const { data, updatedBy } = snapshot.data();
+      // 自分が保存したデータはスキップ（エコー防止）
+      if (updatedBy === deviceIdRef.current) { setSyncStatus('synced'); return; }
+      if (!data) { setSyncStatus('ready'); return; }
+      // リモートデータを反映
+      lastRemoteStr.current = JSON.stringify(data);
+      if (data.banks !== undefined) setBanks(data.banks);
+      if (data.cards !== undefined) setCards(data.cards);
+      if (data.investments !== undefined) setInvestments(data.investments);
+      if (data.prepaids !== undefined) setPrepaids(data.prepaids);
+      if (data.points !== undefined) setPoints(data.points);
+      if (data.cash !== undefined) setCash(data.cash);
+      if (data.ledger !== undefined) setLedger(data.ledger);
+      if (data.incomes !== undefined) setIncomes(data.incomes);
+      if (data.fixedCosts !== undefined) setFixedCosts(data.fixedCosts);
+      if (data.categories !== undefined) setCategories(data.categories);
+      if (data.settlements !== undefined) setSettlements(data.settlements);
+      if (data.appSettings !== undefined) setAppSettings(prev => ({...prev, ...data.appSettings, darkMode: prev.darkMode})); // darkModeはローカル優先
+      setSyncStatus('synced');
+    }, e => { console.error('Firestore listen error:', e); setSyncStatus('error'); });
+    return () => unsubscribe();
+  }, [syncId]);
 
   // VisualViewport API: ソフトキーボード表示時にBottomSheetを押し上げる
   useEffect(() => {
@@ -1054,8 +1146,8 @@ function App() {
     e.target.value = '';
   };
 
-  const tooltipBg = appSettings.darkMode ? '#0a0a00' : '#ffffff';
-  const tooltipBorder = appSettings.darkMode ? 'rgba(212,255,0,0.3)' : '#e2e8f0';
+  const tooltipBg = appSettings.darkMode ? '#030d08' : '#ffffff';
+  const tooltipBorder = appSettings.darkMode ? 'rgba(0,200,150,0.3)' : '#e2e8f0';
 
   // type未定義の旧データは expense とみなす
   const expenseCategories = categories.filter(c => (c.type || 'expense') === 'expense');
@@ -1168,17 +1260,28 @@ function App() {
           .ios-scroll { -webkit-overflow-scrolling: touch; overscroll-behavior: contain; }
           /* キーボード表示時にBottomSheetを持ち上げる */
           :root { --kb-offset: 0px; }
-          :root { --accent: #d4ff00; --accent-dark: #aacc00; --accent-glow: rgba(212,255,0,0.35); }
+          :root { --accent: #00c896; --accent-dark: #009e78; --accent-glow: rgba(0,200,150,0.35); }
           .btn-primary { background: linear-gradient(135deg, #1e293b, #334155); color: #fff; font-weight: 900; border-radius: 24px; transition: transform 0.2s; box-shadow: 0 8px 24px rgba(0,0,0,0.3); }
-          .dark .btn-primary { background: linear-gradient(135deg, #111100, #1e2600); color: #d4ff00; box-shadow: 0 8px 32px rgba(212,255,0,0.2), inset 0 0 0 1px rgba(212,255,0,0.3); }
+          .dark .btn-primary { background: linear-gradient(135deg, #001408, #0a1a0f); color: #00c896; box-shadow: 0 8px 32px rgba(0,200,150,0.2), inset 0 0 0 1px rgba(0,200,150,0.3); }
           .btn-primary:active { transform: scale(0.96); }
           @keyframes plusPulse { 0%,100% { box-shadow: 0 0 0 0 rgba(255,255,255,0.25), 0 12px 40px rgba(0,0,0,0.7); } 50% { box-shadow: 0 0 0 8px rgba(255,255,255,0), 0 12px 40px rgba(0,0,0,0.5); } }
           .plus-btn { animation: plusPulse 3s ease-in-out infinite; }
-          html.dark .card-accent-bar { box-shadow: 0 0 10px rgba(212,255,0,0.8); }
+          html.dark .card-accent-bar { box-shadow: 0 0 10px rgba(0,200,150,0.8); }
         `}</style>
 
-        <header className="sticky top-0 z-20 bg-white/90 dark:bg-black/95 backdrop-blur-2xl border-b border-slate-200 dark:border-[#d4ff00]/12 px-6 pb-4 pt-safe flex items-center justify-between transition-colors">
-          <h1 className="text-2xl font-black tracking-tighter text-slate-900 dark:text-white">Fin<span className="text-slate-900 dark:text-[#d4ff00]" style={appSettings.darkMode ? { textShadow: '0 0 20px rgba(212,255,0,0.7)' } : {}}>axis</span></h1>
+        <header className="sticky top-0 z-20 bg-white/90 dark:bg-black/95 backdrop-blur-2xl border-b border-slate-200 dark:border-[#00c896]/12 px-6 pb-4 pt-safe flex items-center justify-between transition-colors">
+          <h1 className="text-2xl font-black tracking-tighter text-slate-900 dark:text-white">Fin<span className="text-slate-900 dark:text-[#00c896]" style={appSettings.darkMode ? { textShadow: '0 0 20px rgba(0,200,150,0.7)' } : {}}>axis</span></h1>
+          {firebaseDb && (
+            <button onClick={() => { setActiveTab('settings'); setSettingsView('sync'); window.scrollTo(0,0); }}
+              className="flex items-center gap-1.5 px-3 py-1.5 rounded-full border text-[11px] font-black transition-all active:scale-90"
+              style={syncStatus === 'synced' ? { borderColor:'rgba(0,200,150,0.4)', color:'#00c896', background:'rgba(0,200,150,0.08)' }
+                   : syncStatus === 'error'  ? { borderColor:'rgba(239,68,68,0.4)',  color:'#f87171', background:'rgba(239,68,68,0.08)' }
+                   :                          { borderColor:'rgba(255,255,255,0.1)', color:'rgba(255,255,255,0.3)', background:'transparent' }}>
+              <span className={`w-1.5 h-1.5 rounded-full ${syncStatus === 'synced' ? 'bg-[#00c896]' : syncStatus === 'syncing' || syncStatus === 'connecting' ? 'bg-yellow-400 animate-pulse' : syncStatus === 'error' ? 'bg-rose-500' : 'bg-white/30'}`}
+                style={syncStatus === 'synced' ? { boxShadow:'0 0 6px rgba(0,200,150,0.9)' } : {}}/>
+              {syncStatus === 'synced' ? '同期済' : syncStatus === 'syncing' ? '同期中' : syncStatus === 'connecting' ? '接続中' : syncStatus === 'error' ? 'エラー' : '待機中'}
+            </button>
+          )}
         </header>
 
         <main className="max-w-4xl mx-auto p-4 md:p-6 pb-safe relative z-10">
@@ -1342,7 +1445,7 @@ function App() {
 
              return (
                <div className="space-y-6">
-                 <div className="bg-gradient-to-br from-white via-slate-50 to-slate-200 dark:from-[#0a0a00] dark:via-[#080800] dark:to-[#050500] rounded-[36px] p-6 shadow-xl border border-slate-200 dark:border-[#d4ff00]/20 relative overflow-hidden" style={appSettings.darkMode ? { boxShadow: '0 0 0 1px rgba(212,255,0,0.12), 0 24px 64px rgba(0,0,0,0.6)' } : {}}>
+                 <div className="bg-gradient-to-br from-white via-slate-50 to-slate-200 dark:from-[#030d08] dark:via-[#020a06] dark:to-[#010603] rounded-[36px] p-6 shadow-xl border border-slate-200 dark:border-[#00c896]/20 relative overflow-hidden" style={appSettings.darkMode ? { boxShadow: '0 0 0 1px rgba(0,200,150,0.12), 0 24px 64px rgba(0,0,0,0.6)' } : {}}>
                    <div className="absolute top-0 left-0 w-full h-full bg-[radial-gradient(ellipse_at_top_left,rgba(255,255,255,0.6)_0%,transparent_60%)] dark:bg-[radial-gradient(ellipse_at_top_left,rgba(255,255,255,0.08)_0%,transparent_60%)] pointer-events-none"></div>
                    <div className="flex items-center gap-4 mb-6 relative z-10">
                      <div className="text-[38px] font-mono font-black text-slate-900 dark:text-white">{showAssets ? fmt(totals.assets) : '¥***,***'}</div>
@@ -1377,7 +1480,7 @@ function App() {
                          <div className="w-full h-full mt-6">
                            <ResponsiveContainer width="100%" height="100%">
                               <AreaChart data={historyChartData} margin={{ top: 5, right: 10, left: 10, bottom: 0 }}>
-                                <CartesianGrid strokeDasharray="3 3" stroke={appSettings.darkMode ? "rgba(212,255,0,0.08)" : "rgba(100,116,139,0.15)"} vertical={false} />
+                                <CartesianGrid strokeDasharray="3 3" stroke={appSettings.darkMode ? "rgba(0,200,150,0.08)" : "rgba(100,116,139,0.15)"} vertical={false} />
                                 <XAxis dataKey="name" stroke={appSettings.darkMode ? "rgba(255,255,255,0.35)" : "rgba(100,116,139,0.7)"} fontSize={13} tickLine={false} axisLine={false} />
                                 <YAxis stroke={appSettings.darkMode ? "rgba(255,255,255,0.35)" : "rgba(100,116,139,0.7)"} fontSize={13} tickLine={false} axisLine={false} tickFormatter={(val) => `${val/10000}万`} width={50} />
                                 <Area type="monotone" dataKey="assets" stroke={assetChartColor} strokeWidth={2.5} fill="url(#colorAssets)" fillOpacity={1} />
@@ -1751,7 +1854,7 @@ function App() {
                     <GlassCard title="月別推移 (支出)" className="h-72">
                        <ResponsiveContainer width="100%" height="100%">
                          <AreaChart data={yChartData} margin={{ top: 10, right: 10, left: 10, bottom: 0 }}>
-                           <CartesianGrid strokeDasharray="3 3" stroke={appSettings.darkMode ? "rgba(212,255,0,0.08)" : "#e2e8f0"} vertical={false} />
+                           <CartesianGrid strokeDasharray="3 3" stroke={appSettings.darkMode ? "rgba(0,200,150,0.08)" : "#e2e8f0"} vertical={false} />
                            <XAxis dataKey="name" stroke={appSettings.darkMode ? "rgba(255,255,255,0.35)" : "#94a3b8"} fontSize={13} tickLine={false} axisLine={false} />
                            <YAxis stroke={appSettings.darkMode ? "rgba(255,255,255,0.35)" : "#94a3b8"} fontSize={13} tickLine={false} axisLine={false} tickFormatter={(val) => `-${val/10000}万`} width={50} />
                            <Area type="monotone" dataKey="exp" stroke={themeColor} strokeWidth={2.5} fill="url(#colorYExp)" fillOpacity={1} />
@@ -1795,6 +1898,14 @@ function App() {
                   <SettingsSection title="管理のカスタマイズ">
                     <SettingsListItem title="カテゴリー・予算の編集" icon={<Tags size={20}/>} onClick={()=>setSettingsView('categories')} borderBottom />
                     <SettingsListItem title="口座・決済手段の管理" icon={<CreditCard size={20}/>} onClick={()=>{ setSettingsSubTab('banks'); setSettingsView('accounts'); }} />
+                  </SettingsSection>
+                  <SettingsSection title="デバイス同期">
+                    <SettingsListItem
+                      title="Firebase同期"
+                      value={syncStatus === 'synced' ? '同期済み' : syncStatus === 'syncing' ? '同期中...' : syncStatus === 'connecting' ? '接続中...' : syncStatus === 'error' ? 'エラー' : syncStatus === 'ready' ? '待機中' : '未設定'}
+                      icon={<CloudIcon size={20}/>}
+                      onClick={()=>setSettingsView('sync')}
+                    />
                   </SettingsSection>
                   <SettingsSection title="データ管理">
                     <SettingsListItem title="バックアップ・復元" icon={<Database size={20}/>} onClick={()=>setSettingsView('backup')} borderBottom />
@@ -1976,6 +2087,104 @@ function App() {
                         <Plus size={18}/>{categoryEditTab === 'expense' ? '支出' : '収入'}カテゴリを追加
                       </button>
                     </GlassCard>
+                  )}
+
+                  {/* Firebase 同期 */}
+                  {settingsView === 'sync' && (
+                    <div className="space-y-6">
+                      {/* 同期ステータスバナー */}
+                      <div className={`rounded-[24px] p-4 flex items-center gap-3 border ${
+                        !firebaseDb ? 'bg-slate-100 dark:bg-white/5 border-slate-200 dark:border-white/10' :
+                        syncStatus === 'synced' ? 'bg-[#001a10] border-[#00c896]/30' :
+                        syncStatus === 'error' ? 'bg-rose-500/10 border-rose-500/30' :
+                        'bg-[#0a0a0a] border-white/10'
+                      }`}>
+                        <span className={`w-2.5 h-2.5 rounded-full shrink-0 ${
+                          !firebaseDb ? 'bg-slate-400' :
+                          syncStatus === 'synced' ? 'bg-[#00c896]' :
+                          syncStatus === 'syncing' || syncStatus === 'connecting' ? 'bg-yellow-400 animate-pulse' :
+                          syncStatus === 'error' ? 'bg-rose-500' : 'bg-slate-400'
+                        }`} style={syncStatus === 'synced' && firebaseDb ? { boxShadow: '0 0 8px rgba(0,200,150,0.8)' } : {}}/>
+                        <div>
+                          <div className="font-black text-[14px] text-slate-900 dark:text-white">
+                            {!firebaseDb ? 'Firebase未設定' :
+                             syncStatus === 'synced' ? '同期済み' :
+                             syncStatus === 'syncing' ? 'データ送信中...' :
+                             syncStatus === 'connecting' ? '接続中...' :
+                             syncStatus === 'ready' ? '待機中（まだ同期なし）' : '接続エラー'}
+                          </div>
+                          <div className="text-[11px] text-slate-500 dark:text-white/40 mt-0.5">
+                            {!firebaseDb ? 'Firebase設定が必要です（下記参照）' : `同期コード: ${syncId}`}
+                          </div>
+                        </div>
+                      </div>
+
+                      {/* 自分の同期コード */}
+                      <GlassCard title="あなたの同期コード" icon={<Link2 size={18} className="text-slate-400 dark:text-white/30"/>}>
+                        <p className="text-[12px] text-slate-500 dark:text-white/50 mb-4 leading-relaxed">
+                          このコードを別のデバイスで入力すると、データが同期されます。コードを知っている人はデータを読み書きできます。
+                        </p>
+                        <div className="flex items-center gap-3 mb-4">
+                          <div className="flex-1 bg-black rounded-[16px] px-5 py-4 border border-[#00c896]/30 text-center">
+                            <span className="text-[28px] font-mono font-black tracking-[0.3em] text-[#00c896]" style={{ textShadow: '0 0 16px rgba(0,200,150,0.5)' }}>{syncId}</span>
+                          </div>
+                          <button onClick={() => { navigator.clipboard.writeText(syncId).then(() => showToast('コードをコピーしました')); }} className="p-4 bg-white/10 rounded-[16px] active:scale-90 transition-transform">
+                            <Copy size={20} className="text-white"/>
+                          </button>
+                        </div>
+                        <button onClick={() => {
+                          const newId = Math.random().toString(36).substring(2, 8).toUpperCase();
+                          localStorage.setItem('finaxis_sync_id', newId);
+                          setSyncId(newId);
+                          setSyncStatus(firebaseDb ? 'connecting' : 'disabled');
+                          showToast('新しい同期コードを生成しました');
+                        }} className="w-full py-3 text-[13px] font-black text-white/40 border border-white/10 rounded-[16px] active:scale-95 transition-transform">
+                          コードを再生成する
+                        </button>
+                      </GlassCard>
+
+                      {/* 他デバイスのコードを入力 */}
+                      <GlassCard title="別のデバイスに接続" icon={<WifiIcon size={18} className="text-slate-400 dark:text-white/30"/>}>
+                        <p className="text-[12px] text-slate-500 dark:text-white/50 mb-4 leading-relaxed">
+                          別デバイスに表示されている同期コードを入力して接続します。接続後はリアルタイムで同期されます。
+                        </p>
+                        <div className="flex gap-3">
+                          <input
+                            type="text"
+                            value={syncInputId}
+                            onChange={e => setSyncInputId(e.target.value.toUpperCase().slice(0, 6))}
+                            placeholder="XXXXXX"
+                            maxLength={6}
+                            className="flex-1 h-14 bg-black border border-white/[0.1] rounded-[16px] px-5 text-white font-mono font-black text-xl tracking-[0.2em] text-center outline-none focus:border-[#00c896]/50 transition-all"
+                          />
+                          <button
+                            onClick={() => {
+                              const code = syncInputId.trim().toUpperCase();
+                              if (code.length < 4) { showToast('コードを入力してください', true); return; }
+                              if (code === syncId) { showToast('同じコードです', true); return; }
+                              localStorage.setItem('finaxis_sync_id', code);
+                              setSyncId(code);
+                              setSyncInputId('');
+                              setSyncStatus(firebaseDb ? 'connecting' : 'disabled');
+                              showToast(`${code} に接続しました`);
+                            }}
+                            className="h-14 px-5 btn-primary rounded-[16px] font-black"
+                          >接続</button>
+                        </div>
+                      </GlassCard>
+
+                      {/* Firebase未設定時の案内 */}
+                      {!firebaseDb && (
+                        <GlassCard title="Firebase設定方法" icon={<Info size={18} className="text-slate-400 dark:text-white/30"/>}>
+                          <div className="text-[13px] text-slate-500 dark:text-white/50 space-y-3 leading-relaxed">
+                            <p>①  <a href="https://console.firebase.google.com" target="_blank" className="text-[#00c896] underline">Firebase Console</a> でプロジェクトを作成</p>
+                            <p>②  「Firestoreデータベース」を有効化（テストモードで開始）</p>
+                            <p>③  「プロジェクトの設定 &gt; アプリを追加 &gt; ウェブ」から設定値を取得</p>
+                            <p>④  HTMLファイルの <span className="font-mono text-white/70">FIREBASE_CONFIG</span> に値を貼り付け</p>
+                          </div>
+                        </GlassCard>
+                      )}
+                    </div>
                   )}
 
                   {/* バックアップ・復元 */}
@@ -2706,7 +2915,7 @@ function NavBtn({ active, onClick, icon, label }) {
     <button onClick={onClick} className={`flex-1 flex flex-col items-center justify-center gap-1 h-16 relative transition-all ${active ? 'text-slate-900 dark:text-white' : 'text-slate-400 dark:text-white/25'}`}>
       <span className={`transition-transform ${active ? 'scale-110' : ''}`}>{icon}</span>
       <span className="text-[10px] font-black uppercase tracking-tighter">{String(label)}</span>
-      {active && <span className="absolute bottom-1 left-1/2 -translate-x-1/2 w-1.5 h-1.5 rounded-full bg-[#7a9900] dark:bg-[#d4ff00]" style={{ boxShadow: '0 0 8px rgba(212,255,0,0.9)' }}/>}
+      {active && <span className="absolute bottom-1 left-1/2 -translate-x-1/2 w-1.5 h-1.5 rounded-full bg-[#007a5e] dark:bg-[#00c896]" style={{ boxShadow: '0 0 8px rgba(0,200,150,0.9)' }}/>}
     </button>
   );
 }
