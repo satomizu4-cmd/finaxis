@@ -798,14 +798,21 @@ function App() {
       const dateRaw = cells[dateIdx];
       const amountRaw = cells[amountIdx];
       
-      // 日付正規化 (YYYY/M/D → YYYY-MM-DD)
+      // 日付正規化 (YYYY/M/D or YY/M/D → YYYY-MM-DD)
       let date = dateRaw;
-      const m = dateRaw.match(/^(\d{4})[/\-](\d{1,2})[/\-](\d{1,2})/);
-      if (m) date = `${m[1]}-${pad(parseInt(m[2]))}-${pad(parseInt(m[3]))}`;
-      
+      const m4 = dateRaw.match(/^(\d{4})[/\-](\d{1,2})[/\-](\d{1,2})/);   // 4桁年
+      const m2 = dateRaw.match(/^(\d{2})[/\-](\d{1,2})[/\-](\d{1,2})/);   // 2桁年
+      if (m4) {
+        date = `${m4[1]}-${pad(parseInt(m4[2]))}-${pad(parseInt(m4[3]))}`;
+      } else if (m2) {
+        const yr = parseInt(m2[1]);
+        const fullYear = yr <= 50 ? 2000 + yr : 1900 + yr; // 26→2026, 99→1999
+        date = `${fullYear}-${pad(parseInt(m2[2]))}-${pad(parseInt(m2[3]))}`;
+      }
+
       // 金額正規化（¥, カンマ, スペース除去）
       const amount = Number(String(amountRaw).replace(/[¥,\s]/g, ''));
-      
+
       if (!date.match(/^\d{4}-\d{2}-\d{2}$/) || isNaN(amount) || amount === 0) {
         errors.push(`${i+1}行目: 日付or金額が不正 (${dateRaw}, ${amountRaw})`);
         continue;
@@ -814,12 +821,12 @@ function App() {
       // マイナス金額は支出として絶対値化
       const absAmount = Math.abs(amount);
       
-      // カテゴリマッチング（既存カテゴリ名で部分一致、なければ「その他」）
+      // カテゴリマッチング（既存カテゴリ名で部分一致、なければCSVの値をそのまま使用）
       let category = 'その他';
       if (categoryIdx !== -1 && cells[categoryIdx]) {
-        const catRaw = cells[categoryIdx];
+        const catRaw = cells[categoryIdx].trim();
         const found = categories.find(c => c.name === catRaw || catRaw.includes(c.name));
-        if (found) category = found.name;
+        category = found ? found.name : catRaw; // 未マッチはCSV値をそのまま使用
       }
       
       const name = nameIdx !== -1 ? (cells[nameIdx] || '') : '';
