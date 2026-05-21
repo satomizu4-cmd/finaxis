@@ -572,7 +572,7 @@ function App() {
         endDate = new Date(homeCalYear, closeMonthIdx, cDate, 23, 59, 59);
       }
 
-      const lSum = ledger.filter(l => l.methodId === c.id && !l.exclude).reduce((ss, l) => {
+      const lSum = ledger.filter(l => l.methodId === c.id).reduce((ss, l) => {
           const lDate = new Date(l.date);
           if (lDate >= startDate && lDate <= endDate) return ss + (Number(l.amount) || 0);
           return ss;
@@ -620,28 +620,34 @@ function App() {
   const ledgerYmStr = `${viewYear}-${pad(viewMonth)}`;
 
   const ledgerMonthData = useMemo(() => {
-    const normalLedger = ledger.filter(item => item.date && item.date.startsWith(ledgerYmStr) && !item.exclude);
+    // 表示用：集計除外アイテムも含む（家計簿に記載する）
+    const allMonthLedger = ledger.filter(item => item.date && item.date.startsWith(ledgerYmStr));
+    // 計算用：集計除外アイテムを除く
+    const normalLedger = allMonthLedger.filter(item => !item.exclude);
     const monthFixedCosts = fixedCosts.filter(item => isFixedInMonth(item, ledgerYmStr));
     const expandedFixed = monthFixedCosts.map(f => {
       const day = f.paymentDay || 1;
-      const validDay = Math.min(day, new Date(viewYear, viewMonth, 0).getDate()); 
+      const validDay = Math.min(day, new Date(viewYear, viewMonth, 0).getDate());
       return { ...f, date: `${viewYear}-${pad(viewMonth)}-${pad(validDay)}`, _isFixed: true };
     });
 
-    const monthLedger = [...normalLedger, ...expandedFixed];
+    // 表示用リスト（除外アイテムも表示）
+    const monthLedger = [...allMonthLedger, ...expandedFixed];
+    // 計算用リスト（除外アイテムを含まない）
+    const monthLedgerCalc = [...normalLedger, ...expandedFixed];
     const monthIncomes = incomes.filter(item => item.date && item.date.startsWith(ledgerYmStr));
 
     const inc = monthIncomes.reduce((sum, i) => sum + (Number(i.amount)||0), 0);
-    const exp = monthLedger.reduce((sum, i) => sum + (Number(i.amount)||0), 0);
+    const exp = monthLedgerCalc.reduce((sum, i) => sum + (Number(i.amount)||0), 0);
     const sur = inc - exp;
 
     const catTotals = {};
-    monthLedger.forEach(item => catTotals[item.category] = (catTotals[item.category] || 0) + (Number(item.amount)||0));
+    monthLedgerCalc.forEach(item => catTotals[item.category] = (catTotals[item.category] || 0) + (Number(item.amount)||0));
     const sortedCats = Object.entries(catTotals).sort((a, b) => b[1] - a[1]);
 
-    // 日別の収支データ（カレンダー用）
+    // 日別の収支データ（カレンダー用・計算除外アイテムは含まない）
     const dailyData = {};
-    monthLedger.forEach(l => {
+    monthLedgerCalc.forEach(l => {
       if (!l.date) return;
       const d = parseInt(l.date.split('-')[2], 10);
       if (!dailyData[d]) dailyData[d] = { exp: 0, inc: 0 };
@@ -1722,18 +1728,22 @@ function App() {
                             {[...filteredMonthLedger.map(l=>({...l,_t: l._isFixed ? 'fixedCost' : 'expense'})), ...filteredMonthIncomes.map(i=>({...i,_t:'income'}))].sort((a,b)=>b.date.localeCompare(a.date)).map(l => {
                               const meta = getCatMeta(l.category || l.type);
                               const isNoMoney = appSettings.noMoneyMode && Number(l.amount) === 0;
+                              const isExcluded = l.exclude === true;
                               return (
-                                <div key={`ledger-item-${l.id}`} className={`flex justify-between items-center p-4 rounded-[24px] border cursor-pointer active:scale-95 ${isNoMoney ? 'bg-slate-50 dark:bg-black' : 'bg-white dark:bg-black border-slate-200 dark:border-white/[0.07]'}`} onClick={()=>setEditingItem({type:l._t, data:l})}>
+                                <div key={`ledger-item-${l.id}`} className={`flex justify-between items-center p-4 rounded-[24px] border cursor-pointer active:scale-95 ${isExcluded ? 'opacity-50' : ''} ${isNoMoney ? 'bg-slate-50 dark:bg-black' : 'bg-white dark:bg-black border-slate-200 dark:border-white/[0.07]'}`} onClick={()=>setEditingItem({type:l._t, data:l})}>
                                    <div className="flex items-center gap-4">
                                       <div className="w-12 h-12 rounded-[16px] flex items-center justify-center text-2xl" style={{backgroundColor: isNoMoney ? `${appSettings.noMoneyColor}33` : `${meta.color}22`, border: `1px solid ${isNoMoney ? appSettings.noMoneyColor : meta.color}44`}}>
                                         {String(isNoMoney ? appSettings.noMoneyEmoji : meta.emoji)}
                                       </div>
                                       <div>
                                         <div className="font-bold text-[15px]">{String(l.name || l.category || l.type)}</div>
-                                        <div className="text-[11px] text-slate-500 dark:text-white/30 font-mono">{String(l.name ? `${l.category} • ` : '')}{String(l.date)}</div>
+                                        <div className="text-[11px] text-slate-500 dark:text-white/30 font-mono flex items-center gap-2">
+                                          {String(l.name ? `${l.category} • ` : '')}{String(l.date)}
+                                          {isExcluded && <span className="text-[9px] font-black px-1.5 py-0.5 rounded-md bg-slate-200 dark:bg-white/10 text-slate-500 dark:text-white/40 uppercase tracking-wider">対象外</span>}
+                                        </div>
                                       </div>
                                    </div>
-                                   <div className={`font-mono font-bold text-xl ${l._t === 'income' ? 'text-green-500' : ''}`}>{fmt(l.amount)}</div>
+                                   <div className={`font-mono font-bold text-xl ${l._t === 'income' ? 'text-green-500' : ''} ${isExcluded ? 'line-through' : ''}`}>{fmt(l.amount)}</div>
                                 </div>
                               );
                             })}
