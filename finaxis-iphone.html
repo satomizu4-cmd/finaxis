@@ -140,6 +140,8 @@ const ShieldCheck = makeIcon('shield-check');
 const Banknote = makeIcon('banknote');
 const HelpCircle = makeIcon('help-circle');
 const Clock = makeIcon('clock');
+const List = makeIcon('list');
+const X = makeIcon('x');
 
 // ===== ここから家計簿アプリ本体 =====
 const fmt = (num) => `¥${Number(num || 0).toLocaleString()}`;
@@ -166,22 +168,40 @@ const availableEmojis = Array.from(new Set([
   '🏠','💡','💧','🔥','📶','📱','🛡️','🏢','📮','🗳️','🛒','🧻','🧼','🧴','💊','💄','✂️','🧺','🧹','🍴','☕','🍺','🍰','🍔','🍜','🥩','🤝','🎁','🎂','🧧','🥂','🍦','🍕','🍙','🚃','🚌','🚕','✈️','🚗','🅿️','🚲','🛣️','🚢','🎫','🎬','🎵','📚','🎮','🎤','🎡','🌳','🎨','📸','🧸','🎰','📻','🏟️','🎭','🍷','✍️','🏫','💻','📝','🗣️','🏋️','🧘','🧠','📰','🛠️','👕','👖','👗','🧥','👠','👜','⌚','🕶️','🧢','🏥','🦷','🌡️','🛋️','📺','🏖️','🎍','🧨','🔧','👓','💴','💰','💹','🏦','🏁','🐶','🐱','👶','🛁','🥐','🕯️','🏀','🎸','🔌','🚿','🚭','💤','🍣','🧁','✨','✅','💎','🌈','🍀'
 ]));
 
+// デフォルトカテゴリーのカラーマップ（id → 新カラー）
+// グラフ・明細の視認性向上のため、カテゴリーごとに識別しやすい色を設定
+const DEFAULT_CATEGORY_COLORS = {
+  'c1': '#f97316', // 食費       → オレンジ
+  'c2': '#06b6d4', // 日用品     → シアン
+  'c3': '#3b82f6', // 交通費     → ブルー
+  'c4': '#a855f7', // 交際費     → パープル
+  'c5': '#64748b', // 住宅       → スレート
+  'c6': '#ec4899', // 美容・衣服 → ピンク
+  'c7': '#10b981', // 医療       → エメラルド
+  'c8': '#94a3b8', // その他     → グレー
+  'i1': '#22c55e', // 給与       → グリーン
+  'i2': '#84cc16', // 副業       → ライム
+  'i3': '#eab308', // 賞与       → イエロー
+  'i4': '#00c896', // 利子・配当 → エメラルドアクセント
+  'i5': '#38bdf8', // その他収入 → スカイ
+};
+
 const defaultCategories = [
   // 支出カテゴリ
-  { id: 'c1', name: '食費', emoji: '🍔', color: '#e8e8e8', budget: 50000, type: 'expense' },
-  { id: 'c2', name: '日用品', emoji: '🛒', color: '#c0c0c0', budget: 20000, type: 'expense' },
-  { id: 'c3', name: '交通費', emoji: '🚆', color: '#a0a0a0', budget: 15000, type: 'expense' },
-  { id: 'c4', name: '交際費', emoji: '🍻', color: '#808080', budget: 30000, type: 'expense' },
-  { id: 'c5', name: '住宅', emoji: '🏠', color: '#f4f4f4', budget: 80000, type: 'expense' },
-  { id: 'c6', name: '美容・衣服', emoji: '👗', color: '#686868', budget: 15000, type: 'expense' },
-  { id: 'c7', name: '医療', emoji: '🏥', color: '#d0d0d0', budget: 5000, type: 'expense' },
-  { id: 'c8', name: 'その他', emoji: '📝', color: '#505050', budget: 10000, type: 'expense' },
+  { id: 'c1', name: '食費', emoji: '🍔', color: DEFAULT_CATEGORY_COLORS['c1'], budget: 50000, type: 'expense' },
+  { id: 'c2', name: '日用品', emoji: '🛒', color: DEFAULT_CATEGORY_COLORS['c2'], budget: 20000, type: 'expense' },
+  { id: 'c3', name: '交通費', emoji: '🚆', color: DEFAULT_CATEGORY_COLORS['c3'], budget: 15000, type: 'expense' },
+  { id: 'c4', name: '交際費', emoji: '🍻', color: DEFAULT_CATEGORY_COLORS['c4'], budget: 30000, type: 'expense' },
+  { id: 'c5', name: '住宅', emoji: '🏠', color: DEFAULT_CATEGORY_COLORS['c5'], budget: 80000, type: 'expense' },
+  { id: 'c6', name: '美容・衣服', emoji: '👗', color: DEFAULT_CATEGORY_COLORS['c6'], budget: 15000, type: 'expense' },
+  { id: 'c7', name: '医療', emoji: '🏥', color: DEFAULT_CATEGORY_COLORS['c7'], budget: 5000, type: 'expense' },
+  { id: 'c8', name: 'その他', emoji: '📝', color: DEFAULT_CATEGORY_COLORS['c8'], budget: 10000, type: 'expense' },
   // 収入カテゴリ
-  { id: 'i1', name: '給与', emoji: '💼', color: '#ffffff', budget: 0, type: 'income' },
-  { id: 'i2', name: '副業', emoji: '💻', color: '#c8c8c8', budget: 0, type: 'income' },
-  { id: 'i3', name: '賞与', emoji: '🎁', color: '#e0e0e0', budget: 0, type: 'income' },
-  { id: 'i4', name: '利子・配当', emoji: '💹', color: '#989898', budget: 0, type: 'income' },
-  { id: 'i5', name: 'その他収入', emoji: '🪙', color: '#606060', budget: 0, type: 'income' }
+  { id: 'i1', name: '給与', emoji: '💼', color: DEFAULT_CATEGORY_COLORS['i1'], budget: 0, type: 'income' },
+  { id: 'i2', name: '副業', emoji: '💻', color: DEFAULT_CATEGORY_COLORS['i2'], budget: 0, type: 'income' },
+  { id: 'i3', name: '賞与', emoji: '🎁', color: DEFAULT_CATEGORY_COLORS['i3'], budget: 0, type: 'income' },
+  { id: 'i4', name: '利子・配当', emoji: '💹', color: DEFAULT_CATEGORY_COLORS['i4'], budget: 0, type: 'income' },
+  { id: 'i5', name: 'その他収入', emoji: '🪙', color: DEFAULT_CATEGORY_COLORS['i5'], budget: 0, type: 'income' }
 ];
 
 const CURRENT_MONTH = new Date().toISOString().slice(0, 7);
@@ -386,7 +406,11 @@ function App() {
   const [ledger, setLedger] = useState(() => loadFromStorage('ledger', sampleLedger));
   const [incomes, setIncomes] = useState(() => loadFromStorage('incomes', sampleIncomes));
   const [fixedCosts, setFixedCosts] = useState(() => loadFromStorage('fixedCosts', sampleFixedCosts));
-  const [categories, setCategories] = useState(() => loadFromStorage('categories', defaultCategories));
+  const [categories, setCategories] = useState(() => {
+    const saved = loadFromStorage('categories', defaultCategories);
+    // デフォルトIDのカラーを最新のカラーマップで上書き（既存ユーザーにも色変更を反映）
+    return saved.map(cat => DEFAULT_CATEGORY_COLORS[cat.id] ? { ...cat, color: DEFAULT_CATEGORY_COLORS[cat.id] } : cat);
+  });
   const [settlements, setSettlements] = useState(() => loadFromStorage('settlements', []));
   const [appSettings, setAppSettings] = useState(() => loadFromStorage('appSettings', {
     startDay: 1, notifyRemind: false, notifyPayment: false, notifyClosing: false, darkMode: true,
@@ -413,6 +437,7 @@ function App() {
 
   const [homeCalDate, setHomeCalDate] = useState(new Date());
   const [selectedHomeDay, setSelectedHomeDay] = useState(new Date().getDate());
+  const [cardDetail, setCardDetail] = useState(null); // { card, startDate, endDate }
   const [selectedLedgerDay, setSelectedLedgerDay] = useState(null);
 
   const [viewDate, setViewDate] = useState(new Date());
@@ -603,7 +628,7 @@ function App() {
           }
           
           dayData[finalDay].banks[bankId].amount += totalCardSum;
-          dayData[finalDay].banks[bankId].cards.push({ ...c, amount: totalCardSum });
+          dayData[finalDay].banks[bankId].cards.push({ ...c, amount: totalCardSum, startDate, endDate });
           
           const ymStr = `${homeCalYear}-${pad(homeCalMonth)}`;
           if (!settlements.includes(`${c.id}_${ymStr}`)) {
@@ -1321,15 +1346,18 @@ function App() {
                               const ymStr = `${homeCalYear}-${pad(homeCalMonth)}`;
                               const isSettled = settlements.includes(`${c.id}_${ymStr}`);
                               return (
-                                <div key={`card-${cIdx}`} className="flex justify-between items-center p-4">
+                                <div key={`card-${cIdx}`} className="flex justify-between items-center p-4 active:bg-slate-100 dark:active:bg-white/5 cursor-pointer" onClick={() => setCardDetail({ card: c, startDate: c.startDate, endDate: c.endDate })}>
                                   <div className="flex items-center gap-3">
                                     <div className="w-8 h-8 rounded-full bg-slate-200 dark:bg-[#111111] flex items-center justify-center text-slate-600 dark:text-white/60"><CreditCard size={14}/></div>
-                                    <div className="text-[14px] font-bold text-slate-800 dark:text-white">{String(c.name)} <span className="text-[10px] text-slate-400 font-normal ml-1">{String(c.brand || '')}</span></div>
+                                    <div>
+                                      <div className="text-[14px] font-bold text-slate-800 dark:text-white">{String(c.name)} <span className="text-[10px] text-slate-400 font-normal ml-1">{String(c.brand || '')}</span></div>
+                                      <div className="text-[10px] text-slate-400 dark:text-white/40 mt-0.5 flex items-center gap-1"><List size={10}/> 明細を見る</div>
+                                    </div>
                                   </div>
-                                  <div className="text-right flex items-center gap-3">
+                                  <div className="text-right flex items-center gap-3" onClick={e => e.stopPropagation()}>
                                     <div className="font-mono font-bold text-[15px] text-slate-900 dark:text-white">{fmt(c.amount)}</div>
-                                    {isSettled ? 
-                                      <button onClick={() => handleSettlePayment(c, c.amount)} className="px-3 py-1.5 bg-emerald-100 text-emerald-700 dark:bg-emerald-400/15 dark:text-emerald-300 rounded-full text-[10px] font-black flex items-center gap-1 active:scale-95 transition-transform" title="タップで取り消し"><CheckCircle size={12}/> 精算済</button> : 
+                                    {isSettled ?
+                                      <button onClick={() => handleSettlePayment(c, c.amount)} className="px-3 py-1.5 bg-emerald-100 text-emerald-700 dark:bg-emerald-400/15 dark:text-emerald-300 rounded-full text-[10px] font-black flex items-center gap-1 active:scale-95 transition-transform" title="タップで取り消し"><CheckCircle size={12}/> 精算済</button> :
                                       <button onClick={() => handleSettlePayment(c, c.amount)} className="bg-slate-800 dark:bg-white text-white dark:text-black text-[10px] font-black px-3 py-1.5 rounded-full active:scale-95 transition-transform">精算</button>
                                     }
                                   </div>
@@ -2576,6 +2604,138 @@ function App() {
             </div>
           </div>
         )}
+
+        {/* カード明細モーダル（BottomSheet） */}
+        {cardDetail && (() => {
+          const { card, startDate, endDate } = cardDetail;
+          // 対象期間の明細を取得
+          const periodItems = ledger.filter(l => {
+            if (l.methodId !== card.id) return false;
+            const d = new Date(l.date);
+            return d >= startDate && d <= endDate;
+          }).sort((a, b) => new Date(b.date) - new Date(a.date));
+          // 固定費（月額のみ）
+          const periodFixed = fixedCosts.filter(f => f.methodId === card.id && f.cycle === 'monthly');
+          const periodItemsTotal = periodItems.reduce((s, l) => s + (Number(l.amount)||0), 0);
+          const periodFixedTotal = periodFixed.reduce((s, f) => s + (Number(f.amount)||0), 0);
+          const grandTotal = periodItemsTotal + periodFixedTotal;
+
+          // 期間ラベル
+          const fmtDate = d => `${d.getMonth()+1}/${d.getDate()}`;
+          const periodLabel = `${fmtDate(startDate)} 〜 ${fmtDate(endDate)}`;
+
+          return (
+            <div className="fixed inset-0 z-[120] flex items-end justify-center bg-black/60 backdrop-blur-md" onClick={() => setCardDetail(null)}>
+              <div
+                className="bg-white dark:bg-black rounded-t-[40px] w-full max-w-lg shadow-2xl border-t border-slate-200 dark:border-white/[0.07] flex flex-col"
+                style={{ maxHeight: '90vh' }}
+                onClick={e => e.stopPropagation()}
+              >
+                {/* ドラッグハンドル */}
+                <div className="w-10 h-1.5 bg-slate-300 dark:bg-white/20 rounded-full mx-auto mt-3 mb-1 shrink-0" />
+
+                {/* ヘッダー */}
+                <div className="px-6 pt-4 pb-4 border-b border-slate-200 dark:border-white/[0.07] shrink-0 flex items-start justify-between">
+                  <div>
+                    <div className="flex items-center gap-2 mb-1">
+                      <CreditCard size={18} className="text-slate-600 dark:text-white/60"/>
+                      <h3 className="font-black text-lg text-slate-900 dark:text-white">{String(card.name)}</h3>
+                      {card.brand && <span className="text-[10px] font-black px-2 py-0.5 rounded-full bg-slate-100 dark:bg-white/10 text-slate-500 dark:text-white/50">{String(card.brand)}</span>}
+                    </div>
+                    <div className="text-[12px] text-slate-500 dark:text-white/40 font-mono">{periodLabel} の利用明細</div>
+                    <div className="text-[11px] text-slate-400 dark:text-white/30 mt-0.5">{homeCalMonth}月{card.paymentDate}日 引落予定</div>
+                  </div>
+                  <button onClick={() => setCardDetail(null)} className="w-8 h-8 rounded-full bg-slate-100 dark:bg-white/10 flex items-center justify-center text-slate-500 dark:text-white/50 shrink-0 mt-1">
+                    <X size={16}/>
+                  </button>
+                </div>
+
+                {/* 合計バー */}
+                <div className="px-6 py-3 bg-slate-50 dark:bg-white/[0.03] border-b border-slate-200 dark:border-white/[0.07] shrink-0 flex justify-between items-center">
+                  <div className="text-[12px] font-black text-slate-500 dark:text-white/50 uppercase tracking-wider">合計</div>
+                  <div className="font-mono font-black text-xl text-rose-500 dark:text-rose-400">{fmt(grandTotal)}</div>
+                </div>
+
+                {/* 明細リスト */}
+                <div className="overflow-y-auto flex-1 no-scrollbar ios-scroll px-4 py-3">
+                  {periodItems.length === 0 && periodFixed.length === 0 && (
+                    <div className="text-center py-12 text-slate-400 dark:text-white/30 text-sm font-bold">この期間の明細がありません</div>
+                  )}
+
+                  {/* 取引明細 */}
+                  {periodItems.length > 0 && (
+                    <div className="mb-3">
+                      <div className="text-[10px] font-black text-slate-400 dark:text-white/30 uppercase tracking-widest px-2 mb-2">取引明細 ({periodItems.length}件)</div>
+                      <div className="space-y-1.5">
+                        {periodItems.map((item, idx) => {
+                          const meta = getCatMeta(item.category);
+                          const isExcluded = item.exclude === true;
+                          return (
+                            <div key={`di-${idx}`} className={`flex items-center gap-3 p-3 rounded-[16px] bg-slate-50 dark:bg-white/[0.03] border border-slate-200 dark:border-white/[0.05] ${isExcluded ? 'opacity-50' : ''}`}>
+                              <div className="w-9 h-9 rounded-[12px] flex items-center justify-center text-base shrink-0" style={{backgroundColor:`${meta.color}22`, border:`1px solid ${meta.color}44`}}>
+                                {String(meta.emoji)}
+                              </div>
+                              <div className="flex-1 min-w-0">
+                                <div className="text-[13px] font-bold text-slate-900 dark:text-white truncate flex items-center gap-1.5">
+                                  {String(item.name || item.category)}
+                                  {isExcluded && <span className="text-[9px] font-black px-1.5 py-0.5 rounded-md bg-slate-200 dark:bg-white/10 text-slate-500 dark:text-white/40">対象外</span>}
+                                </div>
+                                <div className="text-[10px] text-slate-400 dark:text-white/40 font-mono">{item.date} • {String(item.category)}</div>
+                              </div>
+                              <div className={`font-mono font-bold text-[14px] shrink-0 ${isExcluded ? 'line-through text-slate-400 dark:text-white/30' : 'text-rose-500 dark:text-rose-400'}`}>
+                                -{fmt(item.amount)}
+                              </div>
+                            </div>
+                          );
+                        })}
+                      </div>
+                    </div>
+                  )}
+
+                  {/* 固定費 */}
+                  {periodFixed.length > 0 && (
+                    <div className="mb-3">
+                      <div className="text-[10px] font-black text-slate-400 dark:text-white/30 uppercase tracking-widest px-2 mb-2">固定費・サブスク ({periodFixed.length}件)</div>
+                      <div className="space-y-1.5">
+                        {periodFixed.map((f, idx) => {
+                          const meta = getCatMeta(f.category);
+                          return (
+                            <div key={`df-${idx}`} className="flex items-center gap-3 p-3 rounded-[16px] bg-slate-50 dark:bg-white/[0.03] border border-slate-200 dark:border-white/[0.05]">
+                              <div className="w-9 h-9 rounded-[12px] flex items-center justify-center text-base shrink-0" style={{backgroundColor:`${meta.color}22`, border:`1px solid ${meta.color}44`}}>
+                                {String(meta.emoji)}
+                              </div>
+                              <div className="flex-1 min-w-0">
+                                <div className="text-[13px] font-bold text-slate-900 dark:text-white truncate">{String(f.name)}</div>
+                                <div className="text-[10px] text-slate-400 dark:text-white/40">{String(f.category)} • 月額固定</div>
+                              </div>
+                              <div className="font-mono font-bold text-[14px] text-rose-500 dark:text-rose-400 shrink-0">-{fmt(f.amount)}</div>
+                            </div>
+                          );
+                        })}
+                      </div>
+                    </div>
+                  )}
+                </div>
+
+                {/* フッター：精算ボタン */}
+                <div className="px-6 pt-3 border-t border-slate-200 dark:border-white/[0.07] shrink-0" style={{ paddingBottom: 'max(1.5rem, env(safe-area-inset-bottom))' }}>
+                  {(() => {
+                    const ymStr = `${homeCalYear}-${pad(homeCalMonth)}`;
+                    const isSettled = settlements.includes(`${card.id}_${ymStr}`);
+                    return (
+                      <button
+                        onClick={() => { handleSettlePayment(card, grandTotal); setCardDetail(null); }}
+                        className={`w-full h-14 rounded-[24px] font-black text-[15px] flex items-center justify-center gap-2 active:scale-95 transition-transform ${isSettled ? 'bg-emerald-100 dark:bg-emerald-400/15 text-emerald-700 dark:text-emerald-300' : 'btn-primary'}`}
+                      >
+                        {isSettled ? <><CheckCircle size={18}/> 精算済み（タップで取消）</> : <><CheckCircle size={18}/> {fmt(grandTotal)} を精算済みにする</>}
+                      </button>
+                    );
+                  })()}
+                </div>
+              </div>
+            </div>
+          );
+        })()}
 
         {/* 編集モーダル（BottomSheet） */}
         {editingItem && (
