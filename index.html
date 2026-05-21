@@ -1349,7 +1349,7 @@ function App() {
           {/* ==================== 資産 ==================== */}
           {activeTab === 'assets' && (() => {
              // リスト表示と同じカラーを円グラフでも使用
-             const ASSET_COLORS = { bank: '#c8775a', cash: '#8a9a5b', invest: '#6b4423', prepaid: '#d4b896', point: '#c9962b' };
+             const ASSET_COLORS = { bank: '#3b82f6', cash: '#22c55e', invest: '#a855f7', prepaid: '#f59e0b', point: '#ec4899' };
              const activeAssetData = [
                { name: '銀行', value: banks.reduce((s, b) => s + (Number(b.balance)||0), 0), color: ASSET_COLORS.bank },
                { name: '現金', value: cash.reduce((s, c) => s + (Number(c.balance)||0), 0), color: ASSET_COLORS.cash },
