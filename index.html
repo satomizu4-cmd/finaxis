@@ -186,6 +186,46 @@ const DEFAULT_CATEGORY_COLORS = {
   'i5': '#38bdf8', // その他収入 → スカイ
 };
 
+// 名前ベースのカラーマップ（IDが変わっても名前で色を引ける）
+const DEFAULT_CATEGORY_COLORS_BY_NAME = {
+  '食費':       DEFAULT_CATEGORY_COLORS['c1'],
+  '日用品':     DEFAULT_CATEGORY_COLORS['c2'],
+  '交通費':     DEFAULT_CATEGORY_COLORS['c3'],
+  '交際費':     DEFAULT_CATEGORY_COLORS['c4'],
+  '住宅':       DEFAULT_CATEGORY_COLORS['c5'],
+  '美容・衣服': DEFAULT_CATEGORY_COLORS['c6'],
+  '医療':       DEFAULT_CATEGORY_COLORS['c7'],
+  'その他':     DEFAULT_CATEGORY_COLORS['c8'],
+  '給与':       DEFAULT_CATEGORY_COLORS['i1'],
+  '副業':       DEFAULT_CATEGORY_COLORS['i2'],
+  '賞与':       DEFAULT_CATEGORY_COLORS['i3'],
+  '利子・配当': DEFAULT_CATEGORY_COLORS['i4'],
+  'その他収入': DEFAULT_CATEGORY_COLORS['i5'],
+};
+
+// カスタムカテゴリー・CSV由来カテゴリー向けの12色パレット（名前ハッシュで一意に色を決定）
+const CHART_PALETTE = [
+  '#f97316', // オレンジ
+  '#a855f7', // パープル
+  '#06b6d4', // シアン
+  '#ec4899', // ピンク
+  '#eab308', // イエロー
+  '#3b82f6', // ブルー
+  '#10b981', // エメラルド
+  '#f43f5e', // ローズ
+  '#84cc16', // ライム
+  '#38bdf8', // スカイ
+  '#8b5cf6', // バイオレット
+  '#fb923c', // オレンジ400
+];
+
+// カテゴリー名から決定論的な色を返す（同じ名前は常に同じ色）
+function hashCatColor(name) {
+  let h = 0;
+  for (let i = 0; i < name.length; i++) h = (h * 31 + name.charCodeAt(i)) & 0xffff;
+  return CHART_PALETTE[h % CHART_PALETTE.length];
+}
+
 const defaultCategories = [
   // 支出カテゴリ
   { id: 'c1', name: '食費', emoji: '🍔', color: DEFAULT_CATEGORY_COLORS['c1'], budget: 50000, type: 'expense' },
@@ -411,8 +451,12 @@ function App() {
   const [fixedCosts, setFixedCosts] = useState(() => loadFromStorage('fixedCosts', sampleFixedCosts));
   const [categories, setCategories] = useState(() => {
     const saved = loadFromStorage('categories', defaultCategories);
-    // デフォルトIDのカラーを最新のカラーマップで上書き（既存ユーザーにも色変更を反映）
-    return saved.map(cat => DEFAULT_CATEGORY_COLORS[cat.id] ? { ...cat, color: DEFAULT_CATEGORY_COLORS[cat.id] } : cat);
+    // IDまたは名前でデフォルトカラーマップを照合し色を更新（既存ユーザーにも反映）
+    return saved.map(cat => {
+      if (DEFAULT_CATEGORY_COLORS[cat.id]) return { ...cat, color: DEFAULT_CATEGORY_COLORS[cat.id] };
+      if (DEFAULT_CATEGORY_COLORS_BY_NAME[cat.name]) return { ...cat, color: DEFAULT_CATEGORY_COLORS_BY_NAME[cat.name] };
+      return cat;
+    });
   });
   const [settlements, setSettlements] = useState(() => loadFromStorage('settlements', []));
   const [appSettings, setAppSettings] = useState(() => loadFromStorage('appSettings', {
@@ -730,7 +774,9 @@ function App() {
 
   const getCatMeta = (catName) => {
     const cat = categories.find(c => c.name === catName);
-    return cat ? { emoji: cat.emoji, color: cat.color } : { emoji: '📝', color: '#8888a8' };
+    if (cat) return { emoji: cat.emoji, color: cat.color };
+    // 未登録カテゴリー（CSV由来など）: 名前ハッシュで固定色を割り当て
+    return { emoji: '📝', color: hashCatColor(catName || 'other') };
   };
 
   const saveEditedItem = () => {
@@ -1587,9 +1633,16 @@ function App() {
           {activeTab === 'ledger' && (() => {
             const { monthLedger, monthIncomes, inc, exp, sur, sortedCats, dailyData } = ledgerMonthData;
             const { inc: yInc, exp: yExp, sur: ySur, chartData: yChartData, allYearCats } = ledgerYearData;
-            const displayCategoryData = sortedCats.length > 0 
-              ? sortedCats.map(([cat, amt]) => ({ name: cat, value: amt, color: getCatMeta(cat).color }))
-              : [{ name: 'データなし', value: 1, color: '#222' }];
+            // 円グラフ用: インデックスベースのパレット色で確実に多色表示
+            // （カテゴリー設定の色に依存せず、常に視覚的に区別しやすい）
+            const displayCategoryData = sortedCats.length > 0
+              ? sortedCats.map(([cat, amt], idx) => ({
+                  name: cat,
+                  value: amt,
+                  color: CHART_PALETTE[idx % CHART_PALETTE.length],
+                  catColor: getCatMeta(cat).color, // 凡例・バー用
+                }))
+              : [{ name: 'データなし', value: 1, color: '#333', catColor: '#333' }];
             const filteredMonthLedger = monthLedger.filter(l => ledgerCategoryFilter === 'all' || l.category === ledgerCategoryFilter);
             const filteredMonthIncomes = ledgerCategoryFilter === 'all' ? monthIncomes : [];
 
@@ -1673,8 +1726,10 @@ function App() {
                       </div>
 
                       <div className="space-y-5">
-                        {sortedCats.map(([cat, amt]) => {
+                        {sortedCats.map(([cat, amt], catIdx) => {
                           const meta = getCatMeta(cat);
+                          // 円グラフと同じパレット色を使用（視覚的に対応）
+                          const barColor = CHART_PALETTE[catIdx % CHART_PALETTE.length];
                           const catObj = categories.find(c => c.name === cat);
                           const budget = Number(catObj?.budget) || 0;
                           const isOver = budget > 0 && amt > budget;
@@ -1682,14 +1737,18 @@ function App() {
                           return (
                             <div key={`cat-bar-${cat}`}>
                               <div className="flex justify-between items-end mb-2">
-                                <span className="text-[14px] font-bold flex items-center gap-2"><span className="text-lg">{String(meta.emoji)}</span>{String(cat)}</span>
+                                <span className="text-[14px] font-bold flex items-center gap-2">
+                                  <span className="w-3 h-3 rounded-sm shrink-0" style={{backgroundColor: barColor}}></span>
+                                  <span className="text-lg">{String(meta.emoji)}</span>
+                                  {String(cat)}
+                                </span>
                                 <div className="text-right">
                                    <span className={`font-mono text-[15px] font-bold ${isOver ? 'text-rose-500' : ''}`}>{fmt(amt)}</span>
                                    {budget > 0 && <span className="text-[10px] font-mono text-slate-400 ml-1">/ {fmt(budget)}</span>}
                                 </div>
                               </div>
                               <div className="h-2 w-full bg-slate-200 dark:bg-[#0a0a0a] rounded-full overflow-hidden">
-                                 <div className={`h-full rounded-full ${isOver ? 'bg-rose-500' : ''}`} style={{ width: `${percent}%`, backgroundColor: isOver ? '' : meta.color }}></div>
+                                 <div className="h-full rounded-full" style={{ width: `${percent}%`, backgroundColor: isOver ? '#ef4444' : barColor }}></div>
                               </div>
                             </div>
                           );
@@ -1782,10 +1841,11 @@ function App() {
                     <div>
                       <div className="flex overflow-x-auto gap-2 no-scrollbar px-1 mb-4">
                         <button onClick={() => setLedgerCategoryFilter('all')} className={`px-5 py-2.5 rounded-[16px] text-[12px] font-black whitespace-nowrap active:scale-95 ${ledgerCategoryFilter === 'all' ? 'bg-slate-800 dark:bg-white text-white dark:text-black' : 'bg-white dark:bg-black text-slate-500 dark:text-white/50 border border-slate-200 dark:border-white/[0.07]'}`}>全て</button>
-                        {sortedCats.map(([cat]) => {
+                        {sortedCats.map(([cat], filterIdx) => {
                           const meta = getCatMeta(cat);
+                          const filterColor = CHART_PALETTE[filterIdx % CHART_PALETTE.length];
                           return (
-                            <button key={`filter-${cat}`} onClick={() => setLedgerCategoryFilter(cat)} className={`px-5 py-2.5 rounded-[16px] text-[12px] font-black whitespace-nowrap active:scale-95 flex items-center gap-1.5 ${ledgerCategoryFilter === cat ? 'text-white' : 'bg-white dark:bg-black text-slate-600 dark:text-white/70 border border-slate-200 dark:border-white/[0.07]'}`} style={ledgerCategoryFilter === cat ? { backgroundColor: meta.color } : {}}>
+                            <button key={`filter-${cat}`} onClick={() => setLedgerCategoryFilter(cat)} className={`px-5 py-2.5 rounded-[16px] text-[12px] font-black whitespace-nowrap active:scale-95 flex items-center gap-1.5 ${ledgerCategoryFilter === cat ? 'text-white' : 'bg-white dark:bg-black text-slate-600 dark:text-white/70 border border-slate-200 dark:border-white/[0.07]'}`} style={ledgerCategoryFilter === cat ? { backgroundColor: filterColor } : {}}>
                               <span>{String(meta.emoji)}</span>{String(cat)}
                             </button>
                           )
