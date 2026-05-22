@@ -62,7 +62,7 @@
 const { useState, useMemo, useRef, useEffect } = React;
 const {
   XAxis, YAxis, CartesianGrid, Tooltip: RechartsTooltip, ResponsiveContainer,
-  AreaChart, Area, PieChart, Pie, Cell, Sector
+  AreaChart, Area, PieChart, Pie, Cell, Sector, BarChart, Bar, Legend
 } = Recharts;
 
 function makeIcon(lucideName) {
@@ -249,7 +249,7 @@ const sampleFixedCosts = [
 // ==========================================
 // 2. 共通UIコンポーネント
 // ==========================================
-function GlassCard({ title, icon, children, className = "" }) {
+function GlassCard({ title, icon, children, className = "", action, collapsed = false }) {
   return (
     <div className={`bg-white dark:bg-black rounded-[32px] p-6 border border-slate-100 dark:border-white/[0.07] shadow-sm relative overflow-hidden ${className}`}>
       <div className="text-[11px] font-black text-slate-400 dark:text-white/40 uppercase tracking-[0.3em] mb-6 flex items-center justify-between">
@@ -257,9 +257,12 @@ function GlassCard({ title, icon, children, className = "" }) {
           <div className="w-1.5 h-4 bg-slate-700 dark:bg-[#00c896] rounded-full card-accent-bar"></div>
           <span className="text-slate-800 dark:text-white/90">{String(title)}</span>
         </div>
-        {icon}
+        <div className="flex items-center gap-2">
+          {icon}
+          {action}
+        </div>
       </div>
-      {children}
+      {!collapsed && children}
     </div>
   );
 }
@@ -431,6 +434,9 @@ function App() {
   const [showAssets, setShowAssets] = useState(true);
   const [assetFilter, setAssetFilter] = useState('all');
   const [ledgerCategoryFilter, setLedgerCategoryFilter] = useState('all');
+  const [hiddenGraphs, setHiddenGraphs] = useState({}); // { graphId: true } でグラフを非表示
+  const toggleGraph = (id) => setHiddenGraphs(prev => ({ ...prev, [id]: !prev[id] }));
+  const [graphSettingsOpen, setGraphSettingsOpen] = useState(false);
 
   const [activePieIndexAsset, setActivePieIndexAsset] = useState(0);
   const [activePieIndexLedger, setActivePieIndexLedger] = useState(0);
@@ -590,8 +596,10 @@ function App() {
       const cDate = Number(c.closingDate) || 99;
       let startDate, endDate;
       if (cDate === 99) {
-        startDate = new Date(homeCalYear, closeMonthIdx, 1);
-        endDate = new Date(homeCalYear, closeMonthIdx + 1, 0, 23, 59, 59);
+        // 末日締め = 翌々月払い（2ヶ月後）
+        // 例: 5月末締め → 7月支払い。7月カレンダーで見ると、5月の取引が対象
+        startDate = new Date(homeCalYear, closeMonthIdx - 1, 1);
+        endDate = new Date(homeCalYear, closeMonthIdx, 0, 23, 59, 59);
       } else {
         startDate = new Date(homeCalYear, closeMonthIdx - 1, cDate + 1);
         endDate = new Date(homeCalYear, closeMonthIdx, cDate, 23, 59, 59);
@@ -703,11 +711,21 @@ function App() {
     const chartData = Array.from({length: 12}, (_, i) => {
       const m = pad(i + 1);
       const yms = `${yearStr}-${m}`;
-      const mExp = ledger.filter(l => l.date?.startsWith(yms) && !l.exclude).reduce((s, l) => s + (Number(l.amount)||0), 0);
-      const mFix = fixedCosts.filter(f => isFixedInMonth(f, yms)).reduce((s, f) => s + (Number(f.amount)||0), 0);
-      return { name: `${i + 1}月`, exp: mExp + mFix };
+      const mLedger = ledger.filter(l => l.date?.startsWith(yms) && !l.exclude);
+      const mFix = fixedCosts.filter(f => isFixedInMonth(f, yms));
+      const mExp = mLedger.reduce((s, l) => s + (Number(l.amount)||0), 0)
+                 + mFix.reduce((s, f) => s + (Number(f.amount)||0), 0);
+      // カテゴリー別集計
+      const catBreakdown = {};
+      [...mLedger, ...mFix].forEach(item => {
+        const cat = item.category || 'その他';
+        catBreakdown[cat] = (catBreakdown[cat] || 0) + (Number(item.amount)||0);
+      });
+      return { name: `${i + 1}月`, exp: mExp, ...catBreakdown };
     });
-    return { inc, exp, sur: inc - exp, chartData };
+    // 年間に登場する全カテゴリー
+    const allYearCats = [...new Set(chartData.flatMap(m => Object.keys(m).filter(k => k !== 'name' && k !== 'exp')))];
+    return { inc, exp, sur: inc - exp, chartData, allYearCats };
   }, [ledger, incomes, fixedCosts, viewYear]);
 
   const getCatMeta = (catName) => {
@@ -1568,7 +1586,7 @@ function App() {
           {/* ==================== 家計簿 ==================== */}
           {activeTab === 'ledger' && (() => {
             const { monthLedger, monthIncomes, inc, exp, sur, sortedCats, dailyData } = ledgerMonthData;
-            const { inc: yInc, exp: yExp, sur: ySur, chartData: yChartData } = ledgerYearData;
+            const { inc: yInc, exp: yExp, sur: ySur, chartData: yChartData, allYearCats } = ledgerYearData;
             const displayCategoryData = sortedCats.length > 0 
               ? sortedCats.map(([cat, amt]) => ({ name: cat, value: amt, color: getCatMeta(cat).color }))
               : [{ name: 'データなし', value: 1, color: '#222' }];
@@ -1577,9 +1595,25 @@ function App() {
 
             return (
               <div className="space-y-6">
-                <div className="flex bg-white dark:bg-black border border-slate-200 dark:border-white/[0.07] rounded-[20px] p-1.5 mx-auto w-full max-w-[320px] shadow-sm">
-                  <button onClick={() => setLedgerMode('monthly')} className={`flex-1 py-2.5 text-xs font-black rounded-[14px] transition-all ${ledgerMode === 'monthly' ? 'bg-white text-black dark:bg-white dark:text-black' : 'text-slate-500 dark:text-white/40'}`} style={ledgerMode === 'monthly' ? { boxShadow: '0 2px 10px rgba(255,255,255,0.15)' } : {}}>月間</button>
-                  <button onClick={() => setLedgerMode('yearly')} className={`flex-1 py-2.5 text-xs font-black rounded-[14px] transition-all ${ledgerMode === 'yearly' ? 'bg-white text-black dark:bg-white dark:text-black' : 'text-slate-500 dark:text-white/40'}`} style={ledgerMode === 'yearly' ? { boxShadow: '0 2px 10px rgba(255,255,255,0.15)' } : {}}>年間</button>
+                <div className="flex items-center gap-2 mx-auto w-full max-w-[360px]">
+                  <div className="flex flex-1 bg-white dark:bg-black border border-slate-200 dark:border-white/[0.07] rounded-[20px] p-1.5 shadow-sm">
+                    <button onClick={() => setLedgerMode('monthly')} className={`flex-1 py-2.5 text-xs font-black rounded-[14px] transition-all ${ledgerMode === 'monthly' ? 'bg-white text-black dark:bg-white dark:text-black' : 'text-slate-500 dark:text-white/40'}`} style={ledgerMode === 'monthly' ? { boxShadow: '0 2px 10px rgba(255,255,255,0.15)' } : {}}>月間</button>
+                    <button onClick={() => setLedgerMode('yearly')} className={`flex-1 py-2.5 text-xs font-black rounded-[14px] transition-all ${ledgerMode === 'yearly' ? 'bg-white text-black dark:bg-white dark:text-black' : 'text-slate-500 dark:text-white/40'}`} style={ledgerMode === 'yearly' ? { boxShadow: '0 2px 10px rgba(255,255,255,0.15)' } : {}}>年間</button>
+                  </div>
+                  {/* グラフ設定ボタン */}
+                  <button
+                    onClick={() => setGraphSettingsOpen(true)}
+                    className="relative w-11 h-11 flex items-center justify-center rounded-[14px] bg-white dark:bg-black border border-slate-200 dark:border-white/[0.07] shadow-sm text-slate-500 dark:text-white/50 active:scale-90 transition-transform shrink-0"
+                    title="グラフの表示設定"
+                  >
+                    <Settings size={17}/>
+                    {/* 非表示グラフがある場合はバッジ */}
+                    {Object.values(hiddenGraphs).some(Boolean) && (
+                      <span className="absolute -top-1 -right-1 w-3.5 h-3.5 rounded-full bg-rose-500 text-white text-[8px] font-black flex items-center justify-center">
+                        {Object.values(hiddenGraphs).filter(Boolean).length}
+                      </span>
+                    )}
+                  </button>
                 </div>
 
                 {/* CSV取込・テンプレート */}
@@ -1601,7 +1635,7 @@ function App() {
 
                 {ledgerMode === 'monthly' && (
                   <>
-                    <GlassCard title="月間支出構成" icon={<PieChartIcon size={18} className="text-slate-400 dark:text-white/30"/>}>
+                    <GlassCard title="月間支出構成" icon={<PieChartIcon size={18} className="text-slate-400 dark:text-white/30"/>} collapsed={hiddenGraphs['monthly-pie']}>
                       <div className="h-80 mb-6">
                         <ResponsiveContainer width="100%" height="100%">
                           <PieChart margin={{ top: 8, right: 8, bottom: 8, left: 8 }}>
@@ -1664,7 +1698,7 @@ function App() {
                     </GlassCard>
 
                     {/* 日別収支カレンダー */}
-                    <GlassCard title="家計簿カレンダー" icon={<CalendarIcon size={18} className="text-slate-400 dark:text-white/30"/>}>
+                    <GlassCard title="家計簿カレンダー" icon={<CalendarIcon size={18} className="text-slate-400 dark:text-white/30"/>} collapsed={hiddenGraphs['monthly-calendar']}>
                       <div className="grid grid-cols-7 gap-1 sm:gap-1.5 mb-2">
                         {['月','火','水','木','金','土','日'].map((w, i) => (
                           <div key={`wkh-${i}`} className={`text-center text-[11px] font-black uppercase tracking-widest pb-2 ${i === 5 ? 'text-slate-400 dark:text-white/40' : i === 6 ? 'text-slate-400 dark:text-white/25' : 'text-slate-400 dark:text-white/30'}`}>
@@ -1758,7 +1792,7 @@ function App() {
                         })}
                       </div>
                       
-                      <GlassCard title={`${ledgerCategoryFilter === 'all' ? '全ての' : ledgerCategoryFilter}取引履歴`}>
+                      <GlassCard title={`${ledgerCategoryFilter === 'all' ? '全ての' : ledgerCategoryFilter}取引履歴`} collapsed={hiddenGraphs['monthly-list']}>
                          <div className="space-y-3 max-h-[500px] overflow-y-auto no-scrollbar ios-scroll pr-2">
                             {[...filteredMonthLedger.map(l=>({...l,_t: l._isFixed ? 'fixedCost' : 'expense'})), ...filteredMonthIncomes.map(i=>({...i,_t:'income'}))].sort((a,b)=>b.date.localeCompare(a.date)).map(l => {
                               const meta = getCatMeta(l.category || l.type);
@@ -1799,22 +1833,38 @@ function App() {
                       <KpiCard title="年間収入" amount={yInc} color="text-green-500" />
                       <KpiCard title="年間支出" amount={yExp} color="text-rose-500" />
                     </div>
-                    <GlassCard title="月別推移 (支出)" className="h-72">
-                       <ResponsiveContainer width="100%" height="100%">
-                         <AreaChart data={yChartData} margin={{ top: 10, right: 10, left: 10, bottom: 0 }}>
-                           <CartesianGrid strokeDasharray="3 3" stroke={appSettings.darkMode ? "rgba(0,200,150,0.08)" : "#e2e8f0"} vertical={false} />
-                           <XAxis dataKey="name" stroke={appSettings.darkMode ? "rgba(255,255,255,0.35)" : "#94a3b8"} fontSize={13} tickLine={false} axisLine={false} />
-                           <YAxis stroke={appSettings.darkMode ? "rgba(255,255,255,0.35)" : "#94a3b8"} fontSize={13} tickLine={false} axisLine={false} tickFormatter={(val) => `-${val/10000}万`} width={50} />
-                           <Area type="monotone" dataKey="exp" stroke={themeColor} strokeWidth={2.5} fill="url(#colorYExp)" fillOpacity={1} />
-                           <defs>
-                             <linearGradient id="colorYExp" x1="0" y1="0" x2="0" y2="1">
-                               <stop offset="5%" stopColor={themeColor} stopOpacity={0.45}/>
-                               <stop offset="95%" stopColor={themeColor} stopOpacity={0.02}/>
-                             </linearGradient>
-                           </defs>
-                           <RechartsTooltip formatter={(value) => [`-${fmt(value)}`, '']} separator="" contentStyle={{ backgroundColor: tooltipBg, border: `1px solid ${tooltipBorder}`, borderRadius: '12px', fontSize: '14px', padding: '10px 16px' }} itemStyle={{ color: themeColor, fontWeight: 'bold' }} />
-                         </AreaChart>
-                       </ResponsiveContainer>
+                    <GlassCard title="月別支出推移" collapsed={hiddenGraphs['yearly-trend']}>
+                       <div className="h-72">
+                         <ResponsiveContainer width="100%" height="100%">
+                           <BarChart data={yChartData} margin={{ top: 10, right: 4, left: 4, bottom: 0 }} barCategoryGap="30%">
+                             <CartesianGrid strokeDasharray="3 3" stroke={appSettings.darkMode ? "rgba(0,200,150,0.08)" : "#e2e8f0"} vertical={false} />
+                             <XAxis dataKey="name" stroke={appSettings.darkMode ? "rgba(255,255,255,0.35)" : "#94a3b8"} fontSize={11} tickLine={false} axisLine={false} />
+                             <YAxis stroke={appSettings.darkMode ? "rgba(255,255,255,0.35)" : "#94a3b8"} fontSize={11} tickLine={false} axisLine={false} tickFormatter={(val) => `${val>=10000?`${Math.round(val/10000)}万`:`${val}`}`} width={40} />
+                             <RechartsTooltip
+                               formatter={(value, name) => [`-${fmt(value)}`, name]}
+                               contentStyle={{ backgroundColor: tooltipBg, border: `1px solid ${tooltipBorder}`, borderRadius: '12px', fontSize: '12px', padding: '8px 14px' }}
+                               itemStyle={{ fontWeight: 'bold' }}
+                             />
+                             {allYearCats.map(cat => (
+                               <Bar key={cat} dataKey={cat} stackId="a" fill={getCatMeta(cat).color} radius={[0,0,0,0]} />
+                             ))}
+                           </BarChart>
+                         </ResponsiveContainer>
+                       </div>
+                       {/* カテゴリー凡例 */}
+                       {allYearCats.length > 0 && (
+                         <div className="flex flex-wrap gap-x-3 gap-y-1.5 mt-4 pt-4 border-t border-slate-100 dark:border-white/[0.06]">
+                           {allYearCats.map(cat => {
+                             const meta = getCatMeta(cat);
+                             return (
+                               <div key={`legend-${cat}`} className="flex items-center gap-1.5 text-[11px] font-bold text-slate-600 dark:text-white/60">
+                                 <span className="w-2.5 h-2.5 rounded-sm shrink-0" style={{backgroundColor: meta.color}}></span>
+                                 {String(meta.emoji)} {String(cat)}
+                               </div>
+                             );
+                           })}
+                         </div>
+                       )}
                     </GlassCard>
                   </>
                 )}
@@ -2529,6 +2579,98 @@ function App() {
               <div className="flex gap-4 px-8 pb-2">
                 <button className="flex-1 py-4 bg-slate-100 dark:bg-white/5 rounded-2xl font-black text-slate-500 dark:text-white/50" onClick={() => setConfirmDialog(null)}>キャンセル</button>
                 <button className="flex-1 py-4 btn-primary rounded-2xl font-black text-white dark:text-black" onClick={confirmDialog.onConfirm}>実行</button>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* グラフ表示設定 BottomSheet */}
+        {graphSettingsOpen && (
+          <div className="fixed inset-0 z-[120] flex items-end justify-center bg-black/60 backdrop-blur-md" onClick={() => setGraphSettingsOpen(false)}>
+            <div
+              className="bg-white dark:bg-black rounded-t-[40px] w-full max-w-lg shadow-2xl border-t border-slate-200 dark:border-white/[0.07]"
+              onClick={e => e.stopPropagation()}
+            >
+              <div className="w-10 h-1.5 bg-slate-300 dark:bg-white/20 rounded-full mx-auto mt-3 mb-1" />
+              <div className="px-6 pt-4 pb-2 flex items-center justify-between border-b border-slate-100 dark:border-white/[0.07]">
+                <div className="flex items-center gap-2">
+                  <Settings size={18} className="text-slate-600 dark:text-white/60"/>
+                  <h3 className="font-black text-[17px] text-slate-900 dark:text-white">グラフの表示設定</h3>
+                </div>
+                <button onClick={() => setGraphSettingsOpen(false)} className="w-8 h-8 rounded-full bg-slate-100 dark:bg-white/10 flex items-center justify-center text-slate-500 dark:text-white/50">
+                  <X size={15}/>
+                </button>
+              </div>
+
+              {/* 月間グラフ */}
+              <div className="px-6 pt-5 pb-1">
+                <div className="text-[10px] font-black text-slate-400 dark:text-white/30 uppercase tracking-widest mb-3">月間ビュー</div>
+                <div className="space-y-1 bg-slate-50 dark:bg-white/[0.02] rounded-[20px] border border-slate-100 dark:border-white/[0.07] overflow-hidden">
+                  {[
+                    { id: 'monthly-pie',      label: '月間支出構成',  desc: 'カテゴリー別の円グラフ', icon: <PieChartIcon size={18}/> },
+                    { id: 'monthly-calendar', label: '家計簿カレンダー', desc: '日別の収支カレンダー', icon: <CalendarIcon size={18}/> },
+                    { id: 'monthly-list',     label: '取引履歴',      desc: '取引の一覧リスト',       icon: <List size={18}/> },
+                  ].map(({ id, label, desc, icon }, i, arr) => {
+                    const isHidden = !!hiddenGraphs[id];
+                    return (
+                      <div key={id} className={`flex items-center justify-between px-5 py-4 ${i < arr.length - 1 ? 'border-b border-slate-100 dark:border-white/[0.05]' : ''}`}>
+                        <div className="flex items-center gap-3">
+                          <div className={`w-9 h-9 rounded-[12px] flex items-center justify-center ${isHidden ? 'bg-slate-100 dark:bg-white/5 text-slate-300 dark:text-white/20' : 'bg-slate-800 dark:bg-[#00c896]/20 text-slate-700 dark:text-[#00c896]'}`}>
+                            {icon}
+                          </div>
+                          <div>
+                            <div className={`text-[14px] font-bold ${isHidden ? 'text-slate-400 dark:text-white/30 line-through' : 'text-slate-900 dark:text-white'}`}>{label}</div>
+                            <div className="text-[11px] text-slate-400 dark:text-white/30">{desc}</div>
+                          </div>
+                        </div>
+                        {/* トグルスイッチ */}
+                        <button
+                          onClick={() => toggleGraph(id)}
+                          className={`w-12 h-6 rounded-full transition-colors relative shrink-0 ${isHidden ? 'bg-slate-200 dark:bg-white/10' : 'bg-[#00c896]'}`}
+                        >
+                          <span className={`absolute top-0.5 w-5 h-5 rounded-full bg-white shadow-md transition-all ${isHidden ? 'left-0.5' : 'left-6'}`}/>
+                        </button>
+                      </div>
+                    );
+                  })}
+                </div>
+              </div>
+
+              {/* 年間グラフ */}
+              <div className="px-6 pt-4 pb-2">
+                <div className="text-[10px] font-black text-slate-400 dark:text-white/30 uppercase tracking-widest mb-3">年間ビュー</div>
+                <div className="bg-slate-50 dark:bg-white/[0.02] rounded-[20px] border border-slate-100 dark:border-white/[0.07] overflow-hidden">
+                  {[{ id: 'yearly-trend', label: '月別支出推移', desc: 'カテゴリー別積み上げ棒グラフ', icon: <BarChart3 size={18}/> }].map(({ id, label, desc, icon }) => {
+                    const isHidden = !!hiddenGraphs[id];
+                    return (
+                      <div key={id} className="flex items-center justify-between px-5 py-4">
+                        <div className="flex items-center gap-3">
+                          <div className={`w-9 h-9 rounded-[12px] flex items-center justify-center ${isHidden ? 'bg-slate-100 dark:bg-white/5 text-slate-300 dark:text-white/20' : 'bg-slate-800 dark:bg-[#00c896]/20 text-slate-700 dark:text-[#00c896]'}`}>{icon}</div>
+                          <div>
+                            <div className={`text-[14px] font-bold ${isHidden ? 'text-slate-400 dark:text-white/30 line-through' : 'text-slate-900 dark:text-white'}`}>{label}</div>
+                            <div className="text-[11px] text-slate-400 dark:text-white/30">{desc}</div>
+                          </div>
+                        </div>
+                        <button
+                          onClick={() => toggleGraph(id)}
+                          className={`w-12 h-6 rounded-full transition-colors relative shrink-0 ${isHidden ? 'bg-slate-200 dark:bg-white/10' : 'bg-[#00c896]'}`}
+                        >
+                          <span className={`absolute top-0.5 w-5 h-5 rounded-full bg-white shadow-md transition-all ${isHidden ? 'left-0.5' : 'left-6'}`}/>
+                        </button>
+                      </div>
+                    );
+                  })}
+                </div>
+              </div>
+
+              {/* 全表示リセット */}
+              <div className="px-6 py-4" style={{ paddingBottom: 'max(1.5rem, env(safe-area-inset-bottom))' }}>
+                <button
+                  onClick={() => { setHiddenGraphs({}); setGraphSettingsOpen(false); }}
+                  className="w-full py-3.5 bg-slate-100 dark:bg-white/5 rounded-[20px] text-[14px] font-black text-slate-500 dark:text-white/40 active:scale-95 transition-transform"
+                >
+                  全グラフを表示に戻す
+                </button>
               </div>
             </div>
           </div>
