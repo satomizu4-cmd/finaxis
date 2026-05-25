@@ -856,8 +856,21 @@ function App() {
   // CSVインポート: 家計簿の取引データを一括追加
   const [importPreview, setImportPreview] = useState(null); // { rows: [...], errors: [...] }
   const [csvImportMethod, setCsvImportMethod] = useState('cash');
+  const [csvPreviewTab, setCsvPreviewTab] = useState('incomplete'); // 'complete' | 'incomplete'
+  const [csvEditRow, setCsvEditRow] = useState(null); // null | number (index in importPreview.rows)
   const csvInputRef = useRef(null);
   const backupInputRef = useRef(null);
+
+  // CSV行の「完了」判定: カテゴリと支払方法が両方設定済み
+  const isRowComplete = (r) => r.methodId !== null && r.category !== '未設定';
+
+  // CSV行を個別更新
+  const updateImportRow = (idx, changes) => {
+    setImportPreview(prev => ({
+      ...prev,
+      rows: prev.rows.map((r, i) => i === idx ? { ...r, ...changes } : r)
+    }));
+  };
 
   const parseCsvText = (text) => {
     // BOM除去
@@ -875,12 +888,13 @@ function App() {
     const categoryIdx = headers.findIndex(h => /カテゴリ|category|分類/.test(h));
     const methodIdx = headers.findIndex(h => /支払方法|支払い方法|method|payment/.test(h));
 
-    // 支払方法名 → methodId の解決テーブル
+    // 支払方法名 → { id, label } の解決テーブル
     const methodNameToId = { '現金': 'cash', 'cash': 'cash' };
-    cards.forEach(c => { methodNameToId[c.name] = c.id; });
-    banks.forEach(b => { methodNameToId[b.name] = b.id; if (b.branch) methodNameToId[`${b.name} ${b.branch}`] = b.id; });
-    prepaids.forEach(p => { methodNameToId[p.name] = p.id; });
-    cash.forEach(c => { methodNameToId[c.name] = c.id; });
+    const methodIdToLabel = { 'cash': '現金' };
+    cards.forEach(c => { methodNameToId[c.name] = c.id; methodIdToLabel[c.id] = c.name; });
+    banks.forEach(b => { methodNameToId[b.name] = b.id; methodIdToLabel[b.id] = b.name; if (b.branch) methodNameToId[`${b.name} ${b.branch}`] = b.id; });
+    prepaids.forEach(p => { methodNameToId[p.name] = p.id; methodIdToLabel[p.id] = p.name; });
+    cash.forEach(c => { methodNameToId[c.name] = c.id; methodIdToLabel[c.id] = c.name; });
     
     if (dateIdx === -1 || amountIdx === -1) {
       return { rows: [], errors: ['「日付」「金額」のカラムが見つかりません。\nCSVに 日付,金額 列が必要です。'] };
@@ -917,21 +931,24 @@ function App() {
       // マイナス金額は支出として絶対値化
       const absAmount = Math.abs(amount);
       
-      // カテゴリマッチング（既存カテゴリ名で部分一致、なければCSVの値をそのまま使用）
-      let category = 'その他';
+      // カテゴリマッチング（既存カテゴリ名で部分一致、未マッチは「未設定」）
+      let category = '未設定';
       if (categoryIdx !== -1 && cells[categoryIdx]) {
         const catRaw = cells[categoryIdx].trim();
         const found = categories.find(c => c.name === catRaw || catRaw.includes(c.name));
-        category = found ? found.name : catRaw; // 未マッチはCSV値をそのまま使用
+        category = found ? found.name : '未設定';
       }
-      
+
       const name = nameIdx !== -1 ? (cells[nameIdx] || '') : '';
 
-      // 支払方法列があれば名前でID解決、なければnull（confirmImportでフォールバック）
+      // 支払方法列があれば名前でID解決。未マッチは「未設定」表示でnull
       let methodId = null;
+      let methodLabel = null; // プレビュー表示用ラベル
       if (methodIdx !== -1 && cells[methodIdx]) {
         const raw = cells[methodIdx].trim();
-        methodId = methodNameToId[raw] || null;
+        const resolved = methodNameToId[raw] || null;
+        methodId = resolved;
+        methodLabel = resolved ? (methodIdToLabel[resolved] || raw) : '未設定';
       }
 
       rows.push({
@@ -941,6 +958,7 @@ function App() {
         name,
         category,
         methodId,
+        methodLabel,
         exclude: false
       });
     }
@@ -959,6 +977,10 @@ function App() {
         return;
       }
       setImportPreview(result);
+      // 未入力タブを先に表示（未設定があれば）
+      const hasIncomplete = result.rows.some(r => r.methodId === null || r.category === '未設定');
+      setCsvPreviewTab(hasIncomplete ? 'incomplete' : 'complete');
+      setCsvEditRow(null);
     };
     reader.onerror = () => showToast("ファイル読み込みエラー", true);
     reader.readAsText(file, 'UTF-8');
@@ -975,6 +997,7 @@ function App() {
     setLedger([...newRows, ...ledger]);
     showToast(`${newRows.length}件を追加${skipped > 0 ? `（重複${skipped}件スキップ）` : ''}`);
     setImportPreview(null);
+    setCsvEditRow(null);
   };
 
   // CSVテンプレートを生成してダウンロード
@@ -1466,20 +1489,20 @@ function App() {
                      <div className="text-[38px] font-mono font-black text-slate-900 dark:text-white">{showAssets ? fmt(totals.assets) : '¥***,***'}</div>
                      <button onClick={() => setShowAssets(!showAssets)} className="text-slate-600 dark:text-white/80 bg-slate-200/70 dark:bg-white/20 p-2 rounded-full"><Eye size={18}/></button>
                    </div>
-                   <div className="grid grid-cols-1 md:grid-cols-2 gap-4 relative z-10">
+                   <div className="relative z-10">
                       <div className="bg-white/60 dark:bg-black/20 rounded-[24px] p-4 border border-slate-200 dark:border-white/10 relative h-72">
                          <span className="absolute top-3 left-4 text-[10px] text-slate-500 dark:text-white/60 uppercase font-black tracking-widest z-10">資産構成</span>
                          <div className="w-full h-full pt-4">
                            <ResponsiveContainer width="100%" height="100%">
                              <PieChart margin={{ top: 8, right: 8, bottom: 8, left: 8 }}>
-                               <Pie 
-                                 activeIndex={activePieIndexAsset} 
-                                 activeShape={activeAssetData.length > 0 ? renderActiveShape : false} 
-                                 data={displayAssetData} 
-                                 innerRadius="40%" 
-                                 outerRadius="88%" 
-                                 dataKey="value" 
-                                 stroke="none" 
+                               <Pie
+                                 activeIndex={activePieIndexAsset}
+                                 activeShape={activeAssetData.length > 0 ? renderActiveShape : false}
+                                 data={displayAssetData}
+                                 innerRadius="40%"
+                                 outerRadius="88%"
+                                 dataKey="value"
+                                 stroke="none"
                                  onClick={(_, index) => setActivePieIndexAsset(index)}
                                  labelLine={false}
                                  label={activeAssetData.length > 0 ? renderCustomizedLabel : false}
@@ -1488,44 +1511,6 @@ function App() {
                                </Pie>
                              </PieChart>
                            </ResponsiveContainer>
-                         </div>
-                      </div>
-                      <div className="bg-white/60 dark:bg-black/20 rounded-[24px] p-4 border border-slate-200 dark:border-white/10 relative h-72">
-                         <div className="absolute top-3 left-4 right-4 flex items-center justify-between z-10">
-                           <span className="text-[10px] text-slate-500 dark:text-white/60 uppercase font-black tracking-widest">年別資産推移</span>
-                           <button
-                             onClick={() => setAssetSnapshotModal({ year: new Date().getFullYear() - 1, assets: '', isEdit: false })}
-                             className="text-[10px] font-black text-[#00c896] flex items-center gap-1 active:scale-90"
-                           ><Plus size={11}/>過去データを追加</button>
-                         </div>
-                         <div className="w-full h-full mt-6">
-                           {historyChartData.length >= 2 ? (
-                             <ResponsiveContainer width="100%" height="100%">
-                               <AreaChart data={historyChartData} margin={{ top: 5, right: 10, left: 10, bottom: 0 }}>
-                                 <CartesianGrid strokeDasharray="3 3" stroke={appSettings.darkMode ? "rgba(0,200,150,0.08)" : "rgba(100,116,139,0.15)"} vertical={false} />
-                                 <XAxis dataKey="name" stroke={appSettings.darkMode ? "rgba(255,255,255,0.35)" : "rgba(100,116,139,0.7)"} fontSize={12} tickLine={false} axisLine={false} />
-                                 <YAxis stroke={appSettings.darkMode ? "rgba(255,255,255,0.35)" : "rgba(100,116,139,0.7)"} fontSize={11} tickLine={false} axisLine={false} tickFormatter={(val) => `${Math.round(val/10000)}万`} width={46} />
-                                 <Area type="monotone" dataKey="assets" stroke={assetChartColor} strokeWidth={2.5} fill="url(#colorAssets)" fillOpacity={1} dot={{ fill: assetChartColor, r: 4 }} activeDot={{ r: 6 }} />
-                                 <defs>
-                                   <linearGradient id="colorAssets" x1="0" y1="0" x2="0" y2="1">
-                                     <stop offset="5%" stopColor={assetChartColor} stopOpacity={0.45}/>
-                                     <stop offset="95%" stopColor={assetChartColor} stopOpacity={0.02}/>
-                                   </linearGradient>
-                                 </defs>
-                                 <RechartsTooltip formatter={(value) => [fmt(value), '総資産']} contentStyle={{ backgroundColor: tooltipBg, border: `1px solid ${tooltipBorder}`, borderRadius: '12px', fontSize: '13px', padding: '8px 14px' }} itemStyle={{ color: assetChartColor, fontWeight: 'bold' }} />
-                               </AreaChart>
-                             </ResponsiveContainer>
-                           ) : (
-                             <div className="h-full flex flex-col items-center justify-center gap-3 pb-4">
-                               <div className="text-[11px] text-slate-400 dark:text-white/30 font-bold text-center leading-relaxed">
-                                 過去の資産データを追加すると<br/>推移グラフが表示されます
-                               </div>
-                               <button
-                                 onClick={() => setAssetSnapshotModal({ year: new Date().getFullYear() - 1, assets: '', isEdit: false })}
-                                 className="px-5 py-2.5 rounded-full text-[12px] font-black text-[#00c896] border border-[#00c896]/30 bg-[#00c896]/10 active:scale-95"
-                               >+ 過去の資産を追加</button>
-                             </div>
-                           )}
                          </div>
                       </div>
                    </div>
@@ -1562,45 +1547,6 @@ function App() {
                    ))}
                  </div>
 
-                 {/* 年別資産スナップショット */}
-                 <div className="bg-white dark:bg-black rounded-[28px] border border-slate-200 dark:border-white/[0.07] overflow-hidden shadow-sm">
-                   <div className="px-5 py-4 border-b border-slate-100 dark:border-white/[0.06] flex items-center justify-between">
-                     <div>
-                       <div className="text-[13px] font-black text-slate-900 dark:text-white">年別資産記録</div>
-                       <div className="text-[10px] text-slate-400 dark:text-white/30 mt-0.5">過去の年末総資産を手入力 → 推移グラフに反映</div>
-                     </div>
-                     <button
-                       onClick={() => setAssetSnapshotModal({ year: new Date().getFullYear() - 1, assets: '', isEdit: false })}
-                       className="w-9 h-9 rounded-full bg-[#00c896]/15 text-[#00c896] flex items-center justify-center active:scale-90"
-                     ><Plus size={16}/></button>
-                   </div>
-                   {assetSnapshots.length === 0 ? (
-                     <div className="px-5 py-8 text-center text-[12px] text-slate-400 dark:text-white/30 font-bold">
-                       + ボタンで過去の年末総資産を追加してください
-                     </div>
-                   ) : (
-                     <div className="divide-y divide-slate-100 dark:divide-white/[0.05]">
-                       {[...assetSnapshots].sort((a, b) => b.year - a.year).map(snap => (
-                         <div key={snap.id} className="flex items-center justify-between px-5 py-3.5">
-                           <div className="flex items-center gap-3">
-                             <div className="w-8 h-8 rounded-xl bg-slate-100 dark:bg-white/5 flex items-center justify-center text-slate-500 dark:text-white/40 text-[11px] font-black">{snap.year}</div>
-                             <div>
-                               <div className="text-[13px] font-black text-slate-900 dark:text-white">{snap.year}年末</div>
-                               <div className="text-[10px] text-slate-400 dark:text-white/30">手動入力</div>
-                             </div>
-                           </div>
-                           <div className="flex items-center gap-3">
-                             <div className="font-mono font-bold text-[14px] text-slate-800 dark:text-white">{fmt(snap.assets)}</div>
-                             <button
-                               onClick={() => setAssetSnapshotModal({ year: snap.year, assets: String(snap.assets), isEdit: true, origYear: snap.year })}
-                               className="text-slate-300 dark:text-white/20 active:scale-90"
-                             ><ChevronRight size={16}/></button>
-                           </div>
-                         </div>
-                       ))}
-                     </div>
-                   )}
-                 </div>
 
                </div>
              );
@@ -1991,6 +1937,74 @@ function App() {
                            })}
                          </div>
                        )}
+                    </GlassCard>
+
+                    {/* 年別資産推移テーブル */}
+                    <GlassCard
+                      title="年別資産推移"
+                      icon={<TrendingUp size={18} className="text-[#00c896]"/>}
+                      action={
+                        <button
+                          onClick={() => setAssetSnapshotModal({ year: new Date().getFullYear() - 1, assets: '', isEdit: false })}
+                          className="text-[11px] font-black text-[#00c896] flex items-center gap-1 px-3 py-1.5 rounded-full bg-[#00c896]/10 border border-[#00c896]/20 active:scale-90"
+                        ><Plus size={11}/>記録を追加</button>
+                      }
+                    >
+                      {historyChartData.length === 0 ? (
+                        <div className="text-center py-6 text-[12px] text-slate-400 dark:text-white/30 font-bold">
+                          「記録を追加」で過去の年末総資産を入力してください
+                        </div>
+                      ) : (
+                        <div className="overflow-hidden rounded-[16px] border border-slate-200 dark:border-white/[0.07]">
+                          {/* ヘッダー */}
+                          <div className="grid grid-cols-3 bg-slate-100 dark:bg-white/[0.04] px-4 py-2.5">
+                            <div className="text-[10px] font-black text-slate-400 dark:text-white/30 uppercase tracking-widest">年</div>
+                            <div className="text-[10px] font-black text-slate-400 dark:text-white/30 uppercase tracking-widest text-right">総資産</div>
+                            <div className="text-[10px] font-black text-slate-400 dark:text-white/30 uppercase tracking-widest text-right">前年比</div>
+                          </div>
+                          {/* 行 */}
+                          {[...historyChartData].reverse().map((row, idx, arr) => {
+                            const prev = arr[idx + 1];
+                            const diff = prev ? row.assets - prev.assets : null;
+                            const isCurrentYear = row.name === String(new Date().getFullYear());
+                            const snap = assetSnapshots.find(s => String(s.year) === row.name);
+                            return (
+                              <div
+                                key={row.name}
+                                className={`grid grid-cols-3 px-4 py-3.5 border-t border-slate-100 dark:border-white/[0.05] items-center ${isCurrentYear ? 'bg-[#00c896]/5' : ''}`}
+                              >
+                                <div className="flex items-center gap-2">
+                                  <span className="text-[14px] font-black text-slate-900 dark:text-white">{row.name}年</span>
+                                  {isCurrentYear && <span className="text-[9px] font-black px-1.5 py-0.5 rounded-md bg-[#00c896]/20 text-[#00c896]">今年</span>}
+                                </div>
+                                <div className="text-right">
+                                  <div className="text-[14px] font-mono font-bold text-slate-900 dark:text-white">{fmtCompact(row.assets)}</div>
+                                </div>
+                                <div className="text-right flex flex-col items-end gap-0.5">
+                                  {diff !== null ? (
+                                    <>
+                                      <span className={`text-[13px] font-mono font-bold ${diff >= 0 ? 'text-[#00c896]' : 'text-rose-500'}`}>
+                                        {diff >= 0 ? '+' : ''}{fmtCompact(diff)}
+                                      </span>
+                                      <span className={`text-[10px] font-bold ${diff >= 0 ? 'text-[#00c896]/70' : 'text-rose-400'}`}>
+                                        {prev && prev.assets > 0 ? `${diff >= 0 ? '+' : ''}${((diff / prev.assets) * 100).toFixed(1)}%` : ''}
+                                      </span>
+                                    </>
+                                  ) : (
+                                    <span className="text-[12px] text-slate-300 dark:text-white/20 font-bold">—</span>
+                                  )}
+                                </div>
+                                {!isCurrentYear && snap && (
+                                  <button
+                                    className="col-span-3 text-[10px] text-slate-300 dark:text-white/20 font-bold text-left mt-1 active:scale-95"
+                                    onClick={() => setAssetSnapshotModal({ year: snap.year, assets: String(snap.assets), isEdit: true, origYear: snap.year })}
+                                  >編集</button>
+                                )}
+                              </div>
+                            );
+                          })}
+                        </div>
+                      )}
                     </GlassCard>
                   </>
                 )}
@@ -2902,75 +2916,164 @@ function App() {
         )}
 
         {/* CSVインポートプレビューモーダル（BottomSheet） */}
-        {importPreview && (
-          <div className="fixed inset-0 z-[150] flex items-end justify-center bg-black/60 backdrop-blur-md" onClick={() => setImportPreview(null)}>
-            <div
-              className="bg-white dark:bg-black rounded-t-[32px] w-full max-w-lg shadow-2xl border-t border-slate-200 dark:border-white/[0.07] flex flex-col"
-              style={{ maxHeight: '88vh', marginBottom: 'var(--kb-offset, 0px)' }}
-              onClick={e => e.stopPropagation()}
-            >
-              <div className="w-10 h-1.5 bg-slate-300 dark:bg-white/20 rounded-full mx-auto mt-3 mb-1 shrink-0" />
-              <div className="p-6 border-b border-slate-200 dark:border-white/[0.07] shrink-0">
-                <div className="flex items-center gap-2 mb-2">
-                  <Upload size={20} className="text-slate-800 dark:text-white"/>
-                  <h3 className="font-black text-lg text-slate-900 dark:text-white">CSV取込プレビュー</h3>
-                </div>
-                <div className="text-[12px] text-slate-500 dark:text-white/50">
-                  <span className="font-black text-emerald-600 dark:text-emerald-400">{importPreview.rows.length}件</span> の取引を取り込みます
-                  {importPreview.errors.length > 0 && <span> / <span className="text-rose-500">{importPreview.errors.length}件 スキップ</span></span>}
-                </div>
-              </div>
+        {importPreview && (() => {
+          const completeRows = importPreview.rows.map((r, i) => ({ ...r, _idx: i })).filter(r => isRowComplete(r));
+          const incompleteRows = importPreview.rows.map((r, i) => ({ ...r, _idx: i })).filter(r => !isRowComplete(r));
+          const displayRows = csvPreviewTab === 'complete' ? completeRows : incompleteRows;
 
-              <div className="overflow-y-auto flex-1 p-4 no-scrollbar ios-scroll">
-                {importPreview.rows.length === 0 && (
-                  <div className="text-center py-8 text-slate-400 dark:text-white/30 text-sm font-bold">取込できるデータがありません</div>
-                )}
-                <div className="space-y-2">
-                  {importPreview.rows.slice(0, 50).map((r, i) => {
-                    const meta = getCatMeta(r.category);
-                    return (
-                      <div key={`prev-${i}`} className="flex justify-between items-center p-3 bg-slate-50 dark:bg-black rounded-[16px] border border-slate-200 dark:border-white/[0.07]">
-                        <div className="flex items-center gap-3 flex-1 min-w-0">
-                          <div className="w-9 h-9 rounded-[12px] flex items-center justify-center text-base shrink-0" style={{backgroundColor: `${meta.color}22`, border: `1px solid ${meta.color}44`}}>{String(meta.emoji)}</div>
-                          <div className="min-w-0 flex-1">
-                            <div className="font-bold text-[13px] text-slate-900 dark:text-white truncate">{String(r.name || r.category)}</div>
-                            <div className="text-[10px] text-slate-500 dark:text-white/40 font-mono">{String(r.date)} • {String(r.category)}</div>
-                          </div>
-                        </div>
-                        <div className="font-mono font-bold text-[14px] text-rose-500 dark:text-rose-400 ml-2">{fmt(r.amount)}</div>
-                      </div>
-                    );
-                  })}
-                  {importPreview.rows.length > 50 && (
-                    <div className="text-center py-3 text-[11px] text-slate-400 dark:text-white/30 font-bold">他 {importPreview.rows.length - 50} 件...</div>
+          return (
+            <div className="fixed inset-0 z-[150] flex items-end justify-center bg-black/60 backdrop-blur-md" onClick={() => { setImportPreview(null); setCsvEditRow(null); }}>
+              <div
+                className="bg-white dark:bg-black rounded-t-[32px] w-full max-w-lg shadow-2xl border-t border-slate-200 dark:border-white/[0.07] flex flex-col"
+                style={{ maxHeight: '92vh', marginBottom: 'var(--kb-offset, 0px)' }}
+                onClick={e => e.stopPropagation()}
+              >
+                <div className="w-10 h-1.5 bg-slate-300 dark:bg-white/20 rounded-full mx-auto mt-3 mb-1 shrink-0" />
+
+                {/* ヘッダー */}
+                <div className="px-6 pt-3 pb-4 shrink-0">
+                  <div className="flex items-center gap-2 mb-3">
+                    <Upload size={18} className="text-slate-800 dark:text-white"/>
+                    <h3 className="font-black text-[17px] text-slate-900 dark:text-white">CSV取込プレビュー</h3>
+                    <span className="ml-auto text-[11px] text-slate-400 dark:text-white/30 font-bold">{importPreview.rows.length}件検出</span>
+                  </div>
+                  {/* タブ */}
+                  <div className="flex bg-slate-100 dark:bg-white/[0.06] rounded-[16px] p-1 gap-1">
+                    <button
+                      onClick={() => { setCsvPreviewTab('incomplete'); setCsvEditRow(null); }}
+                      className={`flex-1 py-2.5 rounded-[12px] text-[12px] font-black transition-all flex items-center justify-center gap-1.5 ${csvPreviewTab === 'incomplete' ? 'bg-white dark:bg-black shadow text-slate-900 dark:text-white' : 'text-slate-400 dark:text-white/40'}`}
+                    >
+                      {incompleteRows.length > 0 && <span className="w-4 h-4 rounded-full bg-amber-500 text-white text-[9px] flex items-center justify-center font-black">{incompleteRows.length}</span>}
+                      未入力
+                    </button>
+                    <button
+                      onClick={() => { setCsvPreviewTab('complete'); setCsvEditRow(null); }}
+                      className={`flex-1 py-2.5 rounded-[12px] text-[12px] font-black transition-all flex items-center justify-center gap-1.5 ${csvPreviewTab === 'complete' ? 'bg-white dark:bg-black shadow text-slate-900 dark:text-white' : 'text-slate-400 dark:text-white/40'}`}
+                    >
+                      {completeRows.length > 0 && <span className="w-4 h-4 rounded-full bg-[#00c896] text-white text-[9px] flex items-center justify-center font-black">{completeRows.length}</span>}
+                      入力完了
+                    </button>
+                  </div>
+                  {csvPreviewTab === 'incomplete' && incompleteRows.length > 0 && (
+                    <div className="mt-2.5 text-[11px] text-amber-600 dark:text-amber-400 font-bold flex items-center gap-1.5">
+                      <AlertTriangle size={12}/>タップして カテゴリ・支払方法 を設定してください
+                    </div>
                   )}
                 </div>
 
-                {importPreview.errors.length > 0 && (
-                  <div className="mt-4 p-3 bg-rose-50 dark:bg-rose-500/10 border border-rose-200 dark:border-rose-500/30 rounded-[16px]">
-                    <div className="font-black text-[12px] text-rose-700 dark:text-rose-300 mb-2 flex items-center gap-1.5"><AlertTriangle size={14}/>スキップされた行</div>
-                    <div className="text-[11px] text-rose-600 dark:text-rose-300/80 space-y-1 max-h-24 overflow-y-auto no-scrollbar font-mono">
-                      {importPreview.errors.slice(0, 10).map((e, i) => <div key={`err-${i}`}>• {String(e)}</div>)}
-                      {importPreview.errors.length > 10 && <div>• 他 {importPreview.errors.length - 10} 件...</div>}
+                {/* 行リスト */}
+                <div className="overflow-y-auto flex-1 px-4 pb-2 no-scrollbar ios-scroll">
+                  {displayRows.length === 0 && (
+                    <div className="text-center py-10 text-[13px] text-slate-400 dark:text-white/30 font-bold">
+                      {csvPreviewTab === 'incomplete' ? '✅ 未入力の行はありません' : '取込完了の行がありません'}
                     </div>
-                  </div>
-                )}
-              </div>
+                  )}
+                  <div className="space-y-2">
+                    {displayRows.slice(0, 80).map((r) => {
+                      const isUnknownCat = r.category === '未設定';
+                      const isUnknownMethod = r.methodId === null;
+                      const meta = isUnknownCat ? { emoji: '❓', color: '#94a3b8' } : getCatMeta(r.category);
+                      const methodName = r.methodId ? (paymentOptions.find(p => p.value === r.methodId)?.label || r.methodLabel || r.methodId) : null;
+                      const isEditing = csvEditRow === r._idx;
 
-              <div className="px-6 pt-4 border-t border-slate-200 dark:border-white/[0.07] shrink-0">
-                <div className="mb-4">
-                  <CheckboxSelect label="取込時の支払方法" value={csvImportMethod} options={paymentOptions} onChange={setCsvImportMethod} />
+                      return (
+                        <div key={`prev-${r._idx}`} className={`rounded-[16px] border transition-all ${isEditing ? 'border-[#00c896] bg-[#00c896]/5 dark:bg-[#00c896]/10' : 'border-slate-200 dark:border-white/[0.07] bg-slate-50 dark:bg-black'}`}>
+                          {/* 行メイン（タップで編集） */}
+                          <button
+                            className="w-full p-3 text-left active:scale-[0.98] transition-transform"
+                            onClick={() => setCsvEditRow(isEditing ? null : r._idx)}
+                          >
+                            <div className="flex justify-between items-start gap-2">
+                              <div className="flex items-start gap-2.5 flex-1 min-w-0">
+                                <div className="w-9 h-9 rounded-[12px] flex items-center justify-center text-base shrink-0 mt-0.5" style={{backgroundColor: `${meta.color}22`, border: `1px solid ${meta.color}44`}}>{String(meta.emoji)}</div>
+                                <div className="min-w-0 flex-1">
+                                  <div className="font-bold text-[13px] text-slate-900 dark:text-white truncate">{String(r.name || '（名称なし）')}</div>
+                                  <div className="text-[10px] text-slate-500 dark:text-white/40 font-mono mt-0.5">{String(r.date)}</div>
+                                </div>
+                              </div>
+                              <div className="flex items-center gap-2 shrink-0">
+                                <div className="font-mono font-bold text-[14px] text-rose-500 dark:text-rose-400">{fmt(r.amount)}</div>
+                                <ChevronDown size={14} className={`text-slate-400 transition-transform ${isEditing ? 'rotate-180' : ''}`}/>
+                              </div>
+                            </div>
+                            <div className="flex items-center gap-1.5 mt-2 flex-wrap">
+                              <span className={`text-[10px] font-black px-2 py-0.5 rounded-full ${isUnknownCat ? 'bg-amber-100 dark:bg-amber-500/15 text-amber-700 dark:text-amber-400 border border-amber-300 dark:border-amber-500/30' : 'bg-slate-100 dark:bg-white/5 text-slate-600 dark:text-white/50'}`}>
+                                {isUnknownCat ? '⚠ カテゴリ未設定' : `${meta.emoji} ${String(r.category)}`}
+                              </span>
+                              <span className={`text-[10px] font-black px-2 py-0.5 rounded-full ${isUnknownMethod ? 'bg-amber-100 dark:bg-amber-500/15 text-amber-700 dark:text-amber-400 border border-amber-300 dark:border-amber-500/30' : 'bg-blue-50 dark:bg-blue-500/10 text-blue-600 dark:text-blue-400 border border-blue-200 dark:border-blue-500/20'}`}>
+                                {isUnknownMethod ? '⚠ 支払方法未設定' : `💳 ${String(methodName)}`}
+                              </span>
+                            </div>
+                          </button>
+
+                          {/* 編集パネル（展開時） */}
+                          {isEditing && (
+                            <div className="px-3 pb-3 space-y-3 border-t border-[#00c896]/20">
+                              <div className="pt-3">
+                                <CheckboxSelect
+                                  label="カテゴリ"
+                                  value={r.category === '未設定' ? '' : r.category}
+                                  options={categoryOptions}
+                                  onChange={(v) => updateImportRow(r._idx, { category: v })}
+                                />
+                              </div>
+                              <CheckboxSelect
+                                label="支払方法"
+                                value={r.methodId || ''}
+                                options={paymentOptions}
+                                onChange={(v) => {
+                                  const label = paymentOptions.find(p => p.value === v)?.label || v;
+                                  updateImportRow(r._idx, { methodId: v, methodLabel: label });
+                                }}
+                              />
+                              <button
+                                onClick={() => setCsvEditRow(null)}
+                                className="w-full py-2.5 bg-[#00c896]/15 text-[#00c896] rounded-[12px] text-[12px] font-black"
+                              >完了</button>
+                            </div>
+                          )}
+                        </div>
+                      );
+                    })}
+                    {displayRows.length > 80 && (
+                      <div className="text-center py-3 text-[11px] text-slate-400 dark:text-white/30 font-bold">他 {displayRows.length - 80} 件...</div>
+                    )}
+                  </div>
+
+                  {/* スキップされた行 */}
+                  {importPreview.errors.length > 0 && (
+                    <div className="mt-4 p-3 bg-rose-50 dark:bg-rose-500/10 border border-rose-200 dark:border-rose-500/30 rounded-[16px]">
+                      <div className="font-black text-[12px] text-rose-700 dark:text-rose-300 mb-2 flex items-center gap-1.5"><AlertTriangle size={14}/>スキップされた行 ({importPreview.errors.length}件)</div>
+                      <div className="text-[11px] text-rose-600 dark:text-rose-300/80 space-y-1 max-h-20 overflow-y-auto no-scrollbar font-mono">
+                        {importPreview.errors.slice(0, 8).map((e, i) => <div key={`err-${i}`}>• {String(e)}</div>)}
+                        {importPreview.errors.length > 8 && <div>• 他 {importPreview.errors.length - 8} 件...</div>}
+                      </div>
+                    </div>
+                  )}
                 </div>
-                <div className="flex gap-3" style={{ paddingBottom: 'max(1.5rem, env(safe-area-inset-bottom))' }}>
-                  <button onClick={() => setImportPreview(null)} className="flex-1 py-3.5 bg-slate-100 dark:bg-white/5 rounded-2xl font-black text-slate-500 dark:text-white/50">キャンセル</button>
-                  <button onClick={confirmImport} disabled={importPreview.rows.length === 0} className={`flex-1 py-3.5 rounded-2xl font-black ${importPreview.rows.length === 0 ? 'bg-slate-100 dark:bg-white/5 text-slate-300 dark:text-white/20 cursor-not-allowed' : 'btn-primary'}`}>
-                    {importPreview.rows.length}件 取り込む
-                  </button>
+
+                {/* フッター */}
+                <div className="px-5 pt-4 border-t border-slate-200 dark:border-white/[0.07] shrink-0">
+                  {/* 未入力残件数の警告 */}
+                  {incompleteRows.length > 0 && (
+                    <div className="mb-3 px-3 py-2 bg-amber-50 dark:bg-amber-500/10 rounded-[12px] flex items-center gap-2">
+                      <AlertTriangle size={13} className="text-amber-600 dark:text-amber-400 shrink-0"/>
+                      <span className="text-[11px] font-bold text-amber-700 dark:text-amber-400">
+                        {incompleteRows.length}件が未設定のまま取り込まれます（後で編集可能）
+                      </span>
+                    </div>
+                  )}
+                  <div className="flex gap-3" style={{ paddingBottom: 'max(1.25rem, env(safe-area-inset-bottom))' }}>
+                    <button onClick={() => { setImportPreview(null); setCsvEditRow(null); }} className="flex-1 py-3.5 bg-slate-100 dark:bg-white/5 rounded-2xl font-black text-slate-500 dark:text-white/50">キャンセル</button>
+                    <button onClick={confirmImport} disabled={importPreview.rows.length === 0} className={`flex-1 py-3.5 rounded-2xl font-black ${importPreview.rows.length === 0 ? 'bg-slate-100 dark:bg-white/5 text-slate-300 dark:text-white/20 cursor-not-allowed' : 'btn-primary'}`}>
+                      {importPreview.rows.length}件 取り込む
+                    </button>
+                  </div>
                 </div>
               </div>
             </div>
-          </div>
-        )}
+          );
+        })()}
 
         {/* カード明細モーダル（BottomSheet） */}
         {cardDetail && (() => {
