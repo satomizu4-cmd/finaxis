@@ -144,14 +144,13 @@ const List = makeIcon('list');
 const X = makeIcon('x');
 
 // ===== ここから家計簿アプリ本体 =====
-const fmt = (num) => `¥${Number(num || 0).toLocaleString()}`;
+const fmt = (num) => `¥${Math.abs(Number(num || 0)).toLocaleString()}`;
 const fmtCompact = (num) => {
   const n = Number(num || 0);
   const abs = Math.abs(n);
-  const sign = n < 0 ? '-' : '';
-  if (abs >= 100000000) return `${sign}¥${(abs / 100000000).toFixed(abs % 100000000 === 0 ? 0 : 1)}億`;
-  if (abs >= 10000) return `${sign}¥${(abs / 10000).toFixed(abs % 10000 === 0 ? 0 : 1)}万`;
-  return `${sign}¥${abs.toLocaleString()}`;
+  if (abs >= 100000000) return `¥${(abs / 100000000).toFixed(abs % 100000000 === 0 ? 0 : 1)}億`;
+  if (abs >= 10000) return `¥${(abs / 10000).toFixed(abs % 10000 === 0 ? 0 : 1)}万`;
+  return `¥${abs.toLocaleString()}`;
 };
 const pad = (n) => String(n).padStart(2, '0');
 
@@ -459,6 +458,10 @@ function App() {
     });
   });
   const [settlements, setSettlements] = useState(() => loadFromStorage('settlements', []));
+  // 年別資産スナップショット: [{ id, year, assets }]
+  // 毎年末の総資産を手入力して資産推移グラフに反映
+  const [assetSnapshots, setAssetSnapshots] = useState(() => loadFromStorage('assetSnapshots', []));
+  const [assetSnapshotModal, setAssetSnapshotModal] = useState(null); // null | { year, assets, isEdit, origYear }
   const [appSettings, setAppSettings] = useState(() => loadFromStorage('appSettings', {
     startDay: 1, notifyRemind: false, notifyPayment: false, notifyClosing: false, darkMode: true,
     userName: "未設定", plan: "free",
@@ -511,9 +514,9 @@ function App() {
 
   // localStorage への自動保存（state変更時）
   useEffect(() => {
-    const data = { banks, cards, investments, prepaids, points, cash, ledger, incomes, fixedCosts, categories, settlements, appSettings };
+    const data = { banks, cards, investments, prepaids, points, cash, ledger, incomes, fixedCosts, categories, settlements, appSettings, assetSnapshots };
     try { localStorage.setItem(STORAGE_KEY, JSON.stringify(data)); } catch(e) { console.error('LocalStorage save failed', e); }
-  }, [banks, cards, investments, prepaids, points, cash, ledger, incomes, fixedCosts, categories, settlements, appSettings]);
+  }, [banks, cards, investments, prepaids, points, cash, ledger, incomes, fixedCosts, categories, settlements, appSettings, assetSnapshots]);
 
   // Tailwindのダークモード戦略を 'class' に切替（claude.ai プレビュー環境向け）
   useEffect(() => {
@@ -620,14 +623,18 @@ function App() {
   }, [currentMonthData.totalExpense, effectiveBudget]);
 
   const historyChartData = useMemo(() => {
+    const currentYear = new Date().getFullYear();
     const data = [];
-    for (let i = 0; i < 6; i++) {
-      const d = new Date(); d.setMonth(d.getMonth() - i);
-      const variance = 1 - (i * 0.03) + (Math.sin(i) * 0.02);
-      data.unshift({ name: `${d.getMonth() + 1}月`, assets: Math.round(totals.assets * variance) });
+    // 過去4年 + 今年の5点
+    for (let i = 4; i >= 1; i--) {
+      const year = currentYear - i;
+      const snap = assetSnapshots.find(s => Number(s.year) === year);
+      if (snap) data.push({ name: `${year}`, assets: Number(snap.assets) });
     }
+    // 今年は現在の計算値を使用
+    data.push({ name: `${currentYear}`, assets: totals.assets });
     return data;
-  }, [totals.assets]);
+  }, [assetSnapshots, totals.assets]);
 
   const homeCalYear = homeCalDate.getFullYear();
   const homeCalMonth = homeCalDate.getMonth() + 1;
@@ -1118,7 +1125,7 @@ function App() {
   };
 
   const exportBackupJson = () => {
-    const data = { banks, cards, investments, prepaids, points, cash, ledger, incomes, fixedCosts, categories, settlements, appSettings };
+    const data = { banks, cards, investments, prepaids, points, cash, ledger, incomes, fixedCosts, categories, settlements, appSettings, assetSnapshots };
     const json = JSON.stringify(data, null, 2);
     const blob = new Blob([json], { type: 'application/json;charset=utf-8;' });
     const url = URL.createObjectURL(blob);
@@ -1484,23 +1491,41 @@ function App() {
                          </div>
                       </div>
                       <div className="bg-white/60 dark:bg-black/20 rounded-[24px] p-4 border border-slate-200 dark:border-white/10 relative h-72">
-                         <span className="absolute top-3 left-4 text-[10px] text-slate-500 dark:text-white/60 uppercase font-black tracking-widest">資産推移</span>
+                         <div className="absolute top-3 left-4 right-4 flex items-center justify-between z-10">
+                           <span className="text-[10px] text-slate-500 dark:text-white/60 uppercase font-black tracking-widest">年別資産推移</span>
+                           <button
+                             onClick={() => setAssetSnapshotModal({ year: new Date().getFullYear() - 1, assets: '', isEdit: false })}
+                             className="text-[10px] font-black text-[#00c896] flex items-center gap-1 active:scale-90"
+                           ><Plus size={11}/>過去データを追加</button>
+                         </div>
                          <div className="w-full h-full mt-6">
-                           <ResponsiveContainer width="100%" height="100%">
-                              <AreaChart data={historyChartData} margin={{ top: 5, right: 10, left: 10, bottom: 0 }}>
-                                <CartesianGrid strokeDasharray="3 3" stroke={appSettings.darkMode ? "rgba(0,200,150,0.08)" : "rgba(100,116,139,0.15)"} vertical={false} />
-                                <XAxis dataKey="name" stroke={appSettings.darkMode ? "rgba(255,255,255,0.35)" : "rgba(100,116,139,0.7)"} fontSize={13} tickLine={false} axisLine={false} />
-                                <YAxis stroke={appSettings.darkMode ? "rgba(255,255,255,0.35)" : "rgba(100,116,139,0.7)"} fontSize={13} tickLine={false} axisLine={false} tickFormatter={(val) => `${val/10000}万`} width={50} />
-                                <Area type="monotone" dataKey="assets" stroke={assetChartColor} strokeWidth={2.5} fill="url(#colorAssets)" fillOpacity={1} />
-                                <defs>
-                                  <linearGradient id="colorAssets" x1="0" y1="0" x2="0" y2="1">
-                                    <stop offset="5%" stopColor={assetChartColor} stopOpacity={0.45}/>
-                                    <stop offset="95%" stopColor={assetChartColor} stopOpacity={0.02}/>
-                                  </linearGradient>
-                                </defs>
-                                <RechartsTooltip formatter={(value) => [fmt(value), '']} labelStyle={{display: 'none'}} separator="" contentStyle={{ backgroundColor: tooltipBg, border: `1px solid ${tooltipBorder}`, borderRadius: '12px', fontSize: '14px', padding: '10px 16px' }} itemStyle={{ color: assetChartColor, fontWeight: 'bold' }} />
-                              </AreaChart>
-                           </ResponsiveContainer>
+                           {historyChartData.length >= 2 ? (
+                             <ResponsiveContainer width="100%" height="100%">
+                               <AreaChart data={historyChartData} margin={{ top: 5, right: 10, left: 10, bottom: 0 }}>
+                                 <CartesianGrid strokeDasharray="3 3" stroke={appSettings.darkMode ? "rgba(0,200,150,0.08)" : "rgba(100,116,139,0.15)"} vertical={false} />
+                                 <XAxis dataKey="name" stroke={appSettings.darkMode ? "rgba(255,255,255,0.35)" : "rgba(100,116,139,0.7)"} fontSize={12} tickLine={false} axisLine={false} />
+                                 <YAxis stroke={appSettings.darkMode ? "rgba(255,255,255,0.35)" : "rgba(100,116,139,0.7)"} fontSize={11} tickLine={false} axisLine={false} tickFormatter={(val) => `${Math.round(val/10000)}万`} width={46} />
+                                 <Area type="monotone" dataKey="assets" stroke={assetChartColor} strokeWidth={2.5} fill="url(#colorAssets)" fillOpacity={1} dot={{ fill: assetChartColor, r: 4 }} activeDot={{ r: 6 }} />
+                                 <defs>
+                                   <linearGradient id="colorAssets" x1="0" y1="0" x2="0" y2="1">
+                                     <stop offset="5%" stopColor={assetChartColor} stopOpacity={0.45}/>
+                                     <stop offset="95%" stopColor={assetChartColor} stopOpacity={0.02}/>
+                                   </linearGradient>
+                                 </defs>
+                                 <RechartsTooltip formatter={(value) => [fmt(value), '総資産']} contentStyle={{ backgroundColor: tooltipBg, border: `1px solid ${tooltipBorder}`, borderRadius: '12px', fontSize: '13px', padding: '8px 14px' }} itemStyle={{ color: assetChartColor, fontWeight: 'bold' }} />
+                               </AreaChart>
+                             </ResponsiveContainer>
+                           ) : (
+                             <div className="h-full flex flex-col items-center justify-center gap-3 pb-4">
+                               <div className="text-[11px] text-slate-400 dark:text-white/30 font-bold text-center leading-relaxed">
+                                 過去の資産データを追加すると<br/>推移グラフが表示されます
+                               </div>
+                               <button
+                                 onClick={() => setAssetSnapshotModal({ year: new Date().getFullYear() - 1, assets: '', isEdit: false })}
+                                 className="px-5 py-2.5 rounded-full text-[12px] font-black text-[#00c896] border border-[#00c896]/30 bg-[#00c896]/10 active:scale-95"
+                               >+ 過去の資産を追加</button>
+                             </div>
+                           )}
                          </div>
                       </div>
                    </div>
@@ -1536,6 +1561,47 @@ function App() {
                      </div>
                    ))}
                  </div>
+
+                 {/* 年別資産スナップショット */}
+                 <div className="bg-white dark:bg-black rounded-[28px] border border-slate-200 dark:border-white/[0.07] overflow-hidden shadow-sm">
+                   <div className="px-5 py-4 border-b border-slate-100 dark:border-white/[0.06] flex items-center justify-between">
+                     <div>
+                       <div className="text-[13px] font-black text-slate-900 dark:text-white">年別資産記録</div>
+                       <div className="text-[10px] text-slate-400 dark:text-white/30 mt-0.5">過去の年末総資産を手入力 → 推移グラフに反映</div>
+                     </div>
+                     <button
+                       onClick={() => setAssetSnapshotModal({ year: new Date().getFullYear() - 1, assets: '', isEdit: false })}
+                       className="w-9 h-9 rounded-full bg-[#00c896]/15 text-[#00c896] flex items-center justify-center active:scale-90"
+                     ><Plus size={16}/></button>
+                   </div>
+                   {assetSnapshots.length === 0 ? (
+                     <div className="px-5 py-8 text-center text-[12px] text-slate-400 dark:text-white/30 font-bold">
+                       + ボタンで過去の年末総資産を追加してください
+                     </div>
+                   ) : (
+                     <div className="divide-y divide-slate-100 dark:divide-white/[0.05]">
+                       {[...assetSnapshots].sort((a, b) => b.year - a.year).map(snap => (
+                         <div key={snap.id} className="flex items-center justify-between px-5 py-3.5">
+                           <div className="flex items-center gap-3">
+                             <div className="w-8 h-8 rounded-xl bg-slate-100 dark:bg-white/5 flex items-center justify-center text-slate-500 dark:text-white/40 text-[11px] font-black">{snap.year}</div>
+                             <div>
+                               <div className="text-[13px] font-black text-slate-900 dark:text-white">{snap.year}年末</div>
+                               <div className="text-[10px] text-slate-400 dark:text-white/30">手動入力</div>
+                             </div>
+                           </div>
+                           <div className="flex items-center gap-3">
+                             <div className="font-mono font-bold text-[14px] text-slate-800 dark:text-white">{fmt(snap.assets)}</div>
+                             <button
+                               onClick={() => setAssetSnapshotModal({ year: snap.year, assets: String(snap.assets), isEdit: true, origYear: snap.year })}
+                               className="text-slate-300 dark:text-white/20 active:scale-90"
+                             ><ChevronRight size={16}/></button>
+                           </div>
+                         </div>
+                       ))}
+                     </div>
+                   )}
+                 </div>
+
                </div>
              );
           })()}
@@ -1717,11 +1783,11 @@ function App() {
                         </div>
                         <div className="flex justify-between">
                           <span className="text-[12px] text-slate-500 dark:text-white/40 font-black uppercase">総支出</span>
-                          <span className="text-lg font-mono font-bold text-rose-500">-{fmt(exp)}</span>
+                          <span className="text-lg font-mono font-bold text-rose-500">{fmt(exp)}</span>
                         </div>
                         <div className="flex justify-between pt-3 border-t border-slate-200 dark:border-white/[0.07]">
                           <span className="text-[12px] text-slate-500 dark:text-white/40 font-black uppercase">今月の収支</span>
-                          <span className={`text-2xl font-mono font-bold ${sur < 0 ? 'text-red-500' : 'text-slate-900 dark:text-white'}`}>{sur < 0 ? '' : '+'}{fmt(sur)}</span>
+                          <span className={`text-2xl font-mono font-bold ${sur < 0 ? 'text-red-500' : 'text-slate-900 dark:text-white'}`}>{fmt(sur)}</span>
                         </div>
                       </div>
 
@@ -1887,7 +1953,7 @@ function App() {
                   <>
                     <div className="bg-white dark:bg-black rounded-[32px] p-6 border border-slate-200 dark:border-white/[0.07] text-center shadow-sm">
                       <div className="text-[11px] font-black text-slate-500 uppercase tracking-[0.3em] mb-4">年間収支</div>
-                      <div className={`text-5xl font-mono font-bold tracking-tighter ${ySur < 0 ? 'text-red-500' : 'text-green-500'}`}>{ySur < 0 ? '-' : '+'}{fmt(Math.abs(ySur))}</div>
+                      <div className={`text-5xl font-mono font-bold tracking-tighter ${ySur < 0 ? 'text-red-500' : 'text-green-500'}`}>{fmt(ySur)}</div>
                     </div>
                     <div className="grid grid-cols-2 gap-4">
                       <KpiCard title="年間収入" amount={yInc} color="text-green-500" />
@@ -1901,7 +1967,7 @@ function App() {
                              <XAxis dataKey="name" stroke={appSettings.darkMode ? "rgba(255,255,255,0.35)" : "#94a3b8"} fontSize={11} tickLine={false} axisLine={false} />
                              <YAxis stroke={appSettings.darkMode ? "rgba(255,255,255,0.35)" : "#94a3b8"} fontSize={11} tickLine={false} axisLine={false} tickFormatter={(val) => `${val>=10000?`${Math.round(val/10000)}万`:`${val}`}`} width={40} />
                              <RechartsTooltip
-                               formatter={(value, name) => [`-${fmt(value)}`, name]}
+                               formatter={(value, name) => [fmt(value), name]}
                                contentStyle={{ backgroundColor: tooltipBg, border: `1px solid ${tooltipBorder}`, borderRadius: '12px', fontSize: '12px', padding: '8px 14px' }}
                                itemStyle={{ fontWeight: 'bold' }}
                              />
@@ -2360,7 +2426,6 @@ function App() {
                           <div className="grid grid-cols-2 gap-5 mb-6 bg-slate-50 dark:bg-black p-5 rounded-[24px] border border-slate-200 dark:border-white/[0.07]">
                             <div className="col-span-2"><InputField label="カード名" id="set_c_name" placeholder="例: 楽天カード" /></div>
                             <InputField label="年会費 (¥)" id="set_c_fee" type="number" placeholder="0" hint="無料の場合は0" />
-                            <InputField label="発行日" id="set_c_issue" type="date" />
                             <div className="col-span-2 flex flex-col gap-2">
                               <label className="text-[11px] font-black text-slate-500 dark:text-white/40 uppercase tracking-widest pl-3">ブランド</label>
                               <select id="set_c_brand" className="h-14 bg-white dark:bg-black border border-slate-200 dark:border-white/[0.07] rounded-[20px] px-5 outline-none font-bold appearance-none">
@@ -2417,7 +2482,7 @@ function App() {
                                 bankId: document.getElementById('set_c_bank').value,
                                 visibleInEntry: newCardVisible,
                                 annualFee: Number(document.getElementById('set_c_fee').value) || 0,
-                                issueDate: document.getElementById('set_c_issue').value || ''
+                                issueDate: ''
                               }]);
                               document.getElementById('set_c_name').value = '';
                               setNewCardClosingDate('1');
@@ -2644,6 +2709,106 @@ function App() {
           </div>
         )}
 
+        {/* 年別資産スナップショット 入力モーダル */}
+        {assetSnapshotModal && (
+          <div className="fixed inset-0 z-[120] flex items-end justify-center bg-black/60 backdrop-blur-md" onClick={() => setAssetSnapshotModal(null)}>
+            <div
+              className="bg-white dark:bg-black rounded-t-[40px] w-full max-w-lg shadow-2xl border-t border-slate-200 dark:border-white/[0.07]"
+              style={{ marginBottom: 'var(--kb-offset, 0px)' }}
+              onClick={e => e.stopPropagation()}
+            >
+              <div className="w-10 h-1.5 bg-slate-300 dark:bg-white/20 rounded-full mx-auto mt-3 mb-1"/>
+              <div className="px-6 pt-4 pb-4 border-b border-slate-100 dark:border-white/[0.07] flex items-center justify-between">
+                <div className="flex items-center gap-2">
+                  <TrendingUp size={18} className="text-[#00c896]"/>
+                  <h3 className="font-black text-[17px] text-slate-900 dark:text-white">
+                    {assetSnapshotModal.isEdit ? '年別資産を編集' : '年別資産を追加'}
+                  </h3>
+                </div>
+                <button onClick={() => setAssetSnapshotModal(null)} className="w-8 h-8 rounded-full bg-slate-100 dark:bg-white/10 flex items-center justify-center text-slate-500 dark:text-white/50">
+                  <X size={15}/>
+                </button>
+              </div>
+
+              <div className="px-6 pt-5 pb-2 space-y-4">
+                {/* 年選択 */}
+                <div>
+                  <label className="text-[11px] font-black text-slate-500 dark:text-white/40 uppercase tracking-widest pl-1 block mb-2">年</label>
+                  <div className="flex gap-2 flex-wrap">
+                    {Array.from({ length: 10 }, (_, i) => new Date().getFullYear() - 1 - i).map(y => (
+                      <button
+                        key={y}
+                        onClick={() => setAssetSnapshotModal({ ...assetSnapshotModal, year: y })}
+                        className={`px-4 py-2 rounded-[12px] text-[13px] font-black transition-all active:scale-90 ${
+                          assetSnapshotModal.year === y
+                            ? 'bg-[#00c896] text-white'
+                            : 'bg-slate-100 dark:bg-white/5 text-slate-600 dark:text-white/50'
+                        }`}
+                      >{y}年</button>
+                    ))}
+                  </div>
+                </div>
+
+                {/* 金額入力 */}
+                <div>
+                  <label className="text-[11px] font-black text-slate-500 dark:text-white/40 uppercase tracking-widest pl-1 block mb-2">{assetSnapshotModal.year}年末の総資産 (¥)</label>
+                  <input
+                    type="number"
+                    inputMode="decimal"
+                    value={assetSnapshotModal.assets}
+                    onChange={e => setAssetSnapshotModal({ ...assetSnapshotModal, assets: e.target.value })}
+                    placeholder="例: 3500000"
+                    className="w-full h-14 bg-slate-50 dark:bg-white/5 border border-slate-200 dark:border-white/[0.1] rounded-[20px] px-5 text-base font-bold text-slate-900 dark:text-white outline-none focus:border-[#00c896] transition-colors"
+                  />
+                  {assetSnapshotModal.assets && (
+                    <div className="text-[12px] font-mono font-bold text-[#00c896] mt-2 pl-2">
+                      = {fmt(Number(assetSnapshotModal.assets))}
+                    </div>
+                  )}
+                </div>
+              </div>
+
+              <div className="px-6 pt-3 pb-2 flex gap-3 flex-col" style={{ paddingBottom: 'max(1.5rem, env(safe-area-inset-bottom))' }}>
+                <button
+                  onClick={() => {
+                    const y = Number(assetSnapshotModal.year);
+                    const a = Number(assetSnapshotModal.assets);
+                    if (!a) { return; }
+                    if (assetSnapshotModal.isEdit) {
+                      setAssetSnapshots(assetSnapshots.map(s =>
+                        Number(s.year) === Number(assetSnapshotModal.origYear)
+                          ? { ...s, year: y, assets: a }
+                          : s
+                      ));
+                    } else {
+                      // 同じ年が既存なら上書き
+                      const exists = assetSnapshots.find(s => Number(s.year) === y);
+                      if (exists) {
+                        setAssetSnapshots(assetSnapshots.map(s => Number(s.year) === y ? { ...s, assets: a } : s));
+                      } else {
+                        setAssetSnapshots([...assetSnapshots, { id: `snap_${Date.now()}`, year: y, assets: a }]);
+                      }
+                    }
+                    setAssetSnapshotModal(null);
+                    showToast(`${y}年の資産を記録しました`);
+                  }}
+                  className="w-full h-14 btn-primary rounded-[24px] font-black text-[15px]"
+                >保存する</button>
+                {assetSnapshotModal.isEdit && (
+                  <button
+                    onClick={() => {
+                      setAssetSnapshots(assetSnapshots.filter(s => Number(s.year) !== Number(assetSnapshotModal.origYear)));
+                      setAssetSnapshotModal(null);
+                      showToast('削除しました');
+                    }}
+                    className="w-full py-3 text-[13px] font-black text-rose-400 dark:text-rose-400"
+                  >この年のデータを削除</button>
+                )}
+              </div>
+            </div>
+          </div>
+        )}
+
         {/* グラフ表示設定 BottomSheet */}
         {graphSettingsOpen && (
           <div className="fixed inset-0 z-[120] flex items-end justify-center bg-black/60 backdrop-blur-md" onClick={() => setGraphSettingsOpen(false)}>
@@ -2772,7 +2937,7 @@ function App() {
                             <div className="text-[10px] text-slate-500 dark:text-white/40 font-mono">{String(r.date)} • {String(r.category)}</div>
                           </div>
                         </div>
-                        <div className="font-mono font-bold text-[14px] text-rose-500 dark:text-rose-400 ml-2">-{fmt(r.amount)}</div>
+                        <div className="font-mono font-bold text-[14px] text-rose-500 dark:text-rose-400 ml-2">{fmt(r.amount)}</div>
                       </div>
                     );
                   })}
@@ -2885,7 +3050,7 @@ function App() {
                                 <div className="text-[10px] text-slate-400 dark:text-white/40 font-mono">{item.date} • {String(item.category)}</div>
                               </div>
                               <div className={`font-mono font-bold text-[14px] shrink-0 ${isExcluded ? 'line-through text-slate-400 dark:text-white/30' : 'text-rose-500 dark:text-rose-400'}`}>
-                                -{fmt(item.amount)}
+                                {fmt(item.amount)}
                               </div>
                             </div>
                           );
@@ -2910,7 +3075,7 @@ function App() {
                                 <div className="text-[13px] font-bold text-slate-900 dark:text-white truncate">{String(f.name)}</div>
                                 <div className="text-[10px] text-slate-400 dark:text-white/40">{String(f.category)} • 月額固定</div>
                               </div>
-                              <div className="font-mono font-bold text-[14px] text-rose-500 dark:text-rose-400 shrink-0">-{fmt(f.amount)}</div>
+                              <div className="font-mono font-bold text-[14px] text-rose-500 dark:text-rose-400 shrink-0">{fmt(f.amount)}</div>
                             </div>
                           );
                         })}
@@ -3043,7 +3208,6 @@ function App() {
                       </select>
                     </div>
                     <InputField label="年会費 (¥)" type="number" value={editingItem.data.annualFee ?? ''} onChange={e=>setEditingItem({...editingItem, data:{...editingItem.data, annualFee:Number(e.target.value)}})} hint="無料の場合は0" />
-                    <InputField label="発行日" type="date" value={editingItem.data.issueDate || ''} onChange={e=>setEditingItem({...editingItem, data:{...editingItem.data, issueDate:e.target.value}})} />
                     <ToggleRow
                       label="家計簿の記入に表示する"
                       icon={<Eye size={18}/>}
