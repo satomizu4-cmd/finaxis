@@ -561,11 +561,35 @@ function App() {
   const [lastSyncTime, setLastSyncTime] = useState(() => loadFromStorage('lastSyncTime', null));
   const [pullCodeInput, setPullCodeInput] = useState('');
   const [syncPriority, setSyncPriority] = useState('cloud'); // 'cloud' | 'device'
+  const [textExportVal, setTextExportVal] = useState('');
+  const [textImportVal, setTextImportVal] = useState('');
+  const [pendingSync, setPendingSync] = useState(false); // オフライン中に保留されたSync
 
   const getAllSyncData = () => ({
     banks, cards, investments, prepaids, points, cash, ledger, incomes,
     fixedCosts, categories, settlements, appSettings, assetSnapshots
   });
+
+  // テキスト書き出し（ネット不要）
+  const exportSyncText = () => {
+    try {
+      const json = JSON.stringify(getAllSyncData());
+      const encoded = btoa(unescape(encodeURIComponent(json)));
+      setTextExportVal(encoded);
+      navigator.clipboard?.writeText(encoded).then(() => showToast('クリップボードにコピーしました ✓')).catch(() => showToast('下のテキストをコピーしてください'));
+    } catch(e) { showToast('書き出しに失敗しました', true); }
+  };
+
+  // テキスト読み込み（ネット不要）
+  const importSyncText = () => {
+    try {
+      const data = JSON.parse(decodeURIComponent(escape(atob(textImportVal.trim()))));
+      applySync(data);
+      setLastSyncTime(new Date().toISOString());
+      showToast('データを読み込みました ✓');
+      setTextImportVal('');
+    } catch(e) { showToast('テキストが正しくありません', true); }
+  };
 
   const applySync = (data) => {
     if (data.banks) setBanks(data.banks);
@@ -586,14 +610,13 @@ function App() {
   const generateSyncCode = async () => {
     setSyncStatus('syncing');
     try {
-      const res = await fetch('https://jsonblob.com/api/jsonBlob', {
+      const res = await fetch('/api/sync', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json', 'Accept': 'application/json' },
+        headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(getAllSyncData())
       });
       if (!res.ok) throw new Error('HTTP ' + res.status);
-      const location = res.headers.get('Location') || '';
-      const uuid = location.split('/').pop();
+      const { uuid } = await res.json();
       if (!uuid) throw new Error('no uuid');
       setSyncCode(uuid);
       const now = new Date().toISOString();
@@ -613,9 +636,9 @@ function App() {
     if (!syncCode) { await generateSyncCode(); return; }
     setSyncStatus('syncing');
     try {
-      const res = await fetch(`https://jsonblob.com/api/jsonBlob/${syncCode}`, {
+      const res = await fetch(`/api/sync?id=${syncCode}`, {
         method: 'PUT',
-        headers: { 'Content-Type': 'application/json', 'Accept': 'application/json' },
+        headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(getAllSyncData())
       });
       if (!res.ok) throw new Error('HTTP ' + res.status);
@@ -640,9 +663,9 @@ function App() {
     try {
       if (prio === 'device') {
         // このデバイスを優先: ローカルデータをクラウドに上書きアップロード
-        const res = await fetch(`https://jsonblob.com/api/jsonBlob/${target}`, {
+        const res = await fetch(`/api/sync?id=${target}`, {
           method: 'PUT',
-          headers: { 'Content-Type': 'application/json', 'Accept': 'application/json' },
+          headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify(getAllSyncData())
         });
         if (!res.ok) throw new Error('HTTP ' + res.status);
@@ -653,7 +676,7 @@ function App() {
         showToast('このデバイスのデータをアップロードしました ✓');
       } else {
         // クラウドを優先: クラウドのデータをローカルに上書き
-        const res = await fetch(`https://jsonblob.com/api/jsonBlob/${target}`);
+        const res = await fetch(`/api/sync?id=${target}`);
         if (!res.ok) throw new Error('HTTP ' + res.status);
         const data = await res.json();
         applySync(data);
@@ -674,6 +697,82 @@ function App() {
       showToast(msg, true);
     }
   };
+
+  // 起動時に自動プル（syncCodeがあれば最新データをサイレント取得）
+  useEffect(() => {
+    if (!syncCode) return;
+    (async () => {
+      try {
+        const res = await fetch(`/api/sync?id=${syncCode}`);
+        if (!res.ok) return;
+        const data = await res.json();
+        applySync(data);
+        setLastSyncTime(new Date().toISOString());
+      } catch(e) { /* サイレント失敗 */ }
+    })();
+  }, []); // eslint-disable-line react-hooks/exhaustive-deps
+
+  // 1タップ同期: コードなし→生成してアップ / コードあり→アップ
+  const oneSync = async (silent = false) => {
+    if (syncStatus === 'syncing') return;
+    // オフライン検知 → 保留フラグをセット
+    if (!navigator.onLine) {
+      setPendingSync(true);
+      setSyncStatus('idle');
+      if (!silent) showToast('オフラインです。接続が回復したら自動で同期します', true);
+      return;
+    }
+    setPendingSync(false);
+    setSyncStatus('syncing');
+    try {
+      if (!syncCode) {
+        const res = await fetch('/api/sync', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(getAllSyncData())
+        });
+        if (!res.ok) throw new Error('HTTP ' + res.status);
+        const { uuid } = await res.json();
+        if (!uuid) throw new Error('no uuid');
+        setSyncCode(uuid);
+        setLastSyncTime(new Date().toISOString());
+        setSyncStatus('success');
+        if (!silent) showToast('同期番号を生成しました ✓');
+      } else {
+        const res = await fetch(`/api/sync?id=${syncCode}`, {
+          method: 'PUT',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(getAllSyncData())
+        });
+        if (!res.ok) throw new Error('HTTP ' + res.status);
+        setLastSyncTime(new Date().toISOString());
+        setSyncStatus('success');
+        if (!silent) showToast('同期しました ✓');
+      }
+    } catch(e) {
+      setSyncStatus('error');
+      // フェッチ失敗 → 保留に切替
+      if (e.message === 'Failed to fetch') {
+        setPendingSync(true);
+        setSyncStatus('idle');
+        if (!silent) showToast('接続できません。回復後に自動で同期します', true);
+      } else {
+        if (!silent) showToast(`同期に失敗しました (${e.message})`, true);
+      }
+    }
+  };
+
+  // 接続回復時に保留Syncを自動実行
+  useEffect(() => {
+    const handleOnline = () => {
+      if (pendingSync && syncCode) {
+        showToast('接続が回復しました。自動で同期します...');
+        oneSync(true);
+      }
+    };
+    window.addEventListener('online', handleOnline);
+    return () => window.removeEventListener('online', handleOnline);
+  }, [pendingSync, syncCode]); // eslint-disable-line react-hooks/exhaustive-deps
 
   // VisualViewport API: ソフトキーボード表示時にBottomSheetを押し上げる
   useEffect(() => {
@@ -1471,7 +1570,7 @@ function App() {
             setSettingsView={setSettingsView}
             syncStatus={syncStatus}
             syncCode={syncCode}
-            onPushSync={pushSync}
+            onPushSync={oneSync}
             onExitPc={() => setIsPcMode(false)}
           />
         )}
@@ -1480,13 +1579,37 @@ function App() {
         {!isPcMode && (
           <header className="sticky top-0 z-20 bg-white/90 dark:bg-black/95 backdrop-blur-2xl border-b border-slate-200 dark:border-[#00c896]/12 px-6 pb-4 pt-safe flex items-center justify-between transition-colors">
             <h1 className="text-2xl font-black tracking-tighter text-slate-900 dark:text-white">Fin<span className="text-slate-900 dark:text-[#00c896]" style={appSettings.darkMode ? { textShadow: '0 0 20px rgba(0,200,150,0.7)' } : {}}>axis</span></h1>
-            <button
-              onClick={() => setIsPcMode(true)}
-              className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-slate-100 dark:bg-white/[0.06] text-slate-500 dark:text-white/50 hover:bg-slate-200 dark:hover:bg-white/[0.12] hover:text-slate-800 dark:hover:text-white/80 transition-all active:scale-95 text-xs font-bold"
-            >
-              <Monitor size={14}/>
-              <span>PC</span>
-            </button>
+            <div className="flex items-center gap-2">
+              {/* 1タップ同期ボタン */}
+              <button
+                onClick={oneSync}
+                disabled={syncStatus === 'syncing'}
+                title={syncCode ? 'データを同期' : '同期を設定'}
+                className={`flex items-center gap-1.5 px-3 py-1.5 rounded-xl transition-all active:scale-95 text-xs font-bold disabled:opacity-50 ${
+                  syncStatus === 'syncing' ? 'bg-slate-100 dark:bg-white/[0.06] text-slate-400 dark:text-white/40'
+                  : pendingSync ? 'bg-amber-400/10 text-amber-500 dark:text-amber-300'
+                  : syncStatus === 'success' ? 'bg-[#00c896]/10 text-[#00c896]'
+                  : syncCode ? 'bg-[#00c896]/10 text-[#00c896]'
+                  : 'bg-slate-100 dark:bg-white/[0.06] text-slate-500 dark:text-white/50'
+                }`}
+              >
+                {syncStatus === 'syncing'
+                  ? <RefreshCw size={14} className="animate-spin"/>
+                  : pendingSync
+                    ? <CloudUpload size={14}/>
+                    : <CloudUpload size={14}/>
+                }
+                <span>{syncStatus === 'syncing' ? '同期中' : pendingSync ? '保留中' : syncCode ? '同期' : '同期設定'}</span>
+              </button>
+              {/* PCモード切替 */}
+              <button
+                onClick={() => setIsPcMode(true)}
+                className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-slate-100 dark:bg-white/[0.06] text-slate-500 dark:text-white/50 hover:bg-slate-200 dark:hover:bg-white/[0.12] hover:text-slate-800 dark:hover:text-white/80 transition-all active:scale-95 text-xs font-bold"
+              >
+                <Monitor size={14}/>
+                <span>PC</span>
+              </button>
+            </div>
           </header>
         )}
 
@@ -2695,6 +2818,56 @@ function App() {
                                 : <><CloudUpload size={18}/>このデバイスをアップロード</>
                             }
                           </button>
+                        </div>
+                      </GlassCard>
+
+                      {/* テキスト同期（ネット不要） */}
+                      <GlassCard title="テキスト同期（ネット不要）" icon={<Share2 size={18} className="text-amber-400"/>}>
+                        <div className="space-y-5">
+                          <p className="text-[13px] text-slate-500 dark:text-white/50 leading-relaxed">クラウドが使えない場合でも、テキストをコピー＆ペーストして同期できます。</p>
+
+                          {/* 書き出し */}
+                          <div className="space-y-2">
+                            <div className="text-[11px] font-black text-slate-400 dark:text-white/30 uppercase tracking-widest">書き出し（このデバイス → 他デバイス）</div>
+                            <button
+                              onClick={exportSyncText}
+                              className="w-full py-3.5 rounded-2xl font-black text-sm flex items-center justify-center gap-2 bg-amber-400/10 border border-amber-400/30 text-amber-500 dark:text-amber-300 hover:bg-amber-400/20 transition-colors"
+                            >
+                              <Copy size={16}/>データをテキストに書き出す
+                            </button>
+                            {textExportVal && (
+                              <textarea
+                                readOnly
+                                value={textExportVal}
+                                rows={3}
+                                onClick={e => { e.target.select(); navigator.clipboard?.writeText(textExportVal).then(()=>showToast('コピーしました ✓')); }}
+                                className="w-full bg-slate-50 dark:bg-black border border-slate-200 dark:border-white/10 rounded-2xl px-4 py-3 text-[11px] font-mono text-slate-600 dark:text-white/50 resize-none cursor-pointer"
+                                placeholder="ここにテキストが表示されます"
+                              />
+                            )}
+                          </div>
+
+                          {/* 読み込み */}
+                          <div className="space-y-2">
+                            <div className="text-[11px] font-black text-slate-400 dark:text-white/30 uppercase tracking-widest">読み込み（他デバイスのテキストを貼り付け）</div>
+                            <textarea
+                              value={textImportVal}
+                              onChange={e => setTextImportVal(e.target.value)}
+                              rows={3}
+                              placeholder="書き出したテキストを貼り付け..."
+                              className="w-full bg-slate-50 dark:bg-black border border-slate-200 dark:border-white/10 rounded-2xl px-4 py-3 text-[11px] font-mono text-slate-900 dark:text-white resize-none focus:outline-none focus:border-[#00c896]/60"
+                            />
+                            <button
+                              onClick={() => {
+                                if (!textImportVal.trim()) { showToast('テキストを貼り付けてください', true); return; }
+                                setConfirmDialog({ message: 'このデバイスのデータが上書きされます。\n続行しますか？', onConfirm: () => { setConfirmDialog(null); importSyncText(); } });
+                              }}
+                              disabled={!textImportVal.trim()}
+                              className="w-full py-3.5 rounded-2xl font-black text-sm flex items-center justify-center gap-2 bg-[#00c896]/10 border border-[#00c896]/30 text-[#00c896] hover:bg-[#00c896]/20 transition-colors disabled:opacity-40"
+                            >
+                              <CloudDownload size={16}/>テキストから読み込む
+                            </button>
+                          </div>
                         </div>
                       </GlassCard>
 
