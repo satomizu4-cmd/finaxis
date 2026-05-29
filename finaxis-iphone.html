@@ -602,7 +602,10 @@ function App() {
       showToast('同期コードを生成しました');
     } catch (e) {
       setSyncStatus('error');
-      showToast('コードの生成に失敗しました', true);
+      const msg = e.message === 'Failed to fetch'
+        ? 'ネットワークに接続できません'
+        : `生成に失敗しました (${e.message})`;
+      showToast(msg, true);
     }
   };
 
@@ -622,7 +625,10 @@ function App() {
       showToast('データをアップロードしました ✓');
     } catch (e) {
       setSyncStatus('error');
-      showToast('アップロードに失敗しました', true);
+      const msg = e.message === 'Failed to fetch'
+        ? 'ネットワークに接続できません'
+        : `アップロードに失敗しました (${e.message})`;
+      showToast(msg, true);
     }
   };
 
@@ -660,7 +666,12 @@ function App() {
       setPullCodeInput('');
     } catch (e) {
       setSyncStatus('error');
-      showToast('同期に失敗しました', true);
+      const msg = e.message === 'Failed to fetch'
+        ? 'ネットワークに接続できません'
+        : e.message.includes('404') || e.message.includes('500')
+          ? '同期番号が見つかりません'
+          : `同期に失敗しました (${e.message})`;
+      showToast(msg, true);
     }
   };
 
