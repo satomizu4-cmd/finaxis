@@ -142,6 +142,14 @@ const HelpCircle = makeIcon('help-circle');
 const Clock = makeIcon('clock');
 const List = makeIcon('list');
 const X = makeIcon('x');
+const Monitor = makeIcon('monitor');
+const Laptop = makeIcon('laptop');
+const Smartphone = makeIcon('smartphone');
+const CloudUpload = makeIcon('cloud-upload');
+const CloudDownload = makeIcon('cloud-download');
+const Unlink = makeIcon('unlink');
+const QrCode = makeIcon('qr-code');
+const Share2 = makeIcon('share-2');
 
 // ===== ここから家計簿アプリ本体 =====
 const fmt = (num) => `¥${Math.abs(Number(num || 0)).toLocaleString()}`;
@@ -306,12 +314,14 @@ function GlassCard({ title, icon, children, className = "", action, collapsed = 
   );
 }
 
-function KpiCard({ title, amount, suffix = "", color, fullFormat = false }) {
+function KpiCard({ title, amount, suffix = "", color, fullFormat = false, large = false }) {
+  // アラビア数字のみ表示（¥2,466,000 形式）
+  const displayVal = suffix ? `${amount}${suffix}` : fmt(amount);
   return (
-    <div className="bg-white dark:bg-black border border-slate-100 dark:border-white/[0.07] rounded-[28px] p-5 shadow-sm transition-transform active:scale-95">
-      <div className="text-[10px] font-black text-slate-400 dark:text-white/30 uppercase tracking-widest mb-2">{String(title)}</div>
-      <div className={`text-xl font-mono font-black tracking-tighter ${color}`}>
-        {suffix ? `${amount}${suffix}` : fullFormat ? fmt(amount) : fmtCompact(amount)}
+    <div className={`bg-white dark:bg-black border border-slate-100 dark:border-white/[0.07] rounded-[28px] shadow-sm transition-transform active:scale-95 ${large ? 'p-6' : 'p-5'}`}>
+      <div className={`font-black text-slate-400 dark:text-white/30 uppercase tracking-widest mb-2 ${large ? 'text-[11px]' : 'text-[10px]'}`}>{String(title)}</div>
+      <div className={`font-mono font-black tracking-tighter whitespace-nowrap overflow-hidden ${color} ${large ? 'text-xl' : 'text-xl'}`}>
+        {displayVal}
       </div>
     </div>
   );
@@ -514,9 +524,9 @@ function App() {
 
   // localStorage への自動保存（state変更時）
   useEffect(() => {
-    const data = { banks, cards, investments, prepaids, points, cash, ledger, incomes, fixedCosts, categories, settlements, appSettings, assetSnapshots };
+    const data = { banks, cards, investments, prepaids, points, cash, ledger, incomes, fixedCosts, categories, settlements, appSettings, assetSnapshots, syncCode, lastSyncTime };
     try { localStorage.setItem(STORAGE_KEY, JSON.stringify(data)); } catch(e) { console.error('LocalStorage save failed', e); }
-  }, [banks, cards, investments, prepaids, points, cash, ledger, incomes, fixedCosts, categories, settlements, appSettings, assetSnapshots]);
+  }, [banks, cards, investments, prepaids, points, cash, ledger, incomes, fixedCosts, categories, settlements, appSettings, assetSnapshots, syncCode, lastSyncTime]);
 
   // Tailwindのダークモード戦略を 'class' に切替（claude.ai プレビュー環境向け）
   useEffect(() => {
@@ -536,6 +546,123 @@ function App() {
     }
   }, [appSettings.darkMode]);
 
+
+  // ===== PC モード =====
+  const [isPcMode, setIsPcMode] = useState(() => typeof window !== 'undefined' && window.innerWidth >= 900);
+  useEffect(() => {
+    const handler = () => setIsPcMode(window.innerWidth >= 900);
+    window.addEventListener('resize', handler);
+    return () => window.removeEventListener('resize', handler);
+  }, []);
+
+  // ===== デバイス同期 =====
+  const [syncCode, setSyncCode] = useState(() => loadFromStorage('syncCode', null));
+  const [syncStatus, setSyncStatus] = useState('idle'); // 'idle' | 'syncing' | 'success' | 'error'
+  const [lastSyncTime, setLastSyncTime] = useState(() => loadFromStorage('lastSyncTime', null));
+  const [pullCodeInput, setPullCodeInput] = useState('');
+  const [syncPriority, setSyncPriority] = useState('cloud'); // 'cloud' | 'device'
+
+  const getAllSyncData = () => ({
+    banks, cards, investments, prepaids, points, cash, ledger, incomes,
+    fixedCosts, categories, settlements, appSettings, assetSnapshots
+  });
+
+  const applySync = (data) => {
+    if (data.banks) setBanks(data.banks);
+    if (data.cards) setCards(data.cards);
+    if (data.investments) setInvestments(data.investments);
+    if (data.prepaids) setPrepaids(data.prepaids);
+    if (data.points) setPoints(data.points);
+    if (data.cash !== undefined) setCash(data.cash);
+    if (data.ledger) setLedger(data.ledger);
+    if (data.incomes) setIncomes(data.incomes);
+    if (data.fixedCosts) setFixedCosts(data.fixedCosts);
+    if (data.categories) setCategories(data.categories);
+    if (data.settlements) setSettlements(data.settlements);
+    if (data.appSettings) setAppSettings(data.appSettings);
+    if (data.assetSnapshots) setAssetSnapshots(data.assetSnapshots);
+  };
+
+  const generateSyncCode = async () => {
+    setSyncStatus('syncing');
+    try {
+      const res = await fetch('https://jsonblob.com/api/jsonBlob', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', 'Accept': 'application/json' },
+        body: JSON.stringify(getAllSyncData())
+      });
+      if (!res.ok) throw new Error('HTTP ' + res.status);
+      const location = res.headers.get('Location') || '';
+      const uuid = location.split('/').pop();
+      if (!uuid) throw new Error('no uuid');
+      setSyncCode(uuid);
+      const now = new Date().toISOString();
+      setLastSyncTime(now);
+      setSyncStatus('success');
+      showToast('同期コードを生成しました');
+    } catch (e) {
+      setSyncStatus('error');
+      showToast('コードの生成に失敗しました', true);
+    }
+  };
+
+  const pushSync = async () => {
+    if (!syncCode) { await generateSyncCode(); return; }
+    setSyncStatus('syncing');
+    try {
+      const res = await fetch(`https://jsonblob.com/api/jsonBlob/${syncCode}`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json', 'Accept': 'application/json' },
+        body: JSON.stringify(getAllSyncData())
+      });
+      if (!res.ok) throw new Error('HTTP ' + res.status);
+      const now = new Date().toISOString();
+      setLastSyncTime(now);
+      setSyncStatus('success');
+      showToast('データをアップロードしました ✓');
+    } catch (e) {
+      setSyncStatus('error');
+      showToast('アップロードに失敗しました', true);
+    }
+  };
+
+  const pullSync = async (code, priority) => {
+    const target = (code || pullCodeInput || '').trim();
+    const prio = priority || syncPriority;
+    if (!target) { showToast('同期番号を入力してください', true); return; }
+    setSyncStatus('syncing');
+    try {
+      if (prio === 'device') {
+        // このデバイスを優先: ローカルデータをクラウドに上書きアップロード
+        const res = await fetch(`https://jsonblob.com/api/jsonBlob/${target}`, {
+          method: 'PUT',
+          headers: { 'Content-Type': 'application/json', 'Accept': 'application/json' },
+          body: JSON.stringify(getAllSyncData())
+        });
+        if (!res.ok) throw new Error('HTTP ' + res.status);
+        setSyncCode(target);
+        const now = new Date().toISOString();
+        setLastSyncTime(now);
+        setSyncStatus('success');
+        showToast('このデバイスのデータをアップロードしました ✓');
+      } else {
+        // クラウドを優先: クラウドのデータをローカルに上書き
+        const res = await fetch(`https://jsonblob.com/api/jsonBlob/${target}`);
+        if (!res.ok) throw new Error('HTTP ' + res.status);
+        const data = await res.json();
+        applySync(data);
+        setSyncCode(target);
+        const now = new Date().toISOString();
+        setLastSyncTime(now);
+        setSyncStatus('success');
+        showToast('クラウドのデータを取得しました！');
+      }
+      setPullCodeInput('');
+    } catch (e) {
+      setSyncStatus('error');
+      showToast('同期に失敗しました', true);
+    }
+  };
 
   // VisualViewport API: ソフトキーボード表示時にBottomSheetを押し上げる
   useEffect(() => {
@@ -640,15 +767,24 @@ function App() {
   const homeCalMonth = homeCalDate.getMonth() + 1;
   const homeCalData = useMemo(() => {
     const dayData = {};
-    const payMonthIdx = homeCalMonth - 1; 
-    const closeMonthIdx = payMonthIdx - 1; 
+    const ensureDay = (d) => {
+      if (!dayData[d]) dayData[d] = { total: 0, banks: {}, closings: [] };
+    };
+    const payMonthIdx = homeCalMonth - 1;
+    const closeMonthIdx = payMonthIdx - 1;
 
     cards.forEach(c => {
       const cDate = Number(c.closingDate) || 99;
+
+      // ── 締め日: 今月の締め日をマーク ──
+      const lastDayOfCurMonth = new Date(homeCalYear, homeCalMonth, 0).getDate();
+      const closingDayOfMonth = cDate === 99 ? lastDayOfCurMonth : Math.min(cDate, lastDayOfCurMonth);
+      ensureDay(closingDayOfMonth);
+      dayData[closingDayOfMonth].closings.push({ id: c.id, name: c.name, brand: c.brand });
+
+      // ── 引き落とし日（資金日）: 先月締め分の支払い ──
       let startDate, endDate;
       if (cDate === 99) {
-        // 末日締め = 翌々月払い（2ヶ月後）
-        // 例: 5月末締め → 7月支払い。7月カレンダーで見ると、5月の取引が対象
         startDate = new Date(homeCalYear, closeMonthIdx - 1, 1);
         endDate = new Date(homeCalYear, closeMonthIdx, 0, 23, 59, 59);
       } else {
@@ -657,42 +793,41 @@ function App() {
       }
 
       const lSum = ledger.filter(l => l.methodId === c.id).reduce((ss, l) => {
-          const lDate = new Date(l.date);
-          if (lDate >= startDate && lDate <= endDate) return ss + (Number(l.amount) || 0);
-          return ss;
+        const lDate = new Date(l.date);
+        if (lDate >= startDate && lDate <= endDate) return ss + (Number(l.amount) || 0);
+        return ss;
       }, 0);
       const fSum = fixedCosts.filter(f => f.methodId === c.id && f.cycle === 'monthly').reduce((ss, f) => ss + (Number(f.amount) || 0), 0);
       const totalCardSum = lSum + fSum;
 
-      if (totalCardSum > 0) {
-        let pDay = Number(c.paymentDate) || 31;
-        const lastDayOfPayMonth = new Date(homeCalYear, payMonthIdx + 1, 0).getDate();
-        if (pDay > lastDayOfPayMonth) pDay = lastDayOfPayMonth;
-        
-        let adjDate = new Date(homeCalYear, payMonthIdx, pDay);
-        if (adjDate.getDay() === 0 || adjDate.getDay() === 6) {
-          const dir = c.holidayAdjustment === 'prev' ? -1 : 1;
-          while (adjDate.getDay() === 0 || adjDate.getDay() === 6) adjDate.setDate(adjDate.getDate() + dir);
+      // 取引がなくてもカードを引き落とし日に登録（表示するため）
+      let pDay = Number(c.paymentDate) || 27;
+      const lastDayOfPayMonth = new Date(homeCalYear, payMonthIdx + 1, 0).getDate();
+      if (pDay > lastDayOfPayMonth) pDay = lastDayOfPayMonth;
+
+      let adjDate = new Date(homeCalYear, payMonthIdx, pDay);
+      if (adjDate.getDay() === 0 || adjDate.getDay() === 6) {
+        const dir = c.holidayAdjustment === 'prev' ? -1 : 1;
+        while (adjDate.getDay() === 0 || adjDate.getDay() === 6) adjDate.setDate(adjDate.getDate() + dir);
+      }
+
+      if (adjDate.getMonth() === payMonthIdx) {
+        const finalDay = adjDate.getDate();
+        ensureDay(finalDay);
+        dayData[finalDay].total += totalCardSum;
+
+        const bankId = c.bankId || 'unknown';
+        if (!dayData[finalDay].banks[bankId]) {
+          const b = banks.find(b => b.id === bankId);
+          dayData[finalDay].banks[bankId] = { name: b ? b.name : '未設定', amount: 0, cards: [], isSettled: true };
         }
-        
-        if (adjDate.getMonth() === payMonthIdx) {
-          const finalDay = adjDate.getDate();
-          if (!dayData[finalDay]) dayData[finalDay] = { total: 0, banks: {} };
-          dayData[finalDay].total += totalCardSum;
-          
-          const bankId = c.bankId || 'unknown';
-          if (!dayData[finalDay].banks[bankId]) {
-            const b = banks.find(b => b.id === bankId);
-            dayData[finalDay].banks[bankId] = { name: b ? b.name : '未設定', amount: 0, cards: [], isSettled: true };
-          }
-          
-          dayData[finalDay].banks[bankId].amount += totalCardSum;
-          dayData[finalDay].banks[bankId].cards.push({ ...c, amount: totalCardSum, startDate, endDate });
-          
-          const ymStr = `${homeCalYear}-${pad(homeCalMonth)}`;
-          if (!settlements.includes(`${c.id}_${ymStr}`)) {
-            dayData[finalDay].banks[bankId].isSettled = false;
-          }
+
+        dayData[finalDay].banks[bankId].amount += totalCardSum;
+        dayData[finalDay].banks[bankId].cards.push({ ...c, amount: totalCardSum, startDate, endDate });
+
+        const ymStr = `${homeCalYear}-${pad(homeCalMonth)}`;
+        if (!settlements.includes(`${c.id}_${ymStr}`)) {
+          dayData[finalDay].banks[bankId].isSettled = false;
         }
       }
     });
@@ -1313,39 +1448,64 @@ function App() {
           @keyframes plusPulse { 0%,100% { box-shadow: 0 0 0 0 rgba(255,255,255,0.25), 0 12px 40px rgba(0,0,0,0.7); } 50% { box-shadow: 0 0 0 8px rgba(255,255,255,0), 0 12px 40px rgba(0,0,0,0.5); } }
           .plus-btn { animation: plusPulse 3s ease-in-out infinite; }
           html.dark .card-accent-bar { box-shadow: 0 0 10px rgba(0,200,150,0.8); }
+          @keyframes spin { to { transform: rotate(360deg); } }
+          .animate-spin { animation: spin 1s linear infinite; }
         `}</style>
 
-        <header className="sticky top-0 z-20 bg-white/90 dark:bg-black/95 backdrop-blur-2xl border-b border-slate-200 dark:border-[#00c896]/12 px-6 pb-4 pt-safe flex items-center justify-between transition-colors">
-          <h1 className="text-2xl font-black tracking-tighter text-slate-900 dark:text-white">Fin<span className="text-slate-900 dark:text-[#00c896]" style={appSettings.darkMode ? { textShadow: '0 0 20px rgba(0,200,150,0.7)' } : {}}>axis</span></h1>
-        </header>
+        {/* ===== PC サイドバー ===== */}
+        {isPcMode && (
+          <PcSidebar
+            activeTab={activeTab}
+            setActiveTab={setActiveTab}
+            setSettingsView={setSettingsView}
+            syncStatus={syncStatus}
+            syncCode={syncCode}
+            onPushSync={pushSync}
+            onExitPc={() => setIsPcMode(false)}
+          />
+        )}
 
-        <main className="max-w-4xl mx-auto p-4 md:p-6 pb-safe relative z-10">
+        {/* ===== モバイルヘッダー（PCモード時は非表示） ===== */}
+        {!isPcMode && (
+          <header className="sticky top-0 z-20 bg-white/90 dark:bg-black/95 backdrop-blur-2xl border-b border-slate-200 dark:border-[#00c896]/12 px-6 pb-4 pt-safe flex items-center justify-between transition-colors">
+            <h1 className="text-2xl font-black tracking-tighter text-slate-900 dark:text-white">Fin<span className="text-slate-900 dark:text-[#00c896]" style={appSettings.darkMode ? { textShadow: '0 0 20px rgba(0,200,150,0.7)' } : {}}>axis</span></h1>
+            <button
+              onClick={() => setIsPcMode(true)}
+              className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-slate-100 dark:bg-white/[0.06] text-slate-500 dark:text-white/50 hover:bg-slate-200 dark:hover:bg-white/[0.12] hover:text-slate-800 dark:hover:text-white/80 transition-all active:scale-95 text-xs font-bold"
+            >
+              <Monitor size={14}/>
+              <span>PC</span>
+            </button>
+          </header>
+        )}
+
+        <main className={`${isPcMode ? 'ml-[260px] pt-8 pb-16 px-10 max-w-[1200px]' : 'max-w-4xl mx-auto p-4 md:p-6 pb-safe'} relative z-10`}>
           {/* ==================== ホーム ==================== */}
           {activeTab === 'home' && (
-            <div className="space-y-6">
-              <div className="grid grid-cols-2 gap-4">
-                <KpiCard title="総資産" amount={totals.assets} color="text-slate-800 dark:text-white" fullFormat />
-                <KpiCard title="残高" amount={totals.balance} color="text-slate-700 dark:text-white" fullFormat />
+            <div className={isPcMode ? 'space-y-8' : 'space-y-6'}>
+              <div className={`grid ${isPcMode ? 'grid-cols-4 gap-5' : 'grid-cols-2 gap-4'}`}>
+                <KpiCard title="総資産" amount={totals.assets} color="text-slate-800 dark:text-white" fullFormat large={isPcMode} />
+                <KpiCard title="残高" amount={totals.balance} color="text-slate-700 dark:text-white" fullFormat large={isPcMode} />
                 {effectiveBudget > 0
-                  ? <KpiCard title="予算進捗" amount={budgetProgress} suffix="%" color={budgetProgress > 90 ? "text-red-500" : "text-slate-700 dark:text-white"} />
-                  : <KpiCard title="現金" amount={totals.cashBank} color="text-emerald-600 dark:text-emerald-400" fullFormat />
+                  ? <KpiCard title="予算進捗" amount={budgetProgress} suffix="%" color={budgetProgress > 90 ? "text-red-500" : "text-slate-700 dark:text-white"} large={isPcMode} />
+                  : <KpiCard title="現金" amount={totals.cashBank} color="text-emerald-600 dark:text-emerald-400" fullFormat large={isPcMode} />
                 }
-                <KpiCard title="引落予定" amount={totals.unpaidCard} color="text-rose-500 dark:text-rose-400" fullFormat />
+                <KpiCard title="引落予定" amount={totals.unpaidCard} color="text-rose-500 dark:text-rose-400" fullFormat large={isPcMode} />
               </div>
 
               <GlassCard title="今月の収支">
-                <div className="grid grid-cols-3 gap-3 text-center">
+                <div className={`grid grid-cols-3 text-center ${isPcMode ? 'gap-6' : 'gap-3'}`}>
                   <div>
-                    <div className="text-[11px] font-bold text-slate-400 dark:text-white/30 mb-1">収入</div>
-                    <div className="text-[15px] font-black text-emerald-600 dark:text-emerald-400">{fmt(currentMonthData.totalIncome)}</div>
+                    <div className={`font-bold text-slate-400 dark:text-white/30 mb-2 ${isPcMode ? 'text-[13px]' : 'text-[11px]'}`}>収入</div>
+                    <div className={`font-black text-emerald-600 dark:text-emerald-400 ${isPcMode ? 'text-[22px]' : 'text-[15px]'}`}>{fmt(currentMonthData.totalIncome)}</div>
                   </div>
                   <div>
-                    <div className="text-[11px] font-bold text-slate-400 dark:text-white/30 mb-1">支出</div>
-                    <div className="text-[15px] font-black text-rose-500 dark:text-rose-400">{fmt(currentMonthData.totalExpense)}</div>
+                    <div className={`font-bold text-slate-400 dark:text-white/30 mb-2 ${isPcMode ? 'text-[13px]' : 'text-[11px]'}`}>支出</div>
+                    <div className={`font-black text-rose-500 dark:text-rose-400 ${isPcMode ? 'text-[22px]' : 'text-[15px]'}`}>{fmt(currentMonthData.totalExpense)}</div>
                   </div>
                   <div>
-                    <div className="text-[11px] font-bold text-slate-400 dark:text-white/30 mb-1">収支</div>
-                    <div className={`text-[15px] font-black ${currentMonthData.surplus >= 0 ? 'text-slate-700 dark:text-white' : 'text-rose-500 dark:text-rose-400'}`}>{fmt(currentMonthData.surplus)}</div>
+                    <div className={`font-bold text-slate-400 dark:text-white/30 mb-2 ${isPcMode ? 'text-[13px]' : 'text-[11px]'}`}>収支</div>
+                    <div className={`font-black ${currentMonthData.surplus >= 0 ? 'text-slate-700 dark:text-white' : 'text-rose-500 dark:text-rose-400'} ${isPcMode ? 'text-[22px]' : 'text-[15px]'}`}>{fmt(currentMonthData.surplus)}</div>
                   </div>
                 </div>
               </GlassCard>
@@ -1353,18 +1513,18 @@ function App() {
               {effectiveBudget > 0 && (
                 <GlassCard title="月間予算分析" icon={<BarChart3 size={18} className="text-slate-800 dark:text-white"/>}>
                   <div className="flex justify-between items-end mb-3 px-1">
-                    <div className="text-[14px] font-bold text-slate-800 dark:text-white">
+                    <div className={`font-bold text-slate-800 dark:text-white ${isPcMode ? 'text-[18px]' : 'text-[14px]'}`}>
                       支出: {fmt(currentMonthData.totalExpense)}
                     </div>
                     <div className="text-right">
-                      <div className="text-[12px] text-slate-500 dark:text-white/40">予算合計: {fmt(effectiveBudget)}</div>
+                      <div className={`text-slate-500 dark:text-white/40 ${isPcMode ? 'text-[14px]' : 'text-[12px]'}`}>予算合計: {fmt(effectiveBudget)}</div>
                       {totalCategoryBudget > 0 && <div className="text-[10px] text-slate-400 dark:text-white/25">カテゴリ予算の合計</div>}
                     </div>
                   </div>
-                  <div className="h-4 w-full bg-slate-200 dark:bg-white/5 rounded-full overflow-hidden mb-2">
+                  <div className={`w-full bg-slate-200 dark:bg-white/5 rounded-full overflow-hidden mb-2 ${isPcMode ? 'h-5' : 'h-4'}`}>
                     <div className={`h-full transition-all duration-1000 ${budgetProgress > 90 ? 'bg-red-500' : 'bg-slate-800 dark:bg-white'}`} style={{ width: `${budgetProgress}%` }}></div>
                   </div>
-                  <div className="flex justify-between text-[11px] font-bold">
+                  <div className={`flex justify-between font-bold ${isPcMode ? 'text-[13px]' : 'text-[11px]'}`}>
                     <span className={budgetProgress > 90 ? 'text-red-500' : 'text-slate-500 dark:text-white/40'}>{budgetProgress}% 消化</span>
                     <span className="text-slate-500 dark:text-white/40">残り {fmt(Math.max(0, effectiveBudget - currentMonthData.totalExpense))}</span>
                   </div>
@@ -1388,12 +1548,17 @@ function App() {
                   ))}
                 </div>
 
+                {/* 凡例 */}
+                <div className="flex items-center gap-3 flex-wrap mb-3 px-1">
+                  <div className="flex items-center gap-1"><span className="w-2 h-2 rounded-full bg-emerald-500 inline-block"></span><span className="text-[10px] text-slate-400 dark:text-white/30 font-bold">資金日(精算済)</span></div>
+                  <div className="flex items-center gap-1"><span className="w-2 h-2 rounded-full bg-white border border-slate-300 inline-block"></span><span className="text-[10px] text-slate-400 dark:text-white/30 font-bold">資金日(未精算)</span></div>
+                </div>
+
                 <div className="grid grid-cols-7 gap-1 sm:gap-1.5">
                   {getCalendarDaysArr(homeCalYear, homeCalMonth).map((d, i) => {
                     const dayInfo = d ? homeCalData[d] : null;
-                    const hasData = dayInfo && dayInfo.total > 0;
-                    // 精算済 / 未精算の判定
-                    const banksArr = hasData ? Object.values(dayInfo.banks) : [];
+                    const hasPayment = dayInfo && Object.keys(dayInfo.banks).length > 0;
+                    const banksArr = hasPayment ? Object.values(dayInfo.banks) : [];
                     const hasSettled = banksArr.some(b => b.isSettled);
                     const hasUnsettled = banksArr.some(b => !b.isSettled);
                     const isToday = d === new Date().getDate() && homeCalMonth === new Date().getMonth() + 1 && homeCalYear === new Date().getFullYear();
@@ -1402,23 +1567,21 @@ function App() {
                       <div
                         key={`cal-home-${i}`}
                         onClick={() => d && setSelectedHomeDay(isSelected ? null : d)}
-                        className={`aspect-square rounded-[14px] p-1.5 flex flex-col items-center justify-center cursor-pointer transition-all ${
+                        className={`aspect-square rounded-[14px] p-1 flex flex-col items-center justify-center cursor-pointer transition-all relative ${
                           d ? (
                             isSelected
                               ? 'bg-slate-200 dark:bg-white/20 border-2 border-slate-600 dark:border-white shadow-md'
-                              : 'bg-slate-50 dark:bg-black border border-slate-200 dark:border-white/[0.07] hover:bg-slate-100 dark:hover:bg-[#1e1e1e]'
+                              : hasPayment
+                                ? 'bg-slate-50 dark:bg-[#0a1208] border border-slate-200 dark:border-[#00c896]/20'
+                                : 'bg-slate-50 dark:bg-black border border-slate-200 dark:border-white/[0.07] hover:bg-slate-100 dark:hover:bg-[#1e1e1e]'
                           ) : 'opacity-0 pointer-events-none'
                         }`}
                       >
-                        <span className={`text-[14px] sm:text-[16px] font-black ${isToday ? 'text-slate-800 dark:text-white' : 'text-slate-700 dark:text-white/80'}`}>{d}</span>
-                        {/* 引落ドット（精算済=緑 / 未精算=オレンジ） */}
-                        <div className="flex gap-1 mt-1 h-2.5 items-center">
-                          {hasSettled && (
-                            <span className="w-2.5 h-2.5 rounded-full bg-emerald-500 dark:bg-emerald-400 shadow-sm"></span>
-                          )}
-                          {hasUnsettled && (
-                            <span className="w-2.5 h-2.5 rounded-full bg-slate-700 dark:bg-white shadow-sm"></span>
-                          )}
+                        <span className={`text-[13px] sm:text-[15px] font-black ${isToday ? 'text-[#00c896]' : 'text-slate-700 dark:text-white/80'}`}>{d}</span>
+                        {/* 資金日ドット（精算済=緑 / 未精算=白） */}
+                        <div className="flex gap-0.5 mt-0.5 h-2 items-center">
+                          {hasSettled && <span className="w-2 h-2 rounded-full bg-emerald-500 dark:bg-emerald-400"></span>}
+                          {hasUnsettled && <span className="w-2 h-2 rounded-full bg-slate-600 dark:bg-white border border-slate-300 dark:border-white/30"></span>}
                         </div>
                       </div>
                     )
@@ -1426,8 +1589,14 @@ function App() {
                 </div>
                 
                 {selectedHomeDay && homeCalData[selectedHomeDay] && (
-                  <div className="mt-8 pt-6 border-t border-slate-200 dark:border-white/[0.07]">
-                    <div className="font-black text-lg text-slate-800 dark:text-white mb-4">{homeCalMonth}月{selectedHomeDay}日の引落予定</div>
+                  <div className="mt-6 pt-5 border-t border-slate-200 dark:border-white/[0.07] space-y-5">
+                    {/* 資金日（引き落とし）セクション */}
+                    {Object.keys(homeCalData[selectedHomeDay].banks).length > 0 && (
+                    <div>
+                    <div className="flex items-center gap-2 mb-3">
+                      <span className="text-[10px] font-black px-2 py-0.5 rounded-full bg-emerald-100 dark:bg-emerald-500/15 text-emerald-700 dark:text-emerald-400">資金日</span>
+                      <span className="text-[12px] font-black text-slate-700 dark:text-white/70">{homeCalMonth}月{selectedHomeDay}日 引き落とし</span>
+                    </div>
                     <div className="space-y-4 max-h-80 overflow-y-auto no-scrollbar ios-scroll pr-2">
                       {Object.entries(homeCalData[selectedHomeDay].banks).map(([bankId, bankData], bIdx) => (
                         <div key={`bank-group-${bIdx}`} className="bg-slate-50 dark:bg-black rounded-[24px] border border-slate-200 dark:border-white/[0.07] overflow-hidden">
@@ -1462,6 +1631,8 @@ function App() {
                         </div>
                       ))}
                     </div>
+                    </div>
+                    )}
                   </div>
                 )}
               </GlassCard>
@@ -2037,6 +2208,9 @@ function App() {
                     <SettingsListItem title="カテゴリー・予算の編集" icon={<Tags size={20}/>} onClick={()=>setSettingsView('categories')} borderBottom />
                     <SettingsListItem title="口座・決済手段の管理" icon={<CreditCard size={20}/>} onClick={()=>{ setSettingsSubTab('banks'); setSettingsView('accounts'); }} />
                   </SettingsSection>
+                  <SettingsSection title="デバイス同期">
+                    <SettingsListItem title="デバイス間で同期する" icon={<CloudUpload size={20}/>} onClick={()=>setSettingsView('sync')} value={syncCode ? '設定済み' : '未設定'} />
+                  </SettingsSection>
                   <SettingsSection title="データ管理">
                     <SettingsListItem title="バックアップ・復元" icon={<Database size={20}/>} onClick={()=>setSettingsView('backup')} borderBottom />
                     <SettingsListItem title="CSVエクスポート" icon={<Download size={20}/>} onClick={()=>setSettingsView('dataExport')} borderBottom />
@@ -2385,6 +2559,154 @@ function App() {
                     </div>
                   )}
 
+                  {/* ===== デバイス同期 ===== */}
+                  {settingsView === 'sync' && (
+                    <div className="space-y-6">
+                      {/* 同期の説明 */}
+                      <div className="bg-[#00c896]/10 border border-[#00c896]/25 rounded-[24px] p-5 flex items-start gap-3">
+                        <CloudUpload size={20} className="text-[#00c896] mt-0.5 shrink-0"/>
+                        <div className="text-[13px] text-slate-600 dark:text-white/60 leading-relaxed">
+                          <span className="font-black text-slate-900 dark:text-white block mb-1">番号でデバイス間同期</span>
+                          スマホとパソコンで同じデータを使えます。同期番号を控えて他のデバイスで入力してください。インターネット接続が必要です。
+                        </div>
+                      </div>
+
+                      {/* このデバイスから送信 */}
+                      <GlassCard title="このデバイスから送信" icon={<CloudUpload size={18} className="text-[#00c896]"/>}>
+                        {syncCode ? (
+                          <div className="space-y-4">
+                            <div>
+                              <div className="text-[11px] font-black text-slate-400 dark:text-white/40 uppercase tracking-widest mb-2">同期番号</div>
+                              <div className="bg-slate-50 dark:bg-black rounded-2xl border border-slate-200 dark:border-white/10 p-4 flex items-center justify-between gap-3">
+                                <span className="font-mono text-[13px] font-black text-slate-900 dark:text-[#00c896] break-all select-all">{syncCode}</span>
+                                <button
+                                  onClick={() => { navigator.clipboard?.writeText(syncCode); showToast('コピーしました'); }}
+                                  className="shrink-0 p-2 bg-slate-100 dark:bg-white/10 rounded-xl hover:bg-slate-200 dark:hover:bg-white/20 transition-colors"
+                                >
+                                  <Copy size={16} className="text-slate-500 dark:text-white/60"/>
+                                </button>
+                              </div>
+                              <div className="text-[11px] text-slate-400 dark:text-white/40 mt-2">
+                                {lastSyncTime ? `最終同期: ${new Date(lastSyncTime).toLocaleString('ja-JP')}` : ''}
+                              </div>
+                            </div>
+                            <div className="flex gap-3">
+                              <button
+                                onClick={pushSync}
+                                disabled={syncStatus === 'syncing'}
+                                className="flex-1 btn-primary py-3.5 rounded-2xl font-black text-sm flex items-center justify-center gap-2"
+                              >
+                                {syncStatus === 'syncing'
+                                  ? <><RefreshCw size={16} className="animate-spin"/>同期中...</>
+                                  : <><CloudUpload size={16}/>今すぐアップロード</>
+                                }
+                              </button>
+                              <button
+                                onClick={() => setConfirmDialog({ message: '同期番号をリセットします。\n新しい番号が発行されます。', onConfirm: () => { setSyncCode(null); setConfirmDialog(null); } })}
+                                className="p-3.5 bg-slate-100 dark:bg-white/5 rounded-2xl text-slate-500 dark:text-white/40 hover:bg-red-50 dark:hover:bg-red-500/10 hover:text-red-500 transition-colors"
+                              >
+                                <Unlink size={16}/>
+                              </button>
+                            </div>
+                          </div>
+                        ) : (
+                          <div className="space-y-4">
+                            <div className="text-[13px] text-slate-500 dark:text-white/50 leading-relaxed">
+                              同期番号がまだありません。ボタンを押すとデータをクラウドに保存し、番号が発行されます。
+                            </div>
+                            <button
+                              onClick={generateSyncCode}
+                              disabled={syncStatus === 'syncing'}
+                              className="w-full btn-primary py-4 rounded-2xl font-black flex items-center justify-center gap-2"
+                            >
+                              {syncStatus === 'syncing'
+                                ? <><RefreshCw size={18} className="animate-spin"/>生成中...</>
+                                : <><CloudUpload size={18}/>同期番号を生成する</>
+                              }
+                            </button>
+                          </div>
+                        )}
+                      </GlassCard>
+
+                      {/* 他デバイスから受信 */}
+                      <GlassCard title="他のデバイスから受信" icon={<CloudDownload size={18} className="text-blue-400"/>}>
+                        <div className="space-y-4">
+                          <div className="text-[13px] text-slate-500 dark:text-white/50 leading-relaxed">
+                            別のデバイスで発行した同期番号を入力して同期します。
+                          </div>
+                          {/* 優先度選択 */}
+                          <div className="space-y-2">
+                            <div className="text-[11px] font-black text-slate-400 dark:text-white/30 uppercase tracking-widest">どちらのデータを優先しますか？</div>
+                            <div className="grid grid-cols-2 gap-2">
+                              <button
+                                onClick={() => setSyncPriority('cloud')}
+                                className={`flex flex-col items-center gap-1.5 py-3 px-2 rounded-2xl border-2 text-center transition-all ${syncPriority === 'cloud' ? 'border-blue-400 bg-blue-50 dark:bg-blue-400/10 text-blue-600 dark:text-blue-300' : 'border-slate-200 dark:border-white/10 text-slate-500 dark:text-white/40'}`}
+                              >
+                                <CloudDownload size={18}/>
+                                <span className="text-[12px] font-black leading-tight">クラウドを優先</span>
+                                <span className="text-[10px] font-medium leading-tight opacity-70">このデバイスを上書き</span>
+                              </button>
+                              <button
+                                onClick={() => setSyncPriority('device')}
+                                className={`flex flex-col items-center gap-1.5 py-3 px-2 rounded-2xl border-2 text-center transition-all ${syncPriority === 'device' ? 'border-[#00c896] bg-[#00c896]/10 text-[#00c896]' : 'border-slate-200 dark:border-white/10 text-slate-500 dark:text-white/40'}`}
+                              >
+                                <Smartphone size={18}/>
+                                <span className="text-[12px] font-black leading-tight">このデバイスを優先</span>
+                                <span className="text-[10px] font-medium leading-tight opacity-70">クラウドを上書き</span>
+                              </button>
+                            </div>
+                          </div>
+                          <input
+                            type="text"
+                            value={pullCodeInput}
+                            onChange={e => setPullCodeInput(e.target.value)}
+                            placeholder="同期番号を貼り付け..."
+                            className="w-full bg-slate-50 dark:bg-black border border-slate-200 dark:border-white/10 rounded-2xl px-4 py-3.5 text-sm font-mono font-bold text-slate-900 dark:text-white placeholder-slate-400 dark:placeholder-white/25 focus:outline-none focus:border-[#00c896]/60"
+                          />
+                          <button
+                            onClick={() => {
+                              if (!pullCodeInput.trim()) { showToast('同期番号を入力してください', true); return; }
+                              const msg = syncPriority === 'cloud'
+                                ? 'クラウドのデータでこのデバイスを上書きします。\n続行しますか？'
+                                : 'このデバイスのデータをクラウドに上書きします。\n続行しますか？';
+                              setConfirmDialog({
+                                message: msg,
+                                onConfirm: () => { setConfirmDialog(null); pullSync(null, syncPriority); }
+                              });
+                            }}
+                            disabled={syncStatus === 'syncing' || !pullCodeInput.trim()}
+                            className="w-full btn-primary py-4 rounded-2xl font-black flex items-center justify-center gap-2 disabled:opacity-40"
+                          >
+                            {syncStatus === 'syncing'
+                              ? <><RefreshCw size={18} className="animate-spin"/>同期中...</>
+                              : syncPriority === 'cloud'
+                                ? <><CloudDownload size={18}/>クラウドのデータを取得</>
+                                : <><CloudUpload size={18}/>このデバイスをアップロード</>
+                            }
+                          </button>
+                        </div>
+                      </GlassCard>
+
+                      {/* 使い方 */}
+                      <GlassCard title="使い方" icon={<HelpCircle size={18} className="text-slate-400"/>}>
+                        <ol className="space-y-3 text-[13px] text-slate-600 dark:text-white/60 leading-relaxed list-none">
+                          {[
+                            '送信側のデバイスで「同期番号を生成する」を押す',
+                            '表示された番号をコピーまたはメモする',
+                            '受信側のデバイスで「他のデバイスから受信」に番号を入力',
+                            '「番号で同期する」を押してデータを取得',
+                            '以降は送信側で「今すぐアップロード」を押すたびにデータが最新化される',
+                          ].map((step, i) => (
+                            <li key={i} className="flex items-start gap-3">
+                              <span className="shrink-0 w-5 h-5 rounded-full bg-[#00c896]/20 text-[#00c896] text-[11px] font-black flex items-center justify-center mt-0.5">{i+1}</span>
+                              <span>{step}</span>
+                            </li>
+                          ))}
+                        </ol>
+                      </GlassCard>
+                    </div>
+                  )}
+
                   {/* 口座・決済手段の管理（固定費は記入タブへ移動） */}
                   {settingsView === 'accounts' && (
                     <GlassCard title="口座・決済手段の管理">
@@ -2683,19 +3005,21 @@ function App() {
           )}
         </main>
 
-        {/* ナビゲーション */}
-        <nav
-          className="fixed bottom-0 left-0 right-0 w-full bg-white/95 dark:bg-black/95 backdrop-blur-xl border-t border-slate-200 dark:border-white/[0.07] rounded-t-[32px] z-50 flex items-center px-2 pt-2 pb-nav-safe"
-          style={{ WebkitTransform: 'translate3d(0,0,0)', willChange: 'transform' }}
-        >
-           <NavBtn active={activeTab === 'home'} onClick={() => { setActiveTab('home'); window.scrollTo(0,0); }} icon={<Home size={28}/>} label="ホーム" />
-           <NavBtn active={activeTab === 'assets'} onClick={() => { setActiveTab('assets'); window.scrollTo(0,0); }} icon={<Wallet size={28}/>} label="資産" />
-           <div className="relative flex-1 flex justify-center">
-              <button onClick={() => { setActiveTab('add'); window.scrollTo(0,0); }} className={`w-[72px] h-[72px] rounded-full flex items-center justify-center -mt-7 bg-[#111111] dark:bg-black text-white active:scale-90 plus-btn`} style={{ border: '2.5px solid rgba(255,255,255,0.85)', boxShadow: '0 0 0 0 rgba(255,255,255,0.25), 0 12px 40px rgba(0,0,0,0.7)' }}><Plus size={36} strokeWidth={2.5}/></button>
-           </div>
-           <NavBtn active={activeTab === 'ledger'} onClick={() => { setActiveTab('ledger'); window.scrollTo(0,0); }} icon={<BookOpen size={28}/>} label="家計簿" />
-           <NavBtn active={activeTab === 'settings'} onClick={() => { setActiveTab('settings'); setSettingsView('main'); window.scrollTo(0,0); }} icon={<Settings size={28}/>} label="設定" />
-        </nav>
+        {/* ナビゲーション（モバイルのみ） */}
+        {!isPcMode && (
+          <nav
+            className="fixed bottom-0 left-0 right-0 w-full bg-white/95 dark:bg-black/95 backdrop-blur-xl border-t border-slate-200 dark:border-white/[0.07] rounded-t-[32px] z-50 flex items-center px-2 pt-2 pb-nav-safe"
+            style={{ WebkitTransform: 'translate3d(0,0,0)', willChange: 'transform' }}
+          >
+             <NavBtn active={activeTab === 'home'} onClick={() => { setActiveTab('home'); window.scrollTo(0,0); }} icon={<Home size={28}/>} label="ホーム" />
+             <NavBtn active={activeTab === 'assets'} onClick={() => { setActiveTab('assets'); window.scrollTo(0,0); }} icon={<Wallet size={28}/>} label="資産" />
+             <div className="relative flex-1 flex justify-center">
+                <button onClick={() => { setActiveTab('add'); window.scrollTo(0,0); }} className={`w-[72px] h-[72px] rounded-full flex items-center justify-center -mt-7 bg-[#111111] dark:bg-black text-white active:scale-90 plus-btn`} style={{ border: '2.5px solid rgba(255,255,255,0.85)', boxShadow: '0 0 0 0 rgba(255,255,255,0.25), 0 12px 40px rgba(0,0,0,0.7)' }}><Plus size={36} strokeWidth={2.5}/></button>
+             </div>
+             <NavBtn active={activeTab === 'ledger'} onClick={() => { setActiveTab('ledger'); window.scrollTo(0,0); }} icon={<BookOpen size={28}/>} label="家計簿" />
+             <NavBtn active={activeTab === 'settings'} onClick={() => { setActiveTab('settings'); setSettingsView('main'); window.scrollTo(0,0); }} icon={<Settings size={28}/>} label="設定" />
+          </nav>
+        )}
 
         {/* トースト */}
         {toast && (
@@ -3353,6 +3677,78 @@ function App() {
         )}
       </div>
     </div>
+  );
+}
+
+function PcSidebar({ activeTab, setActiveTab, setSettingsView, syncStatus, syncCode, onPushSync, onExitPc }) {
+  const navItems = [
+    { id: 'home',     icon: <Home size={20}/>,     label: 'ホーム' },
+    { id: 'assets',   icon: <Wallet size={20}/>,   label: '資産' },
+    { id: 'add',      icon: <Plus size={20}/>,      label: '記入' },
+    { id: 'ledger',   icon: <BookOpen size={20}/>,  label: '家計簿' },
+    { id: 'settings', icon: <Settings size={20}/>,  label: '設定' },
+  ];
+  const syncColor = syncStatus === 'syncing' ? 'text-yellow-400' : syncStatus === 'error' ? 'text-red-400' : syncCode ? 'text-[#00c896]' : 'text-slate-500 dark:text-white/30';
+  return (
+    <aside className="fixed top-0 left-0 h-full w-[260px] bg-white dark:bg-[#080808] border-r border-slate-200 dark:border-white/[0.06] z-40 flex flex-col select-none" style={{ WebkitTransform: 'translate3d(0,0,0)' }}>
+      {/* ロゴ */}
+      <div className="px-6 pt-8 pb-6 border-b border-slate-100 dark:border-white/[0.05]">
+        <h1 className="text-2xl font-black tracking-tighter text-slate-900 dark:text-white">Fin<span className="text-slate-900 dark:text-[#00c896]" style={{ textShadow: '0 0 20px rgba(0,200,150,0.5)' }}>axis</span></h1>
+        <div className="flex items-center gap-1.5 mt-1">
+          <Monitor size={12} className="text-slate-400 dark:text-white/30"/>
+          <span className="text-[10px] font-bold text-slate-400 dark:text-white/30 tracking-widest uppercase">PC Mode</span>
+        </div>
+      </div>
+
+      {/* ナビゲーション */}
+      <nav className="flex-1 px-3 pt-4 space-y-1">
+        {navItems.map(item => (
+          <button
+            key={item.id}
+            onClick={() => { setActiveTab(item.id); if (item.id === 'settings') setSettingsView('main'); window.scrollTo(0,0); }}
+            className={`w-full flex items-center gap-3 px-4 py-3.5 rounded-2xl font-bold text-[15px] transition-all
+              ${activeTab === item.id
+                ? 'bg-slate-900 dark:bg-[#00c896]/12 text-white dark:text-[#00c896] shadow-sm'
+                : 'text-slate-500 dark:text-white/40 hover:bg-slate-50 dark:hover:bg-white/[0.04] hover:text-slate-800 dark:hover:text-white/70'
+              }`}
+          >
+            <span className={activeTab === item.id ? '' : 'opacity-70'}>{item.icon}</span>
+            <span>{item.label}</span>
+            {activeTab === item.id && <span className="ml-auto w-1.5 h-1.5 rounded-full bg-[#00c896]" style={{ boxShadow: '0 0 8px rgba(0,200,150,0.9)' }}/>}
+          </button>
+        ))}
+      </nav>
+
+      {/* モード切替 */}
+      <div className="px-3 pt-2">
+        <button
+          onClick={onExitPc}
+          className="w-full flex items-center justify-center gap-2 px-4 py-2.5 rounded-2xl border border-slate-200 dark:border-white/[0.08] text-slate-500 dark:text-white/40 hover:bg-slate-50 dark:hover:bg-white/[0.04] hover:text-slate-700 dark:hover:text-white/70 hover:border-slate-300 dark:hover:border-white/15 transition-all active:scale-95 text-xs font-bold"
+        >
+          <Smartphone size={14}/>
+          スマホモードに切替
+        </button>
+      </div>
+
+      {/* 同期ステータス */}
+      <div className="px-3 pb-6 pt-2 border-t border-slate-100 dark:border-white/[0.05]">
+        <button
+          onClick={onPushSync}
+          className={`w-full flex items-center gap-3 px-4 py-3 rounded-2xl font-bold text-sm transition-all hover:bg-slate-50 dark:hover:bg-white/[0.04] ${syncColor}`}
+        >
+          {syncStatus === 'syncing'
+            ? <RefreshCw size={18} className="animate-spin"/>
+            : syncCode
+              ? <CloudUpload size={18}/>
+              : <CloudIcon size={18}/>
+          }
+          <div className="flex flex-col items-start gap-0.5">
+            <span className="text-xs font-black">{syncStatus === 'syncing' ? '同期中...' : syncCode ? 'データを同期' : '同期未設定'}</span>
+            {syncCode && <span className="text-[9px] opacity-60 font-mono">{syncCode.slice(0, 8)}...</span>}
+          </div>
+        </button>
+      </div>
+    </aside>
   );
 }
 
